@@ -1,0 +1,12 @@
+*.DS_Store
+*.Rhistory
+*.o
+*.RData
+*.out
+*.synctex.gz
+*.pdf
+*.aux
+*.bbl
+*.blg
+*.log
+
