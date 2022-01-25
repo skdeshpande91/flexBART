@@ -40,6 +40,8 @@ arma::mat predict_flexBART(Rcpp::List tree_draws,
   if(p_cat > 0){
     di.x_cat = tX_cat.begin();
     di.cat_levels = &cat_levels;
+    di.K = &K;
+    di.adj_support = &adj_support;
   }
   
   

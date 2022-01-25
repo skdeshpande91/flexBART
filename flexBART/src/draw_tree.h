@@ -3,5 +3,5 @@
 
 #include "funs.h"
 
-void draw_tree(tree &t, data_info &di, tree_prior_info &tree_pi, bool mst_splits, RNG &gen);
+void draw_tree(tree &t, data_info &di, tree_prior_info &tree_pi, RNG &gen);
 #endif

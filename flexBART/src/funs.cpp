@@ -34,7 +34,12 @@ void tree_traversal(suff_stat &ss, tree &t, data_info &di)
     if(di.x_cont != 0) xx_cont = di.x_cont + i * di.p_cont;
     if(di.x_cat != 0) xx_cat = di.x_cat + i * di.p_cat;
     bn = t.get_bn(xx_cont, xx_cat);
-    if(bn == 0) Rcpp::stop("[tree_traversal]: could not find bottom node!"); // should never be encountered
+    //if(bn == 0) Rcpp::stop("[tree_traversal]: could not find bottom node!"); // should never be encountered
+    if(bn == 0){
+      Rcpp::Rcout << "i = " << i << std::endl;
+      t.print();
+      Rcpp::stop("[tree_traversal]: could not find bottom node!");
+    }
     else{
       nid = bn->get_nid();
       if(ss.count(nid) != 1) Rcpp::stop("[tree_traversal]: bottom node not included in sufficient statistic map!"); // should never be encountered
