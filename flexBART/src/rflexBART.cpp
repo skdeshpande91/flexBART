@@ -210,6 +210,7 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   
   
   Rcpp::NumericMatrix tree_fits(n,M);
+  Rcpp::IntegerMatrix leaf_id(n,M);
   Rcpp::NumericVector fit(n);
   for(int i = 0; i < n; i++) fit[i] = 0.0;
   Rcpp::CharacterVector tree_strings(M);
@@ -228,8 +229,9 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
     for(suff_stat_it ss_it = ss.begin(); ss_it != ss.end(); ++ss_it){
       tmp_mu = t.get_ptr(ss_it->first)->get_mu();
       for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-        tree_fits[*it,m] = tmp_mu;
+        tree_fits(*it,m) = tmp_mu;
         fit[*it] += tmp_mu;
+        leaf_id(*it,m) = ss_it->first; // id of the leaf
       }
     }
     tree_strings[m] = write_tree(t, di, set_str);
