@@ -38,7 +38,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   
   if(verbose){
     Rcpp::Rcout << "n_train = " << n_train << " n_test = " << n_test;
-    Rcpp::Rcout << " p_cont = " << p_cont << "  p_cat = " << p_cat;
+    Rcpp::Rcout << " p_cont = " << p_cont << "  p_cat = " << p_cat << std::endl;
   }
   
   std::vector<std::set<int>> cat_levels;

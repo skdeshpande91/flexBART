@@ -241,6 +241,7 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   results["fit"] = fit;
   results["trees"] = tree_strings;
   results["tree_fits"] = tree_fits;
+  results["leaf"] = leaf_id;
   return results;
 }
 
