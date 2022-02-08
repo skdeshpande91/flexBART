@@ -141,6 +141,9 @@ void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat,
   
 }
 
+
+
+
 void compute_suff_stat_prune(suff_stat &orig_suff_stat, suff_stat &new_suff_stat, int &nl_nid, int &nr_nid, int &np_nid, tree &t, data_info &di)
 {
   //int i;
