@@ -23,24 +23,18 @@ Once we allow categorical decision rules that cluster multiple levels together s
 For instance, in analyzing aggregated spatial data (e.g. at the census tract or block level), we might use a categorical variable to encode the spatial unit. 
 If we have a known adjacency structure, it would be nice to restrict our decision trees to partition spatial units in a spatially contiguous fashion.
 This new implementation of BART allows for this possibility.
-As a sort of preview, here are a few prior draws from this new regression tree prior.
-
-When we put them all together, we end up with some neat looking spatial functions! 
-
-
-Of course, we can extend this to create a cute spatio-temporal process using an ensemble of trees that can partition space and time. 
-Here are a few prior draws when we allow ourselves to split on space & time (space once again being encoded by census tract id). 
-
-
 
 Now that we're thinking about more exotic decision rules, why stop with categorical variables? BART traditionally relies on axis-aligned decision rules of continuous variables.
 But several authors have, at various points since the introduction of random forests, reported moderate gains when they allow decision rules based on random combinations of features.
 Is the same true for BART?
 This new implementation also allows for so-called ``random combination'' decision rules.
+But early tests haven't been super promising (more to come!)
 
 ### Towards a more flexible BART
 
 `flexBART` is a re-implementation of BART that tries to produce more thoughtful splits on categorical variables and enable investigation of using non-axis aligned splitting rules based on random combinations of continuous predictors.
 While `flexBART` is largely based on the design principles in `BART` package, it contains a couple of improvements designed to make the code more readable and faster.
-Perhaps the biggest change is that in the main MCMC loop we no longer perform any tree traversals. 
+By far the most salient is that in the main MCMC loop we no longer perform any tree traversals; that is, we do not loop over all of the observations and trace each observation's path from the root node of a tree to one of the leafs.
+Instead, we keep track of the partition of observations induced by each tree and update them as needed in the Metropolis-Hastings step.
+In the code, we represent the partition as a `std::map<int,std::vector<int>>` where the key is the node id of the leaf and the value is a vector holding the observation.
 

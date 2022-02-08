@@ -48,13 +48,14 @@ public:
   int p; // total number of predictors (likely will never every use this)
   
   double* x_cont; // pointer to the matrix of continuous predictors
+  bool unif_cuts; // do we use uniform cutpoints or do we use user-supplied cutpoints
+  std::vector<std::set<double> >* cutpoints;
   int* x_cat; // pointer to matrix of categorical predictors (levels coded as integers, beginning with 0)
-  
   std::vector<int>* K; // number of levels of each categorical variable
   std::vector<std::set<int> >* cat_levels; // holds unique values of each categorical variable
   std::vector<std::vector<unsigned int> >* adj_support; // support of lower triangle of adjancecy matrix for categorical levels
   double* rp; // partial residual;
-  data_info(){n = 0; p_cont = 0; p_cat = 0; p = 0; x_cont = 0; x_cat = 0; K = 0; cat_levels = 0; adj_support = 0; rp = 0;}
+  data_info(){n = 0; p_cont = 0; p_cat = 0; p = 0; x_cont = 0; unif_cuts = true; cutpoints = 0; x_cat = 0; K = 0; cat_levels = 0; adj_support = 0; rp = 0;}
 };
 
 
@@ -247,6 +248,26 @@ inline void parse_categorical(std::vector<std::set<int>> &cat_levels, std::vecto
     Rcpp::stop("cat_levels_list adj_levels_list must both have size equal to p_cat!");
   }
 }
+
+inline void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont, Rcpp::List &tmp_cutpoints)
+{
+  cutpoints.clear();
+  
+  if(tmp_cutpoints.size() == p_cont){
+    for(int j = 0; j < p_cont; j++){
+      Rcpp::NumericVector cutpoints_vec = Rcpp::as<Rcpp::NumericVector>(tmp_cutpoints[j]);
+      std::set<double> xi_set;
+      for(int l = 0; l < cutpoints_vec.size(); l++) xi_set.insert(cutpoints_vec[l]);
+      cutpoints.push_back(xi_set);
+    }
+    
+  } else{
+    Rcpp::Rcout << "p_cont = " << p_cont;
+    Rcpp::Rcout << "  cutpoints_list.size() = " << tmp_cutpoints.size();
+    Rcpp::stop("cutpoints_list needs to have length p_cont");
+  }
+}
+
  
 inline void parse_training_data(int &n_train, int &p_cont, int &p_cat, Rcpp::NumericMatrix &tX_cont_train, Rcpp::IntegerMatrix &tX_cat_train)
 {

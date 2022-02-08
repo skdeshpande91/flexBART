@@ -8,8 +8,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
                         Rcpp::IntegerMatrix tX_cat_train,
                         Rcpp::NumericMatrix tX_cont_test,
                         Rcpp::IntegerMatrix tX_cat_test,
+                        Rcpp::Nullable<Rcpp::List> cutpoints_list,
                         Rcpp::Nullable<Rcpp::List> cat_levels_list,
                         Rcpp::Nullable<Rcpp::List> adj_support_list,
+                        bool unif_cuts,
                         bool mst_split, bool mst_reweight,
                         double mu0, double tau,
                         double prob_aa, double prob_rc, // probs of axis-aligned and random-combination splits
@@ -40,10 +42,17 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     Rcpp::Rcout << "n_train = " << n_train << " n_test = " << n_test;
     Rcpp::Rcout << " p_cont = " << p_cont << "  p_cat = " << p_cat << std::endl;
   }
-  
+  std::vector<std::set<double>> cutpoints;
   std::vector<std::set<int>> cat_levels;
   std::vector<int> K; // number of levels for each categorical variable
   std::vector<std::vector<unsigned int>> adj_support;
+  
+  if(p_cont > 0){
+    if(cutpoints_list.isNotNull() && !unif_cuts){
+      Rcpp::List tmp_cutpoints = Rcpp::List(cutpoints_list);
+      parse_cutpoints(cutpoints, p_cont, tmp_cutpoints);
+    }
+  }
   
   if(p_cat > 0){
     if(cat_levels_list.isNotNull() && adj_support_list.isNotNull()){
@@ -65,7 +74,11 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   di_train.p_cont = p_cont;
   di_train.p_cat = p_cat;
   di_train.p = p;
-  if(p_cont > 0) di_train.x_cont = tX_cont_train.begin();
+  di_train.unif_cuts = unif_cuts; // do we use uniform cutpoints?
+  if(p_cont > 0){
+    di_train.x_cont = tX_cont_train.begin();
+    di_train.cutpoints = &cutpoints;
+  }
   if(p_cat > 0){
     di_train.x_cat = tX_cat_train.begin();
     di_train.cat_levels = &cat_levels;
@@ -213,7 +226,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
           // remove fit of m-th tree from allfit: allfit[i] -= tmp_mu
           // for partial residual: we could compute Y - allfit (now that allfit has fit of m-th tree removed)
-          // numerical this is exactly equal to adding tmp_mu to the value of residual
+          // numerically this is exactly equal to adding tmp_mu to the value of residual
           allfit_train[*it] -= tmp_mu; // adjust the value of allfit
           residual[*it] += tmp_mu;
         }
@@ -255,7 +268,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
           allfit_train[*it] += tmp_mu;
           residual[*it] -= tmp_mu;
         }
-      }
+      } // this loop is also O(n)
     } // closes loop over all of the trees
     // ready to update sigma
     total_sq_resid = 0.0;

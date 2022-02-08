@@ -416,7 +416,6 @@ void tree::get_rg_aa(int &v, double &c_lower, double &c_upper){
   }
 }
 
-
 /*
  old version
 void tree::get_rg_aa(int &v, double &c_lower, double &c_upper){

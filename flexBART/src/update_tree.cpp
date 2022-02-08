@@ -73,7 +73,39 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
       c_lower = -1.0;
       c_upper = 1.0;
     }
-    rule.c = gen.uniform(c_lower, c_upper); // uniformly select the cutpoint.
+    if(di.unif_cuts) rule.c = gen.uniform(c_lower, c_upper);
+    else{
+      // select from a pre-defined set of cutpoints.
+      std::vector<double> valid_cutpoints;
+      // std::set::lower_bound: iterator at first element that is not considered to come before
+      // std::set::upper_bound: iterator at first element considered to come after
+      // if value is not in set, lower_bound and upper_bound give same result
+      // if value is in set: lower bound returns the value, upper bound returns the next value
+      if(di.cutpoints->at(rule.v_aa).count(c_lower) != 1 || di.cutpoints->at(rule.v_aa).count(c_upper) != 1){
+        // c_lower and c_upper were not found in the set of available cutpoints
+        Rcpp::Rcout << "[grow tree]: attempting to select a cutpoint from given set" << std::endl;
+        Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
+        Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
+        Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");
+      }
+      
+      // we want to draw from the cutpoints exclusive of c_lower & c_upper;
+      // i.e. we want to start with the one just after c_lower and just before c_upper
+      for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).upper_bound(c_lower); it != di.cutpoints->at(rule.v_aa).lower_bound(c_upper); ++it){
+        valid_cutpoints.push_back(*it);
+      }
+      int num_cutpoints = valid_cutpoints.size();
+      if(num_cutpoints < 1){
+        // no valid splits are available; we will just pick something, all of the observations will go to one child anyway...
+        valid_cutpoints.clear();
+        for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it){
+          valid_cutpoints.push_back(*it);
+        }
+        num_cutpoints = valid_cutpoints.size();
+      }
+      // at this point, valid cutpoints is a vector containing the available cutpoints at this node. we pick one uniformly.
+      rule.c = valid_cutpoints[floor(gen.uniform() * num_cutpoints)];
+    }
   } else if(unif < tree_pi.prob_aa + tree_pi.prob_rc){
     // random combination split
     rule.is_cat = false;
