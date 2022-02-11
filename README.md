@@ -38,16 +38,25 @@ By far the most salient is that in the main MCMC loop we no longer perform any t
 Instead, we keep track of the partition of observations induced by each tree and update them as needed in the Metropolis-Hastings step.
 In the code, we represent the partition as a `std::map<int,std::vector<int>>` where the key is the node id of the leaf and the value is a vector holding the observation.
 
+### Example
 
 The file `scripts/grid_example.R` is a small spatial example. 
 In this example, we have 100 spatial units arranged in a 10 x 10 grid (nodes in the graph represent spatial units and edges represent adjacency relations).
-We then defined a piecewise constant function F on this grid by first creating 5 clusters of spatial units and assigning a constant value within each cluster.
-We generated a single observation at each node by adding standard normal noise to value of F.
+We then defined a piecewise constant function mu on this grid by first creating 5 clusters of spatial units and assigning a constant value within each cluster.
+We generated a single observation at each node by adding standard normal noise to value of mu.
 
-We then randomly selected 10 nodes to be our testing data and training flexBART and BART on the remaining 90 datapoints.
-Note that in training both flexBART and BART were aware of the full adjacency structure (that is, we did not training only on the adjacency matrix corresponding to the subgraph induced by the training observations alone).
+
+We then randomly selected 10 nodes to be our testing data and training flexBART and BART on the remaining 90 datapoints. In the figure below, the nodes in the test set are colored in gray.
+Both flexBART and BART were aware of the full adjacency structure in training; that is, although they did not encounter data from the testing nodes, we did not modify the underlying adjacency matrix of the nodes. 
 We compared how well flexBART (which can exploit adjacency information) and regular BART (which cannot) were able to (i) recover F evaluate at each spatial unit in the training dataset and (ii) interpolate the value of F at each spatial unit in the testing dataset. 
 
+![](https://github.com/skdeshpande91/flexBART/blob/main/figures/grid_example.png")
+
+In the figure, the color scale runs from about -9 (dark blue) to 0 (beige/yellow-ish) to about 9 (dark red). 
+The same scale is used for all panels.
+
+flexBART (w/o adjacency) uses decision rules that partition levels of the categorical variable uniformly, while flexBART (w/ adjacency) uses decision rules that partition levels in a way that respects the underlying adjacency structure.
+Regular BART does pretty poorly on this example. Essentially it pools together all of the node and makes almost the same prediction at each. While this behavior is consistent with all trees in the ensemble being equal to a root node (i.e. a stump), we found that the chain visited non-trivial trees. 
 
 
 
