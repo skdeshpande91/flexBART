@@ -50,7 +50,7 @@ We then randomly selected 10 nodes to be our testing data and training flexBART 
 Both flexBART and BART were aware of the full adjacency structure in training; that is, although they did not encounter data from the testing nodes, we did not modify the underlying adjacency matrix of the nodes. 
 We compared how well flexBART (which can exploit adjacency information) and regular BART (which cannot) were able to (i) recover F evaluate at each spatial unit in the training dataset and (ii) interpolate the value of F at each spatial unit in the testing dataset. 
 
-![](https://github.com/skdeshpande91/flexBART/blob/main/figures/grid_example.png")
+![](https://github.com/skdeshpande91/flexBART/blob/main/figures/grid_example.png)
 
 In the figure, the color scale runs from about -9 (dark blue) to 0 (beige/yellow-ish) to about 9 (dark red). 
 The same scale is used for all panels.
