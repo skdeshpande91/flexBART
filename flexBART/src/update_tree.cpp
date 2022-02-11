@@ -67,14 +67,25 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
     rule.is_cat = false;
     rule.is_rc = false;
     rule.v_aa = gen.multinomial(di.p_cont, tree_pi.theta_aa);
-    nx->get_rg_aa(rule.v_aa, c_lower, c_upper); // what is the range of valid cutpoints for the selected variable (based only on tree topology)
-    if(c_lower >= c_upper){
-      // this should really throw an error... but there's no harm in proposing a trivial split.
-      c_lower = -1.0;
+    
+    if(di.unif_cuts){
       c_upper = 1.0;
-    }
-    if(di.unif_cuts) rule.c = gen.uniform(c_lower, c_upper);
-    else{
+      c_lower = -1.0;
+      nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+      if(c_lower >= c_upper){
+        c_lower = -1.0;
+        c_upper = 1.0;
+      }
+      rule.c = gen.uniform(c_lower, c_upper);
+    } else{
+      c_lower = *(di.cutpoints->at(rule.v_aa).begin()); // returns smaller element in set
+      c_upper = *(di.cutpoints->at(rule.v_aa).rbegin()); // reverse iterator, returns largest value in set
+      nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+      if(c_lower >= c_upper){
+        // this is a weird tree and we'll just propose a trivial split
+        c_lower = *(di.cutpoints->at(rule.v_aa).begin());
+        c_upper = *(di.cutpoints->at(rule.v_aa).rbegin());
+      }
       // select from a pre-defined set of cutpoints.
       std::vector<double> valid_cutpoints;
       // std::set::lower_bound: iterator at first element that is not considered to come before
@@ -85,7 +96,10 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
         // c_lower and c_upper were not found in the set of available cutpoints
         Rcpp::Rcout << "[grow tree]: attempting to select a cutpoint from given set" << std::endl;
         Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
-        Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
+        Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_upper) << std::endl;
+        //Rcpp::Rcout << "  cutpoints are:";
+        //for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it) Rcpp::Rcout << " " << *it;
+        //Rcpp::Rcout << std::endl;
         Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");
       }
       
@@ -285,14 +299,24 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
     rule.is_cat = false;
     rule.is_rc = false;
     rule.v_aa = gen.multinomial(di_train.p_cont, tree_pi.theta_aa);
-    nx->get_rg_aa(rule.v_aa, c_lower, c_upper); // what is the range of valid cutpoints for the selected variable (based only on tree topology)
-    if(c_lower >= c_upper){
-      // this should really throw an error... but there's no harm in proposing a trivial split.
-      c_lower = -1.0;
+    if(di_train.unif_cuts){
       c_upper = 1.0;
-    }
-    if(di_train.unif_cuts) rule.c = gen.uniform(c_lower, c_upper);
-    else{
+      c_lower = -1.0;
+      nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+      if(c_lower >= c_upper){
+        c_lower = -1.0;
+        c_upper = 1.0;
+      }
+      rule.c = gen.uniform(c_lower, c_upper);
+    } else{
+      c_lower = *(di_train.cutpoints->at(rule.v_aa).begin()); // returns smaller element in set
+      c_upper = *(di_train.cutpoints->at(rule.v_aa).rbegin()); // reverse iterator, returns largest value in set
+      nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+      if(c_lower >= c_upper){
+        // this is a weird tree and we'll just propose a trivial split
+        c_lower = *(di_train.cutpoints->at(rule.v_aa).begin());
+        c_upper = *(di_train.cutpoints->at(rule.v_aa).rbegin());
+      }
       // select from a pre-defined set of cutpoints.
       std::vector<double> valid_cutpoints;
       // std::set::lower_bound: iterator at first element that is not considered to come before
@@ -303,7 +327,10 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
         // c_lower and c_upper were not found in the set of available cutpoints
         Rcpp::Rcout << "[grow tree]: attempting to select a cutpoint from given set" << std::endl;
         Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << di_train.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
-        Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << di_train.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
+        Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << di_train.cutpoints->at(rule.v_aa).count(c_upper) << std::endl;
+        //Rcpp::Rcout << "  cutpoints are:";
+        //for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it) Rcpp::Rcout << " " << *it;
+        //Rcpp::Rcout << std::endl;
         Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");
       }
       
@@ -387,8 +414,8 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
   suff_stat prop_ss_train;
   compute_suff_stat_grow(ss_train, prop_ss_train, nx_nid, rule, t, di_train); // figure out which training observations from nx move to nxl and nxr
   
+  suff_stat prop_ss_test;
   if(di_test.n > 0){
-    suff_stat prop_ss_test;
     compute_suff_stat_grow(ss_test, prop_ss_test, nx_nid, rule, t, di_test); // figure out which testing observation from nx more to nxl and nxr
   }
 

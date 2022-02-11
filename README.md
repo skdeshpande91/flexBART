@@ -38,3 +38,16 @@ By far the most salient is that in the main MCMC loop we no longer perform any t
 Instead, we keep track of the partition of observations induced by each tree and update them as needed in the Metropolis-Hastings step.
 In the code, we represent the partition as a `std::map<int,std::vector<int>>` where the key is the node id of the leaf and the value is a vector holding the observation.
 
+
+The file `scripts/grid_example.R` is a small spatial example. 
+In this example, we have 100 spatial units arranged in a 10 x 10 grid (nodes in the graph represent spatial units and edges represent adjacency relations).
+We then defined a piecewise constant function F on this grid by first creating 5 clusters of spatial units and assigning a constant value within each cluster.
+We generated a single observation at each node by adding standard normal noise to value of F.
+
+We then randomly selected 10 nodes to be our testing data and training flexBART and BART on the remaining 90 datapoints.
+Note that in training both flexBART and BART were aware of the full adjacency structure (that is, we did not training only on the adjacency matrix corresponding to the subgraph induced by the training observations alone).
+We compared how well flexBART (which can exploit adjacency information) and regular BART (which cannot) were able to (i) recover F evaluate at each spatial unit in the training dataset and (ii) interpolate the value of F at each spatial unit in the testing dataset. 
+
+
+
+
