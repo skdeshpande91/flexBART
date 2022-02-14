@@ -183,7 +183,7 @@ fit4 <- .flexBART_fit(Y_train = std_Y_train,
                       lambda = lambda, nu = nu,
                       M = M, 
                       nd = 1000, burn = 1000, thin = 1,
-                      save_trees = FALSE, verbose = TRUE, print_every = 50)
+                      save_trees = TRUE, verbose = TRUE, print_every = 50)
 
 ##########
 # flexBART works with the standardized responses, so we need to convert back 
@@ -241,18 +241,23 @@ max_value <- max(abs(c(Y_all, post_mean_train1, post_mean_test1,
                        post_mean_train3, post_mean_test3,
                        post_mean_train4, post_mean_test4)))
 
+# Plot the true function mu but this time with the enhanced color scale
+scaled_mu <- rescale(mu, to = c(0,1), from = max_value * c(-1,1))
+V(g_true)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
+plot(g_true, layout = layout_on_grid, main = "True mu", vertex.label = "")
+
 # Let's plot the original data
 g_all <- g
 scaled_Y <- scales::rescale(Y_all, to = c(0,1), from = max_value * c(-1,1))
 V(g_all)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_Y)/255)
-plot(g_all, layout = layout_on_grid, main = "Data")
+plot(g_all, layout = layout_on_grid, main = "Data", vertex.label = "")
 
 # Let's see testing dataset
 g_train <- g
 scaled_Y <- scales::rescale(Y_all, to = c(0,1), from = max_value * c(-1,1))
 V(g_train)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_Y)/255)
-V(g_train)$color[test_index] <- "green" 
-plot(g_train, layout = layout_on_grid, main = "Training")
+V(g_train)$color[test_index] <- "darkgray" 
+plot(g_train, layout = layout_on_grid, main = "Training", vertex.label = "")
 
 # Fit 1
 g_fit1 <- g
@@ -261,7 +266,7 @@ scaled_fit1_test <- scales::rescale(post_mean_test1, to = c(0,1), from = max_val
 V(g_fit1)$color <- rep(NA, times = n)
 V(g_fit1)$color[train_index] <- rgb(colorRamp(col_list, bias = 1)(scaled_fit1_train)/255)
 V(g_fit1)$color[test_index] <- rgb(colorRamp(col_list, bias = 1)(scaled_fit1_test)/255)
-plot(g_fit1, layout = layout_on_grid, main = "flexBART")
+plot(g_fit1, layout = layout_on_grid, main = "flexBART (w/ adjacency)")
 
 # Fit 2
 g_fit2 <- g
@@ -279,7 +284,7 @@ scaled_fit3_test <- scales::rescale(post_mean_test3, to = c(0,1), from = max_val
 V(g_fit3)$color <- rep(NA, times = n)
 V(g_fit3)$color[train_index] <- rgb(colorRamp(col_list, bias = 1)(scaled_fit3_train)/255)
 V(g_fit3)$color[test_index] <- rgb(colorRamp(col_list, bias = 1)(scaled_fit3_test)/255)
-plot(g_fit3, layout = layout_on_grid)
+plot(g_fit3, layout = layout_on_grid, "flexBART (w/o adjacency)")
 
 g_fit4 <- g
 scaled_fit4_train <- scales::rescale(post_mean_train4, to = c(0,1), from = max_value * c(-1,1))
@@ -287,4 +292,18 @@ scaled_fit4_test <- scales::rescale(post_mean_test4, to = c(0,1), from = max_val
 V(g_fit4)$color <- rep(NA, times = n)
 V(g_fit4)$color[train_index] <- rgb(colorRamp(col_list, bias = 1)(scaled_fit4_train)/255)
 V(g_fit4)$color[test_index] <- rgb(colorRamp(col_list, bias = 1)(scaled_fit4_test)/255)
-plot(g_fit4, layout = layout_on_grid)
+plot(g_fit4, layout = layout_on_grid, "Regular BART")
+
+
+######
+# Visualization 
+
+png("figures/grid_example.png", width = 8, height = 6, units = "in", res = 600)
+par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(2,3))
+plot(g_true, layout = layout_on_grid, main = "True mu", vertex.label = "")
+plot(g_all, layout = layout_on_grid, main = "Data", vertex.label = "")
+plot(g_train, layout = layout_on_grid, main = "Training", vertex.label = "")
+plot(g_fit1, layout = layout_on_grid, main = "flexBART (w/ adjacency)", vertex.label = "")
+plot(g_fit3, layout = layout_on_grid, main = "flexBART (w/o adjacency)", vertex.label = "")
+plot(g_fit4, layout = layout_on_grid, main = "Regular BART", vertex.label = "")
+dev.off()
