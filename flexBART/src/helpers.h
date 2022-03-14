@@ -249,6 +249,27 @@ inline void parse_categorical(std::vector<std::set<int>> &cat_levels, std::vecto
   }
 }
 
+inline void parse_categorical(std::vector<std::set<int>> &cat_levels, std::vector<int> &K, int p_cat, Rcpp::List &tmp_cat_levels)
+{
+  cat_levels.clear();
+  K.clear();
+  if( tmp_cat_levels.size() == p_cat  ){
+    for(int j = 0; j < p_cat; j++){
+      Rcpp::IntegerVector levels_vec = Rcpp::as<Rcpp::IntegerVector>(tmp_cat_levels[j]);
+      std::set<int> levels_set;
+      for(int l = 0; l < levels_vec.size(); l++) levels_set.insert(levels_vec[l]);
+      cat_levels.push_back(levels_set);
+      K.push_back(levels_set.size());
+    }
+  } else{
+    Rcpp::Rcout << "p_cat = " << p_cat;
+    Rcpp::Rcout << "cat_levels_list.size() = " << tmp_cat_levels.size();
+    Rcpp::stop("cat_levels_list must have size equal to p_cat!");
+  }
+}
+
+
+
 inline void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont, Rcpp::List &tmp_cutpoints)
 {
   cutpoints.clear();

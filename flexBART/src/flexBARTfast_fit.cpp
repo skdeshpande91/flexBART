@@ -59,14 +59,20 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
       Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
       Rcpp::List tmp_adj_support = Rcpp::List(adj_support_list);
       parse_categorical(cat_levels, adj_support, K, p_cat, tmp_cat_levels, tmp_adj_support);
+    } else if(cat_levels_list.isNotNull() && !adj_support_list.isNotNull()){
+      Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
+      parse_categorical(cat_levels, K, p_cat, tmp_cat_levels);
     }
   }
+  
   
   double* allfit_train = new double[n_train];
   double* residual = new double[n_train];
   
   std::vector<double> allfit_test;
   if(n_test > 0) allfit_test.resize(n_test); // can wrap this as an Rcpp::NumericVector later on
+
+  
   
   // set up our data info object
   data_info di_train;
@@ -216,18 +222,20 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
   
   // main MCMC loop goes here
   for(int iter = 0; iter < total_draws; iter++){
-    if( (iter < burn) && (iter % print_every == 0)){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Burn-in" << std::endl;
-      Rcpp::checkUserInterrupt();
-    } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
-      Rcpp::checkUserInterrupt();
+    if(verbose){
+      if( (iter < burn) && (iter % print_every == 0)){
+        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Burn-in" << std::endl;
+        Rcpp::checkUserInterrupt();
+      } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
+        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
+        Rcpp::checkUserInterrupt();
+      }
     }
     
     // loop over trees
     total_accept = 0;
     for(int m = 0; m < M; m++){
-      for(suff_stat_it ss_it = ss_vec[m].begin(); ss_it != ss_vec[m].end(); ++ss_it){
+      for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
         // loop over the bottom nodes in m-th tree
         tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
         for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
@@ -239,8 +247,7 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
         }
       } // this whole loop is O(n)
       
-      //update_tree(t_vec[m], ss_vec[m], accept, sigma, di_train, tree_pi, gen); // update the tree!
-      update_tree(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen);
+      update_tree(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
       total_accept += accept;
     
       if(check_ss_map){
@@ -324,8 +331,10 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
       }
       
       for(int i = 0; i < n_train; i++) fit_train(i, sample_index) = allfit_train[i];
+      
       if(n_test > 0){
-        for(int i = 0; i < n_train; i++) allfit_test[i] = 0.0; // reset the value of allfit_test
+        for(int i = 0; i < n_test; i++) allfit_test[i] = 0.0; // reset the value of allfit_test
+        
         for(int m = 0; m < M; m++){
           for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
             tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the corresponding leaf
@@ -333,7 +342,7 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
           } // loop over the keys in the m-th sufficient stat map
         } // closes loop over trees
         //fit_ensemble(allfit_test, t_vec, di_test);
-        //for(int i = 0; i < n_test; i++) fit_test(i, sample_index) = allfit_test[i];
+        for(int i = 0; i < n_test; i++) fit_test(i, sample_index) = allfit_test[i];
       } // closes loop checking if we actually have test set observations.
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop

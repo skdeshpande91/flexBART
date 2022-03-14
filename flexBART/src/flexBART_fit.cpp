@@ -59,6 +59,9 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
       Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
       Rcpp::List tmp_adj_support = Rcpp::List(adj_support_list);
       parse_categorical(cat_levels, adj_support, K, p_cat, tmp_cat_levels, tmp_adj_support);
+    } else if(cat_levels_list.isNotNull() && !adj_support_list.isNotNull()){
+      Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
+      parse_categorical(cat_levels, K, p_cat, tmp_cat_levels);
     }
   }
   
@@ -209,17 +212,19 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   
   // main MCMC loop goes here
   for(int iter = 0; iter < total_draws; iter++){
-    if( (iter < burn) && (iter % print_every == 0)){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Burn-in" << std::endl;
-      Rcpp::checkUserInterrupt();
-    } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
-      Rcpp::checkUserInterrupt();
+    if(verbose){
+      if( (iter < burn) && (iter % print_every == 0)){
+        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Burn-in" << std::endl;
+        Rcpp::checkUserInterrupt();
+      } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
+        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
+        Rcpp::checkUserInterrupt();
+      }
     }
-    
     // loop over trees
     total_accept = 0;
     for(int m = 0; m < M; m++){
+      //Rcpp::Rcout << m << " "; // DEBUG
       for(suff_stat_it ss_it = ss_vec[m].begin(); ss_it != ss_vec[m].end(); ++ss_it){
         // loop over the bottom nodes in m-th tree
         tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
@@ -270,6 +275,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         }
       } // this loop is also O(n)
     } // closes loop over all of the trees
+    //Rcpp::Rcout << std::endl; // DEBUG
     // ready to update sigma
     total_sq_resid = 0.0;
     //for(int i = 0; i < n_train; i++) total_sq_resid += pow(Y_train[i] - allfit_train[i], 2.0);

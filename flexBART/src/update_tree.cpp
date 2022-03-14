@@ -64,6 +64,7 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
   double unif = gen.uniform();
   if(unif < tree_pi.prob_aa){
     // axis aligned split
+    //Rcpp::Rcout << "  aa rule" << std::endl;
     rule.is_cat = false;
     rule.is_rc = false;
     rule.v_aa = gen.multinomial(di.p_cont, tree_pi.theta_aa);
@@ -122,6 +123,8 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
     }
   } else if(unif < tree_pi.prob_aa + tree_pi.prob_rc){
     // random combination split
+    //Rcpp::Rcout << "  rc rule" << std::endl;
+
     rule.is_cat = false;
     rule.is_rc = true;
 
@@ -143,13 +146,25 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
     }
   } else{
     // categorical split
+    //Rcpp::Rcout << "  cat rule" << std::endl;
+
     rule.is_cat = true;
     rule.is_rc = false;
     
     rule.v_cat = gen.multinomial(di.p_cat, tree_pi.theta_cat); // pick the categorical variable on which to split
+    //Rcpp::Rcout << "v_cat = " << rule.v_cat << std::endl;
     std::set<int> avail_levels = di.cat_levels->at(rule.v_cat); // get the full set of levels for this variable
+    //Rcpp::Rcout << "  available levels: ";
+    //for(set_it sit = avail_levels.begin(); sit != avail_levels.end(); ++sit) Rcpp::Rcout << *sit << " ";
+    //Rcpp::Rcout << std::endl;
+    
     nx->get_rg_cat(rule.v_cat, avail_levels); // determine the set of levels available at nx.
 
+    
+    //Rcpp::Rcout << "  available levels: ";
+    //for(set_it sit = avail_levels.begin(); sit != avail_levels.end(); ++sit) Rcpp::Rcout << *sit << " ";
+    //Rcpp::Rcout << std::endl;
+    
     // if there is only one level left for this variable at nx, we will just propose a trivial split
     // and will reset the value of avail_levels to be the full set of all levels for the variable
     if(avail_levels.size() <= 1) avail_levels = di.cat_levels->at(rule.v_cat);
