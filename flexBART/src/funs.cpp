@@ -15,8 +15,7 @@ void tree_traversal(suff_stat &ss, tree &t, data_info &di)
   // add an element to suff stat map for each bottom node
   for(tree::npv_it it = bnv.begin(); it != bnv.end(); ++it){
     nid = (*it)->get_nid(); // bnv is a vector of pointers. it points to elements of bnv so we need (*it) to access the members of these elements
-    // add element to sufficient stats map with key = nid
-    // value is a vector of integers of length di.n recording which observations are assigned to this bottom node
+    // add element to sufficient stats map with key = nid, value = empty vector to hold index of observations assigned to this node
     ss.insert(std::pair<int,std::vector<int>>(nid,std::vector<int>()));
   }
   
@@ -46,8 +45,8 @@ void tree_traversal(suff_stat &ss, tree &t, data_info &di)
       else{
         ss_it = ss.find(nid); // iterator now set to element of ss corresponding to the bottom node holding observation i
         ss_it->second.push_back(i);
-      }
-    } // closes if/else checking that i-th observation's bottom node was in our map
+      } // closes if/else checking that i-th observation's bottom node was in our map
+    } // closes if/else checking that i-th observation maps to valid bottom node
   } // closes loop over all observation
 }
 

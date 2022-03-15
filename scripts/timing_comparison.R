@@ -53,7 +53,7 @@ set.seed(129)
 Y_all <- mu_all + sigma * rnorm(n, 0, 1)
 
 
-rmse_test <- matrix(nrow = 25, ncol = 4, dimnames = list(c(), c("fit1", "fit2", "bart1", "bart2")))
+rmse_test <- matrix(nrow = 25, ncol = 4, dimnames = list(c(), c("flexBART", "flexBARTfast", "BART", "DART")))
 rmse_train <- rmse_test
 timing <- rmse_test
 
@@ -103,6 +103,7 @@ for(r in 1:25){
   adj_support_list <- NULL
 
   set.seed(22022022+r)
+  #set.seed(31521+r)
   time1 <- system.time(fit1 <- .flexBART_fit(Y_train = std_Y_train,
                                              tX_cont_train = t(X_cont_train),
                                              tX_cat_train = t(X_cat_train),
@@ -172,20 +173,22 @@ for(r in 1:25){
   bart_mean_train2 <- bart_fit2$yhat.train.mean
   bart_mean_test2 <- bart_fit2$yhat.test.mean
   
-  rmse_train[r, "fit1"] <- sqrt(mean( (mu_train - post_mean_train1)^2 ))
-  rmse_train[r, "fit2"] <- sqrt(mean( (mu_train - post_mean_train2)^2 ))
-  rmse_train[r, "bart1"] <- sqrt(mean( (mu_train - bart_mean_train1)^2 ))
-  rmse_train[r, "bart2"] <- sqrt(mean( (mu_train - bart_mean_train2)^2 ))
+  rmse_train[r, "flexBART"] <- sqrt(mean( (mu_train - post_mean_train1)^2 ))
+  rmse_train[r, "flexBARTfast"] <- sqrt(mean( (mu_train - post_mean_train2)^2 ))
+  rmse_train[r, "BART"] <- sqrt(mean( (mu_train - bart_mean_train1)^2 ))
+  rmse_train[r, "DART"] <- sqrt(mean( (mu_train - bart_mean_train2)^2 ))
   
-  rmse_test[r, "fit1"] <- sqrt(mean( (mu_test - post_mean_test1)^2 ))
-  rmse_test[r, "fit2"] <- sqrt(mean( (mu_test - post_mean_test2)^2 ))
-  rmse_test[r, "bart1"] <- sqrt(mean( (mu_test - bart_mean_test1)^2 ))
-  rmse_test[r, "bart2"] <- sqrt(mean( (mu_test - bart_mean_test2)^2 ))
+  rmse_test[r, "flexBART"] <- sqrt(mean( (mu_test - post_mean_test1)^2 ))
+  rmse_test[r, "flexBARTfast"] <- sqrt(mean( (mu_test - post_mean_test2)^2 ))
+  rmse_test[r, "BART"] <- sqrt(mean( (mu_test - bart_mean_test1)^2 ))
+  rmse_test[r, "DART"] <- sqrt(mean( (mu_test - bart_mean_test2)^2 ))
   
-  timing[r, "fit1"] <- time1["elapsed"]
-  timing[r, "fit2"] <- time2["elapsed"]
-  timing[r, "bart1"] <- bart1_time["elapsed"]
-  timing[r, "bart2"] <- bart2_time["elapsed"]
+  timing[r, "flexBART"] <- time1["elapsed"]
+  timing[r, "flexBARTfast"] <- time2["elapsed"]
+  timing[r, "BART"] <- bart1_time["elapsed"]
+  timing[r, "DART"] <- bart2_time["elapsed"]
+  
+  print(round(colMeans(rmse_test, na.rm = TRUE), digits = 3))
 }
 
 save(rmse_train, rmse_test, timing, Y_all, X_cat, X_cont, mu_true, 
