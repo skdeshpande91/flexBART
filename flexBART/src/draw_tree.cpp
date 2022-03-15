@@ -4,6 +4,7 @@
 
 void draw_tree(tree &t, data_info &di, tree_prior_info &tree_pi, RNG &gen)
 {
+  //Rcpp::Rcout << "[draw tree]: started!" << std::endl;
   if(t.get_treesize() > 1){
     t.to_null(); // prune tree back to root
   }

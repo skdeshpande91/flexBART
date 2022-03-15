@@ -28,6 +28,7 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   parse_training_data(n,p_cont, p_cat, tX_cont, tX_cat);
 
   int p = p_cont + p_cat;
+  //Rcpp::Rcout << "n = " << n << " p_cont = " << p_cont << " p_cat" << std::endl;
   
   // format the categorical levels
   std::vector<std::set<int>> cat_levels;
@@ -99,10 +100,13 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   double tmp_mu;
   Rcpp::NumericVector fit(n);
   
+
   draw_tree(t, di, tree_pi, gen);
-  t.print();
   
+  t.print();
+
   tree_traversal(ss, t, di);
+
   for(suff_stat_it ss_it = ss.begin(); ss_it != ss.end(); ++ss_it){
     tmp_mu = t.get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
     for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
@@ -113,10 +117,9 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   Rcpp::CharacterVector tree_string(1);
   tree_string[0] = write_tree(t, di, set_str);
   
-  
   Rcpp::List results;
   results["fit"] = fit;
-  results["trees"] = tree_string;
+  //results["trees"] = tree_string;
   return results;
   
 }
@@ -130,7 +133,8 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
                         bool mst_split, bool mst_reweight,
                         double alpha, double beta,
                         double mu0, double tau,
-                        double prob_aa, double prob_rc, int M)
+                        double prob_aa, double prob_rc, int M,
+                        bool verbose, int print_every)
 {
   Rcpp::RNGScope scope;
   RNG gen;
@@ -221,7 +225,7 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   double tmp_mu;
   
   for(int m = 0; m < M; m++){
-    if(m % 10 == 0) Rcpp::Rcout << "Drawing tree " << m+1 << " of " << M << std::endl; 
+    if(verbose && m % print_every == 0) Rcpp::Rcout << "Drawing tree " << m+1 << " of " << M << std::endl; 
     t.to_null();
     draw_tree(t, di, tree_pi, gen);
     ss.clear();
