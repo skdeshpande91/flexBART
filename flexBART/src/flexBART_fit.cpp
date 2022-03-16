@@ -11,7 +11,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
                         Rcpp::Nullable<Rcpp::List> cutpoints_list,
                         Rcpp::Nullable<Rcpp::List> cat_levels_list,
                         Rcpp::Nullable<Rcpp::List> adj_support_list,
-                        bool unif_cuts,
+                        Rcpp::LogicalVector unif_cuts,
                         bool mst_split, bool mst_reweight,
                         double mu0, double tau,
                         double prob_aa, double prob_rc, // probs of axis-aligned and random-combination splits
@@ -48,7 +48,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   std::vector<std::vector<unsigned int>> adj_support;
   
   if(p_cont > 0){
-    if(cutpoints_list.isNotNull() && !unif_cuts){
+    if(cutpoints_list.isNotNull()){
       Rcpp::List tmp_cutpoints = Rcpp::List(cutpoints_list);
       parse_cutpoints(cutpoints, p_cont, tmp_cutpoints);
     }
@@ -77,7 +77,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   di_train.p_cont = p_cont;
   di_train.p_cat = p_cat;
   di_train.p = p;
-  di_train.unif_cuts = unif_cuts; // do we use uniform cutpoints?
+  di_train.unif_cuts = unif_cuts.begin(); // do we use uniform cutpoints?
   if(p_cont > 0){
     di_train.x_cont = tX_cont_train.begin();
     di_train.cutpoints = &cutpoints;
@@ -106,60 +106,29 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   }
   
   tree_prior_info tree_pi;
-  if(p_cont == 0){
-    // no continuous variables so no axis-aligned or random combination rules
-    tree_pi.prob_aa = 0.0;
-    tree_pi.prob_rc = 0.0;
-  } else{
-    if(p_cat == 0){
-      // prob_rc + prob_aa need to sum to 1
-      tree_pi.prob_aa = prob_aa/(prob_aa + prob_rc);
-      tree_pi.prob_rc = prob_rc/(prob_aa + prob_rc);
-    } else{
-      tree_pi.prob_aa = prob_aa;
-      tree_pi.prob_rc = prob_rc;
-    }
-  }
-  
+
   tree_pi.mst_split = mst_split;
-  tree_pi.mst_reweight = mst_reweight;
+  tree_pi.mst_cut_type = mst_cut_type;
   
   // stuff for variable selection
-  int aa_rule_count = 0;
+  int rule_count = 0;
   int rc_rule_count = 0;
-  int cat_rule_count = 0;
   
-  tree_pi.aa_rule_count = &aa_rule_count;
-  tree_pi.rc_rule_count = &rc_rule_count;
-  tree_pi.cat_rule_count = &cat_rule_count;
-    
-  std::vector<int> aa_var_count;
+  std::vector<int> var_count(p, 0);
   int rc_var_count = 0;
-  std::vector<int> cat_var_count;
   
-  std::vector<double> theta_aa;
+  std::vector<double> theta(p, 1.0/( (double) p));
   double theta_rc = 0.0;
-  std::vector<double> theta_cat;
-  
-  if(p_cont > 0){
-    aa_var_count.resize(p_cont, 0);
-    rc_var_count = 0;
-    theta_aa.resize(p_cont, 1.0/( (double) p_cont));
-    theta_rc = 2.0/( (double) p_cont);
-    
-    tree_pi.theta_aa = &theta_aa;
-    tree_pi.theta_rc = &theta_rc;
-    tree_pi.aa_var_count = &aa_var_count;
+  if(prob_rc > 0.0 && p_cont >= 2){
+    tree_pi.prob_rc = prob_rc;
+    theta_rc = &theta_rc;
+    tree_pi.rc_rule_count = &rc_rule_count;
     tree_pi.rc_var_count = &rc_var_count;
-    
   }
-  if(p_cat > 0){
-    cat_var_count.resize(p_cat, 0);
-    theta_cat.resize(p_cat, 1.0/( (double) p_cat));
-    
-    tree_pi.cat_var_count = &cat_var_count;
-    tree_pi.theta_cat = &theta_cat;
-  }
+  tree_pi.rule_count = &rule_count;
+  tree_pi.theta = &theta;
+  tree_pi.var_count = &var_count;
+  
  
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;

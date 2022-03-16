@@ -61,72 +61,118 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
   double tmp_weight = 0.0; // weights of random combination
   double c_max = 1.0; // upper bound for absolute value of cutpoint in random combination split
   
-  double unif = gen.uniform();
-  if(unif < tree_pi.prob_aa){
-    // axis aligned split
-    //Rcpp::Rcout << "  aa rule" << std::endl;
-    rule.is_cat = false;
-    rule.is_rc = false;
-    rule.v_aa = gen.multinomial(di.p_cont, tree_pi.theta_aa);
-    
-    if(di.unif_cuts){
-      c_upper = 1.0;
-      c_lower = -1.0;
-      nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
-      if(c_lower >= c_upper){
-        c_lower = -1.0;
-        c_upper = 1.0;
-      }
-      rule.c = gen.uniform(c_lower, c_upper);
-    } else{
-      c_lower = *(di.cutpoints->at(rule.v_aa).begin()); // returns smaller element in set
-      c_upper = *(di.cutpoints->at(rule.v_aa).rbegin()); // reverse iterator, returns largest value in set
-      nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
-      if(c_lower >= c_upper){
-        // this is a weird tree and we'll just propose a trivial split
-        c_lower = *(di.cutpoints->at(rule.v_aa).begin());
-        c_upper = *(di.cutpoints->at(rule.v_aa).rbegin());
-      }
-      // select from a pre-defined set of cutpoints.
-      std::vector<double> valid_cutpoints;
-      // std::set::lower_bound: iterator at first element that is not considered to come before
-      // std::set::upper_bound: iterator at first element considered to come after
-      // if value is not in set, lower_bound and upper_bound give same result
-      // if value is in set: lower bound returns the value, upper bound returns the next value
-      if(di.cutpoints->at(rule.v_aa).count(c_lower) != 1 || di.cutpoints->at(rule.v_aa).count(c_upper) != 1){
-        // c_lower and c_upper were not found in the set of available cutpoints
-        Rcpp::Rcout << "[grow tree]: attempting to select a cutpoint from given set" << std::endl;
-        Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
-        Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_upper) << std::endl;
-        //Rcpp::Rcout << "  cutpoints are:";
-        //for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it) Rcpp::Rcout << " " << *it;
-        //Rcpp::Rcout << std::endl;
-        Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");
-      }
+  if(gen.uniform() <= 1.0 - tree_pi.prob_rc){
+    // so long as we're not doing a
+    int v_raw = gen.multinomial(di.p, tree_pi.theta);
+    if(v_raw < di.p_cont){
+      // continuous variable so it's an axis-aligned splitting rule
+      rule.is_aa = true;
+      rule.is_cat = false;
+      rule.v_aa = v_raw;
       
-      // we want to draw from the cutpoints exclusive of c_lower & c_upper;
-      // i.e. we want to start with the one just after c_lower and just before c_upper
-      for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).upper_bound(c_lower); it != di.cutpoints->at(rule.v_aa).lower_bound(c_upper); ++it){
-        valid_cutpoints.push_back(*it);
-      }
-      int num_cutpoints = valid_cutpoints.size();
-      if(num_cutpoints < 1){
-        // no valid splits are available; we will just pick something, all of the observations will go to one child anyway...
-        valid_cutpoints.clear();
-        for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it){
+      if(di.unif_cuts[rule.v_aa] != 0){
+        // useuniform cutpoints if (i) user specifies this or
+        // (ii) if the entry in inputted R logical vector is NA (in which case entry in unif_cuts is the smallest integer)
+        c_upper = 1.0;
+        c_lower = -1.0;
+        nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+        if(c_lower >= c_upper){
+          c_lower = -1.0;
+          c_upper = 1.0;
+        }
+        rule.c = gen.uniform(c_lower, c_upper);
+      } else{
+        // draw the cutpoint from the supplied cutpoints
+        c_lower = *(di.cutpoints->at(rule.v_aa).begin()); // returns smallest element in set
+        c_upper = *(di.cutpoints->at(rule.v_aa).rbegin()); // reverse iterator, returns largest value in set
+        nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+        if(c_lower >= c_upper){
+          // this is a weird tree and we'll just propose a trivial split
+          c_lower = *(di.cutpoints->at(rule.v_aa).begin());
+          c_upper = *(di.cutpoints->at(rule.v_aa).rbegin());
+        }
+        // select from a pre-defined set of cutpoints.
+        std::vector<double> valid_cutpoints;
+        // std::set::lower_bound: iterator at first element that is not considered to come before
+        // std::set::upper_bound: iterator at first element considered to come after
+        // if value is not in set, lower_bound and upper_bound give same result
+        // if value is in set: lower bound returns the value, upper bound returns the next value
+        if(di.cutpoints->at(rule.v_aa).count(c_lower) != 1 || di.cutpoints->at(rule.v_aa).count(c_upper) != 1){
+          // c_lower and c_upper were not found in the set of available cutpoints
+          Rcpp::Rcout << "[grow tree]: attempting to select a cutpoint from given set" << std::endl;
+          Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
+          Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_upper) << std::endl;
+          //Rcpp::Rcout << "  cutpoints are:";
+          //for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it) Rcpp::Rcout << " " << *it;
+          //Rcpp::Rcout << std::endl;
+          Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");
+        }
+        
+        // we want to draw from the cutpoints exclusive of c_lower & c_upper;
+        // i.e. we want to start with the one just after c_lower and just before c_upper
+        for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).upper_bound(c_lower); it != di.cutpoints->at(rule.v_aa).lower_bound(c_upper); ++it){
           valid_cutpoints.push_back(*it);
         }
-        num_cutpoints = valid_cutpoints.size();
-      }
-      // at this point, valid cutpoints is a vector containing the available cutpoints at this node. we pick one uniformly.
-      rule.c = valid_cutpoints[floor(gen.uniform() * num_cutpoints)];
-    }
-  } else if(unif < tree_pi.prob_aa + tree_pi.prob_rc){
-    // random combination split
-    //Rcpp::Rcout << "  rc rule" << std::endl;
+        int num_cutpoints = valid_cutpoints.size();
+        if(num_cutpoints < 1){
+          // no valid splits are available; we will just pick something, all of the observations will go to one child anyway...
+          valid_cutpoints.clear();
+          for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it){
+            valid_cutpoints.push_back(*it);
+          }
+          num_cutpoints = valid_cutpoints.size();
+        }
+        // at this point, valid cutpoints is a vector containing the available cutpoints at this node. we pick one uniformly.
+        rule.c = valid_cutpoints[floor(gen.uniform() * num_cutpoints)];
+      }// closes if/else checking whether we draw cutpoint uniformly or from pre-determined cut-points
+    } else{
+      // categorical variable so it's a categorical splitting rule
+      rule.is_aa = false;
+      rule.is_cat = true;
+      rule.v_cat = v_raw - di.p_cont;
 
+      std::set<int> avail_levels = di.cat_levels->at(rule.v_cat); // get the full set of levels for this variable
+      //Rcpp::Rcout << "  available levels: ";
+      //for(set_it sit = avail_levels.begin(); sit != avail_levels.end(); ++sit) Rcpp::Rcout << *sit << " ";
+      //Rcpp::Rcout << std::endl;
+      
+      nx->get_rg_cat(rule.v_cat, avail_levels); // determine the set of levels available at nx.
+      //Rcpp::Rcout << "  available levels: ";
+      //for(set_it sit = avail_levels.begin(); sit != avail_levels.end(); ++sit) Rcpp::Rcout << *sit << " ";
+      //Rcpp::Rcout << std::endl;
+      
+      // if there is only one level left for this variable at nx, we will just propose a trivial split
+      // and will reset the value of avail_levels to be the full set of all levels for the variable
+      if(avail_levels.size() <= 1) avail_levels = di.cat_levels->at(rule.v_cat);
+      
+      rule.l_vals.clear();
+      rule.r_vals.clear();
+      
+      if(tree_pi.mst_split){
+        // do a split based on pruning a random MST of the adjacency graph
+        graph_partition(avail_levels, rule.l_vals, rule.r_vals, di.adj_support->at(rule.v_cat), di.K->at(rule.v_cat), tree_pi.mst_cut_type, gen);
+      } else{
+        // we can split the levels independently w/ prob 0.5 to go to each child
+        rule_counter = 0;
+        while( ((rule.l_vals.size() == 0) || (rule.r_vals.size() == 0)) && rule_counter < 1000 ){
+          rule.l_vals.clear();
+          rule.r_vals.clear();
+          for(set_it it = avail_levels.begin(); it != avail_levels.end(); ++it){
+            if(gen.uniform() <= 0.5) rule.l_vals.insert(*it);
+            else rule.r_vals.insert(*it);
+          }
+          ++(rule_counter);
+        }
+        if(rule_counter == 1000){
+          Rcpp::stop("failed to generate valid categorical split in 1000 attempts"); // this should almost surely not get triggered.
+        }
+      }
+      if( (rule.l_vals.size() == 0) || (rule.r_vals.size() == 0) ) Rcpp::stop("proposed an invalid categorical rule!");
+    } // closes if/else checking whether it is a categorical rule or a continuous axis-aligned rule
+  } else{
+    // random combination rule time
+    rule.is_aa = false;
     rule.is_cat = false;
-    rule.is_rc = true;
 
     while( (rule.rc_weight.size() < 2) && (rule_counter < 1000) ){
       rule.rc_weight.clear();
@@ -144,56 +190,8 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
     else{
       rule.c = gen.uniform(-1.0,1.0) * c_max;
     }
-  } else{
-    // categorical split
-    //Rcpp::Rcout << "  cat rule" << std::endl;
-
-    rule.is_cat = true;
-    rule.is_rc = false;
-    
-    rule.v_cat = gen.multinomial(di.p_cat, tree_pi.theta_cat); // pick the categorical variable on which to split
-    //Rcpp::Rcout << "v_cat = " << rule.v_cat << std::endl;
-    std::set<int> avail_levels = di.cat_levels->at(rule.v_cat); // get the full set of levels for this variable
-    //Rcpp::Rcout << "  available levels: ";
-    //for(set_it sit = avail_levels.begin(); sit != avail_levels.end(); ++sit) Rcpp::Rcout << *sit << " ";
-    //Rcpp::Rcout << std::endl;
-    
-    nx->get_rg_cat(rule.v_cat, avail_levels); // determine the set of levels available at nx.
-
-    
-    //Rcpp::Rcout << "  available levels: ";
-    //for(set_it sit = avail_levels.begin(); sit != avail_levels.end(); ++sit) Rcpp::Rcout << *sit << " ";
-    //Rcpp::Rcout << std::endl;
-    
-    // if there is only one level left for this variable at nx, we will just propose a trivial split
-    // and will reset the value of avail_levels to be the full set of all levels for the variable
-    if(avail_levels.size() <= 1) avail_levels = di.cat_levels->at(rule.v_cat);
-    
-    rule.l_vals.clear();
-    rule.r_vals.clear();
-    
-    if(tree_pi.mst_split){
-      // do a split based on pruning a random MST of the adjacency graph
-      graph_partition(avail_levels, rule.l_vals, rule.r_vals, di.adj_support->at(rule.v_cat), di.K->at(rule.v_cat), tree_pi.mst_reweight, gen);
-    } else{
-      // we can split the levels independently w/ prob 0.5 to go to each child
-      rule_counter = 0;
-      while( ((rule.l_vals.size() == 0) || (rule.r_vals.size() == 0)) && rule_counter < 1000 ){
-        rule.l_vals.clear();
-        rule.r_vals.clear();
-        for(set_it it = avail_levels.begin(); it != avail_levels.end(); ++it){
-          if(gen.uniform() <= 0.5) rule.l_vals.insert(*it);
-          else rule.r_vals.insert(*it);
-        }
-        ++(rule_counter);
-      }
-      if(rule_counter == 1000){
-        Rcpp::stop("failed to generate valid categorical split in 1000 attempts"); // this should almost surely not get triggered.
-      }
-    }
-    if( (rule.l_vals.size() == 0) || (rule.r_vals.size() == 0) ) Rcpp::stop("proposed an invalid categorical rule!");
-  }
-    
+  } // closes if/else determining the rule type
+  
   // at this point we have the proposed rule and are ready to update our sufficient statistic map
   suff_stat prop_ss;
   compute_suff_stat_grow(ss, prop_ss, nx_nid, rule, t, di); // figure out which observations from nx move to nxl and nxr
@@ -212,20 +210,15 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
   if(log_alpha > 0) log_alpha = 0.0; // if MH ratio greater than 1, we set it equal to 1. this is almost never needed
   if(gen.log_uniform() <= log_alpha){
     // accept the transition!
-    if(!rule.is_cat && !rule.is_rc){
-      // axis aligned rule
-      ++(*tree_pi.aa_rule_count); // increment running count of total number of axis aligned splitting rules
-      ++(tree_pi.aa_var_count->at(rule.v_aa)); // increment running count of number of times we've split on the v-th continuous predictor
-    } else if(!rule.is_cat && rule.is_rc){
-      // random combination rule
-      ++(*tree_pi.rc_rule_count); // increase running count of the total number of random combination splitting rules
+    ++(*tree_pi.rule_count); // increment running count of total number of splitting rules
+    if( (rule.is_aa && !rule.is_cat) || (!rule.is_aa && rule.is_cat)){
+      // we did an axis-aligned split or a categorical split
+      ++(tree_pi.var_count->at(v_raw)); // increment running count of the total number of times we split on a particular variable
+    } else if(!rule.is_aa && !rule.is_cat){
+      // we did a random combination split
       for(rc_it it = rule.rc_weight.begin(); it != rule.rc_weight.end(); ++it){
         ++(*tree_pi.rc_var_count); // update the *total* number of variables that are involved in a random combination rule
       }
-    } else if(rule.is_cat && !rule.is_rc){
-      //categorical rule
-      ++(*tree_pi.cat_rule_count); // increment running count of the total number of categorical splitting rules
-      ++(tree_pi.cat_var_count->at(rule.v_cat)); // increment running count of number of times we've split on the v-th categorical predictor
     } else{
       Rcpp::Rcout << "[grow_tree]: accepted a birth at node " << nx_nid << " but unable to figure out the rule type" << std::endl;
       t.print();
@@ -308,73 +301,120 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
   double tmp_weight = 0.0; // weights of random combination
   double c_max = 1.0; // upper bound for absolute value of cutpoint in random combination split
   
-  double unif = gen.uniform();
-  if(unif < tree_pi.prob_aa){
-    // axis aligned split
-    rule.is_cat = false;
-    rule.is_rc = false;
-    rule.v_aa = gen.multinomial(di_train.p_cont, tree_pi.theta_aa);
-    if(di_train.unif_cuts){
-      c_upper = 1.0;
-      c_lower = -1.0;
-      nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
-      if(c_lower >= c_upper){
-        c_lower = -1.0;
-        c_upper = 1.0;
-      }
-      rule.c = gen.uniform(c_lower, c_upper);
-    } else{
-      c_lower = *(di_train.cutpoints->at(rule.v_aa).begin()); // returns smaller element in set
-      c_upper = *(di_train.cutpoints->at(rule.v_aa).rbegin()); // reverse iterator, returns largest value in set
-      nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
-      if(c_lower >= c_upper){
-        // this is a weird tree and we'll just propose a trivial split
-        c_lower = *(di_train.cutpoints->at(rule.v_aa).begin());
-        c_upper = *(di_train.cutpoints->at(rule.v_aa).rbegin());
-      }
-      // select from a pre-defined set of cutpoints.
-      std::vector<double> valid_cutpoints;
-      // std::set::lower_bound: iterator at first element that is not considered to come before
-      // std::set::upper_bound: iterator at first element considered to come after
-      // if value is not in set, lower_bound and upper_bound give same result
-      // if value is in set: lower bound returns the value, upper bound returns the next value
-      if(di_train.cutpoints->at(rule.v_aa).count(c_lower) != 1 || di_train.cutpoints->at(rule.v_aa).count(c_upper) != 1){
-        // c_lower and c_upper were not found in the set of available cutpoints
-        Rcpp::Rcout << "[grow tree]: attempting to select a cutpoint from given set" << std::endl;
-        Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << di_train.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
-        Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << di_train.cutpoints->at(rule.v_aa).count(c_upper) << std::endl;
-        //Rcpp::Rcout << "  cutpoints are:";
-        //for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it) Rcpp::Rcout << " " << *it;
-        //Rcpp::Rcout << std::endl;
-        Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");
-      }
+  if(gen.uniform() <= 1.0 - tree_pi.prob_rc){
+    // we're not doing a random combination rule
+    int v_raw = gen.multinomial(di.p, tree_pi.theta);
+    if(v_raw < di.p_cont){
+      // continuous variable so it's an axis-aligned splitting rule
+      rule.is_aa = true;
+      rule.is_cat = false;
+      rule.v_aa = v_raw;
       
-      // we want to draw from the cutpoints exclusive of c_lower & c_upper;
-      // i.e. we want to start with the one just after c_lower and just before c_upper
-      for(std::set<double>::iterator it = di_train.cutpoints->at(rule.v_aa).upper_bound(c_lower); it != di_train.cutpoints->at(rule.v_aa).lower_bound(c_upper); ++it){
-        valid_cutpoints.push_back(*it);
-      }
-      int num_cutpoints = valid_cutpoints.size();
-      if(num_cutpoints < 1){
-        // no valid splits are available; we will just pick something, all of the observations will go to one child anyway...
-        valid_cutpoints.clear();
-        for(std::set<double>::iterator it = di_train.cutpoints->at(rule.v_aa).begin(); it != di_train.cutpoints->at(rule.v_aa).end(); ++it){
+      if(di.unif_cuts[rule.v_aa] != 0){
+        c_upper = 1.0;
+        c_lower = -1.0;
+        nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+        if(c_lower >= c_upper){
+          c_lower = -1.0;
+          c_upper = 1.0;
+        }
+        rule.c = gen.uniform(c_lower, c_upper);
+      } else{
+        // draw the cutpoint from the supplied cutpoints
+        c_lower = *(di.cutpoints->at(rule.v_aa).begin()); // returns smallest element in set
+        c_upper = *(di.cutpoints->at(rule.v_aa).rbegin()); // reverse iterator, returns largest value in set
+        nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+        if(c_lower >= c_upper){
+          // this is a weird tree and we'll just propose a trivial split
+          c_lower = *(di.cutpoints->at(rule.v_aa).begin());
+          c_upper = *(di.cutpoints->at(rule.v_aa).rbegin());
+        }
+        // select from a pre-defined set of cutpoints.
+        std::vector<double> valid_cutpoints;
+        // std::set::lower_bound: iterator at first element that is not considered to come before
+        // std::set::upper_bound: iterator at first element considered to come after
+        // if value is not in set, lower_bound and upper_bound give same result
+        // if value is in set: lower bound returns the value, upper bound returns the next value
+        if(di.cutpoints->at(rule.v_aa).count(c_lower) != 1 || di.cutpoints->at(rule.v_aa).count(c_upper) != 1){
+          // c_lower and c_upper were not found in the set of available cutpoints
+          Rcpp::Rcout << "[grow tree]: attempting to select a cutpoint from given set" << std::endl;
+          Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
+          Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << di.cutpoints->at(rule.v_aa).count(c_upper) << std::endl;
+          //Rcpp::Rcout << "  cutpoints are:";
+          //for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it) Rcpp::Rcout << " " << *it;
+          //Rcpp::Rcout << std::endl;
+          Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");
+        }
+        // we want to draw from the cutpoints exclusive of c_lower & c_upper;
+        // i.e. we want to start with the one just after c_lower and just before c_upper
+        for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).upper_bound(c_lower); it != di.cutpoints->at(rule.v_aa).lower_bound(c_upper); ++it){
           valid_cutpoints.push_back(*it);
         }
-        num_cutpoints = valid_cutpoints.size();
+        int num_cutpoints = valid_cutpoints.size();
+        if(num_cutpoints < 1){
+          // no valid splits are available; we will just pick something, all of the observations will go to one child anyway...
+          valid_cutpoints.clear();
+          for(std::set<double>::iterator it = di.cutpoints->at(rule.v_aa).begin(); it != di.cutpoints->at(rule.v_aa).end(); ++it){
+            valid_cutpoints.push_back(*it);
+          }
+          num_cutpoints = valid_cutpoints.size();
+        }
+        // at this point, valid cutpoints is a vector containing the available cutpoints at this node. we pick one uniformly.
+        rule.c = valid_cutpoints[floor(gen.uniform() * num_cutpoints)];
+      } // closes if/else checking whether we draw cutpoint uniformly or from pre-determined cut-points
+    } else{
+      // categorical variable so it's a categorical splitting rule
+      rule.is_aa = false;
+      rule.is_cat = true;
+      rule.v_cat = v_raw - di.p_cont;
+
+      std::set<int> avail_levels = di.cat_levels->at(rule.v_cat); // get the full set of levels for this variable
+      //Rcpp::Rcout << "  available levels: ";
+      //for(set_it sit = avail_levels.begin(); sit != avail_levels.end(); ++sit) Rcpp::Rcout << *sit << " ";
+      //Rcpp::Rcout << std::endl;
+      
+      nx->get_rg_cat(rule.v_cat, avail_levels); // determine the set of levels available at nx.
+      //Rcpp::Rcout << "  available levels: ";
+      //for(set_it sit = avail_levels.begin(); sit != avail_levels.end(); ++sit) Rcpp::Rcout << *sit << " ";
+      //Rcpp::Rcout << std::endl;
+      
+      // if there is only one level left for this variable at nx, we will just propose a trivial split
+      // and will reset the value of avail_levels to be the full set of all levels for the variable
+      if(avail_levels.size() <= 1) avail_levels = di.cat_levels->at(rule.v_cat);
+      
+      rule.l_vals.clear();
+      rule.r_vals.clear();
+      
+      if(tree_pi.mst_split){
+        // do a split based on pruning a random MST of the adjacency graph
+        graph_partition(avail_levels, rule.l_vals, rule.r_vals, di.adj_support->at(rule.v_cat), di.K->at(rule.v_cat), tree_pi.mst_cut_type, gen);
+      } else{
+        // we can split the levels independently w/ prob 0.5 to go to each child
+        rule_counter = 0;
+        while( ((rule.l_vals.size() == 0) || (rule.r_vals.size() == 0)) && rule_counter < 1000 ){
+          rule.l_vals.clear();
+          rule.r_vals.clear();
+          for(set_it it = avail_levels.begin(); it != avail_levels.end(); ++it){
+            if(gen.uniform() <= 0.5) rule.l_vals.insert(*it);
+            else rule.r_vals.insert(*it);
+          }
+          ++(rule_counter);
+        }
+        if(rule_counter == 1000){
+          Rcpp::stop("failed to generate valid categorical split in 1000 attempts"); // this should almost surely not get triggered.
+        }
       }
-      // at this point, valid cutpoints is a vector containing the available cutpoints at this node. we pick one uniformly.
-      rule.c = valid_cutpoints[floor(gen.uniform() * num_cutpoints)];
-    }
-  } else if(unif < tree_pi.prob_aa + tree_pi.prob_rc){
-    // random combination split
+      if( (rule.l_vals.size() == 0) || (rule.r_vals.size() == 0) ) Rcpp::stop("proposed an invalid categorical rule!");
+    } // closes if/else checking whether it is a categorical rule or a continuous axis-aligned rule
+  } else{
+    // random combination rule time
+    rule.is_aa = false;
     rule.is_cat = false;
-    rule.is_rc = true;
 
     while( (rule.rc_weight.size() < 2) && (rule_counter < 1000) ){
       rule.rc_weight.clear();
       c_max = 0.0;
-      for(int j = 0; j < di_train.p_cont; j++){
+      for(int j = 0; j < di.p_cont; j++){
         if(gen.uniform() < (*tree_pi.theta_rc)){
           tmp_weight = gen.uniform(-1.0,1.0); // Breiman used Uniform(-1,1) weights and so shall we
           rule.rc_weight.insert(std::pair<int,double>(j,tmp_weight));
@@ -387,44 +427,8 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
     else{
       rule.c = gen.uniform(-1.0,1.0) * c_max;
     }
-  } else{
-    // categorical split
-    rule.is_cat = true;
-    rule.is_rc = false;
-    
-    rule.v_cat = gen.multinomial(di_train.p_cat, tree_pi.theta_cat); // pick the categorical variable on which to split
-    std::set<int> avail_levels = di_train.cat_levels->at(rule.v_cat); // get the full set of levels for this variable
-    nx->get_rg_cat(rule.v_cat, avail_levels); // determine the set of levels available at nx.
+  } // closes if/else determining the rule type
 
-    // if there is only one level left for this variable at nx, we will just propose a trivial split
-    // and will reset the value of avail_levels to be the full set of all levels for the variable
-    if(avail_levels.size() <= 1) avail_levels = di_train.cat_levels->at(rule.v_cat);
-    
-    rule.l_vals.clear();
-    rule.r_vals.clear();
-    
-    if(tree_pi.mst_split){
-      // do a split based on pruning a random MST of the adjacency graph
-      graph_partition(avail_levels, rule.l_vals, rule.r_vals, di_train.adj_support->at(rule.v_cat), di_train.K->at(rule.v_cat), tree_pi.mst_reweight, gen);
-    } else{
-      // we can split the levels independently w/ prob 0.5 to go to each child
-      rule_counter = 0;
-      while( ((rule.l_vals.size() == 0) || (rule.r_vals.size() == 0)) && rule_counter < 1000 ){
-        rule.l_vals.clear();
-        rule.r_vals.clear();
-        for(set_it it = avail_levels.begin(); it != avail_levels.end(); ++it){
-          if(gen.uniform() <= 0.5) rule.l_vals.insert(*it);
-          else rule.r_vals.insert(*it);
-        }
-        ++(rule_counter);
-      }
-      if(rule_counter == 1000){
-        Rcpp::stop("failed to generate valid categorical split in 1000 attempts"); // this should almost surely not get triggered.
-      }
-    }
-    if( (rule.l_vals.size() == 0) || (rule.r_vals.size() == 0) ) Rcpp::stop("proposed an invalid categorical rule!");
-  }
-    
   // at this point we have the proposed rule and are ready to update our sufficient statistic map
   suff_stat prop_ss_train;
   compute_suff_stat_grow(ss_train, prop_ss_train, nx_nid, rule, t, di_train); // figure out which training observations from nx move to nxl and nxr
@@ -450,20 +454,15 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
   if(log_alpha > 0) log_alpha = 0.0; // if MH ratio greater than 1, we set it equal to 1. this is almost never needed
   if(gen.log_uniform() <= log_alpha){
     // accept the transition!
-    if(!rule.is_cat && !rule.is_rc){
-      // axis aligned rule
-      ++(*tree_pi.aa_rule_count); // increment running count of total number of axis aligned splitting rules
-      ++(tree_pi.aa_var_count->at(rule.v_aa)); // increment running count of number of times we've split on the v-th continuous predictor
-    } else if(!rule.is_cat && rule.is_rc){
-      // random combination rule
-      ++(*tree_pi.rc_rule_count); // increase running count of the total number of random combination splitting rules
+    ++(*tree_pi.rule_count); // increment running count of total number of splitting rules
+    if( (rule.is_aa && !rule.is_cat) || (!rule.is_aa && rule.is_cat)){
+      // we did an axis-aligned split or a categorical split
+      ++(tree_pi.var_count->at(v_raw)); // increment running count of the total number of times we split on a particular variable
+    } else if(!rule.is_aa && !rule.is_cat){
+      // we did a random combination split
       for(rc_it it = rule.rc_weight.begin(); it != rule.rc_weight.end(); ++it){
         ++(*tree_pi.rc_var_count); // update the *total* number of variables that are involved in a random combination rule
       }
-    } else if(rule.is_cat && !rule.is_rc){
-      //categorical rule
-      ++(*tree_pi.cat_rule_count); // increment running count of the total number of categorical splitting rules
-      ++(tree_pi.cat_var_count->at(rule.v_cat)); // increment running count of number of times we've split on the v-th categorical predictor
     } else{
       Rcpp::Rcout << "[grow_tree]: accepted a birth at node " << nx_nid << " but unable to figure out the rule type" << std::endl;
       t.print();
@@ -570,22 +569,21 @@ void prune_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &d
     // accept the proposal!
     accept = 1;
     // need to decrement several counters
-    
-    if(!nx->get_is_cat() && !nx->get_is_rc()){
-      // nx was an axis-aligned rules
-      --(*tree_pi.aa_rule_count);
-      --(tree_pi.aa_var_count->at(nx->get_v_aa()));
-    } else if(!nx->get_is_cat() && nx->get_is_rc()){
-      // nx was random combination rule
+    --(*tree_pi.rule_count);
+    if( (nx->get_is_aa() && !nx->get_is_cat()) || (!nx->get_is_aa() && nx->get_is_cat()) ){
+      // we pruned away an axis-aligned or categorical rule
+      if(nx->get_is_aa()){
+        --(tree_pi.var_count->at(nx->get_v_aa()));
+      } else{
+        --(tree_pi.var_count->at(di.p_cont + nx->get_v_cat()));
+      }
+    } else if( !nx->get_is_aa() && !nx->get_is_cat()){
+      // random combination rule
       std::map<int,double> rc_weight = nx->get_rc_weight();
       --(*tree_pi.rc_rule_count);
       for(rc_it it = rc_weight.begin(); it != rc_weight.end(); ++it){
         --(*tree_pi.rc_var_count);
       }
-    } else if(nx->get_is_cat() && !nx->get_is_rc()){
-      // nx was a categorical rule
-      --(*tree_pi.cat_rule_count);
-      --(tree_pi.cat_var_count->at(nx->get_v_cat()));
     } else{
       Rcpp::Rcout << "[prune_tree]: accepted a prune at nog node " << nx_nid << " but unable to figure out its rule type" << std::endl;
       t.print();
@@ -664,21 +662,21 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, d
     accept = 1;
     // need to decrement several counters
     
-    if(!nx->get_is_cat() && !nx->get_is_rc()){
-      // nx was an axis-aligned rules
-      --(*tree_pi.aa_rule_count);
-      --(tree_pi.aa_var_count->at(nx->get_v_aa()));
-    } else if(!nx->get_is_cat() && nx->get_is_rc()){
-      // nx was random combination rule
+    --(*tree_pi.rule_count);
+    if( (nx->get_is_aa() && !nx->get_is_cat()) || (!nx->get_is_aa() && nx->get_is_cat()) ){
+      // we pruned away an axis-aligned or categorical rule
+      if(nx->get_is_aa()){
+        --(tree_pi.var_count->at(nx->get_v_aa()));
+      } else{
+        --(tree_pi.var_count->at(di.p_cont + nx->get_v_cat()));
+      }
+    } else if( !nx->get_is_aa() && !nx->get_is_cat()){
+      // random combination rule
       std::map<int,double> rc_weight = nx->get_rc_weight();
       --(*tree_pi.rc_rule_count);
       for(rc_it it = rc_weight.begin(); it != rc_weight.end(); ++it){
         --(*tree_pi.rc_var_count);
       }
-    } else if(nx->get_is_cat() && !nx->get_is_rc()){
-      // nx was a categorical rule
-      --(*tree_pi.cat_rule_count);
-      --(tree_pi.cat_var_count->at(nx->get_v_cat()));
     } else{
       Rcpp::Rcout << "[prune_tree]: accepted a prune at nog node " << nx_nid << " but unable to figure out its rule type" << std::endl;
       t.print();

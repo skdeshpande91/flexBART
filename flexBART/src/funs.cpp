@@ -33,7 +33,6 @@ void tree_traversal(suff_stat &ss, tree &t, data_info &di)
     if(di.x_cont != 0) xx_cont = di.x_cont + i * di.p_cont;
     if(di.x_cat != 0) xx_cat = di.x_cat + i * di.p_cat;
     bn = t.get_bn(xx_cont, xx_cat);
-    //if(bn == 0) Rcpp::stop("[tree_traversal]: could not find bottom node!"); // should never be encountered
     if(bn == 0){
       Rcpp::Rcout << "i = " << i << std::endl;
       t.print();
@@ -104,40 +103,33 @@ void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat,
     if(di.x_cont != 0) xx_cont = di.x_cont + i * di.p_cont;
     if(di.x_cat != 0) xx_cat = di.x_cat + i * di.p_cat;
     
-    if(!rule.is_cat && !rule.is_rc){
+    if(rule.is_aa && !rule.is_cat){
       // axis-aligned rule
       if(xx_cont[rule.v_aa] < rule.c) nxl_it->second.push_back(i);
       else if(xx_cont[rule.v_aa] >= rule.c) nxr_it->second.push_back(i);
       else Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child");
-      
-    } else if(!rule.is_cat && rule.is_rc){
+    } else if(!rule.is_aa && rule.is_cat){
+      // categorical rule
+      // we need to see whether i-th observation's value of the categorical pred goes to left or right
+      // std::set.count returns 1 if the value is in the set and 0 otherwise
+      l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
+      r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
+      if(l_count == 1 && r_count == 0) nxl_it->second.push_back(i);
+      else if(l_count == 0 && r_count == 1) nxr_it->second.push_back(i);
+      else if(l_count == 1 && r_count == 1) Rcpp::stop("[compute_ss_grow]: observation goes to both left & right child...");
+      else Rcpp::stop("[compute_ss_grow]: observation doesn't go to left or right child...");
+    } else if(!rule.is_aa && !rule.is_cat){
       // random combination rule
       tmp_x = 0.0;
       for(rc_it rcit = rule.rc_weight.begin(); rcit != rule.rc_weight.end(); ++rcit) tmp_x += (rcit->second) * xx_cont[rcit->first];
       if(tmp_x < rule.c) nxl_it->second.push_back(i);
       else if(tmp_x >= rule.c) nxr_it->second.push_back(i);
       else Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child");
-    } else if(rule.is_cat && !rule.is_rc){
-      // categorical rule
-      // we need to see whether i-th observation's value of the categorical pred goes to left or right
-      // std::set.count returns 1 if the value is in the set and 0 otherwise
-      l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
-      r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
-      if(l_count == 1 && r_count == 0){
-        nxl_it->second.push_back(i);
-      } else if(l_count == 0 && r_count == 1){
-        nxr_it->second.push_back(i);
-      } else if(l_count == 1 && r_count == 1){
-        Rcpp::stop("[compute_ss_grow]: observation goes to both left & right child...");
-      } else{
-        Rcpp::stop("[compute_ss_grow]: observation doesn't go to either left or right child");
-      }
     } else{
       // we should never hit this error
       Rcpp::stop("[compute_ss_grow]: cannot resolve the type of decision rule");
     }
   } // closes loop over all entries in nx
-  
 }
 
 
@@ -168,23 +160,11 @@ void compute_suff_stat_prune(suff_stat &orig_suff_stat, suff_stat &new_suff_stat
   // first let's add the elements from nl_it
   for(int_it it = nl_it->second.begin(); it != nl_it->second.end(); ++it) np_it->second.push_back( *it );
   for(int_it it = nr_it->second.begin(); it != nr_it->second.end(); ++it) np_it->second.push_back( *it );
-  /*
-  for(int_it it = nl_it->second.begin(); it != nl_it->second.end(); ++it){
-    i = *it;
-    np_it->second.push_back(i); // could probably get away with *it but let's be safe
-  }
-  // now let's add the elements from nr_it
-  for(int_it it = nr_it->second.begin(); it != nr_it->second.end(); ++it){
-    i = *it;
-    np_it->second.push_back(i);
-  }
-  */
 }
 
 double compute_lil(suff_stat &ss, int &nid, double &sigma, data_info &di, tree_prior_info &tree_pi)
 {
   // reminder posterior of jump mu is N(P^-1 Theta, P^-1)
-  //int i;
   if(ss.count(nid) != 1) Rcpp::stop("[compute_lil]: did not find node in suff stat map!");
   suff_stat_it ss_it = ss.find(nid);
   
@@ -192,13 +172,6 @@ double compute_lil(suff_stat &ss, int &nid, double &sigma, data_info &di, tree_p
   double Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
   
   for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma, 2.0);
-  
-  /*
-  for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-    i = *it;
-    Theta += di.rp[i]/pow(sigma,2.0);
-  }
-   */
   return(-0.5 * log(P) + 0.5 * pow(Theta,2.0) / P);
   
 }
@@ -219,12 +192,7 @@ void draw_mu(tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_in
       P = 1.0/pow(tree_pi.tau, 2.0) + ( (double) ss_it->second.size())/pow(sigma, 2.0); // precision of jump mu
       Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
       for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma,2.0);
-      /*
-      for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-        i = *it;
-        Theta += di.rp[i]/pow(sigma,2.0);
-      }
-       */
+
       post_sd = sqrt(1.0/P);
       post_mean = Theta/P;
       bn->set_mu(gen.normal(post_mean, post_sd));
@@ -255,21 +223,28 @@ std::string write_tree(tree &t, data_info &di, set_str_conversion &set_str)
       os << "r "; // node has a decision rule. r tells us to expect a rule next
       rule.clear();
       rule = (*nd_it)->get_rule();
+      
 
-      os << rule.is_cat << " " << rule.is_rc << " ";
-      if(!rule.is_cat && !rule.is_rc){
+      // os << rule.is_cat << " " << rule.is_rc << " ";
+      os << rule.is_aa << " " << rule.is_cat << " ";
+
+      if(rule.is_aa && !rule.is_rc){
         // axis-aligned rule
         os << rule.c << " " << rule.v_aa;
-      } else if(!rule.is_cat && rule.is_rc){
-        os << rule.c << " ";
-        for(rc_it rcit = rule.rc_weight.begin(); rcit != rule.rc_weight.end(); ++rcit){
-          os << rcit->first << " " << rcit->second << " ";
-        }
-      } else if(rule.is_cat){
+      } else if(!rule.is_aa && rule.is_cat){
+        // categorical rule
         int K = di.K->at(rule.v_cat); // how many levels
         os << rule.v_cat << " " << K << " ";
         os << set_str.set_to_hex(K, rule.l_vals) << " ";
         os << set_str.set_to_hex(K, rule.r_vals) << " ";
+      } else if(!rule.is_aa && !rule.is_cat){
+        // random combination
+        os << rule.c << " ";
+        for(rc_it rcit = rule.rc_weight.begin(); rcit != rule.rc_weight.end(); ++rcit){
+          os << rcit->first << " " << rcit->second << " ";
+        }
+      } else{
+        Rcpp::stop("[write tree]: rule cannot be both axis-aligned and categorical!");
       }
       os << std::endl;
     } // closes if/else checking what type of node we are writing
@@ -289,9 +264,9 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
   
   double tmp_mu; // holds the value of mu for a leaf node
 
-  
+  char aa; // '0' or '1' for rule.is_aa
   char cat; // '0' or '1' for rule.is_cat
-  char rc; // '0' or '1' for rule.is_rc
+  //char rc; // '0' or '1' for rule.is_rc
   rule_t tmp_rule; // temporary rule that gets populated as we read the tree's string/stream
   
   int tmp_v; // for reading in rc weights
@@ -318,25 +293,21 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
         tmp_rule.clear();
         node_ss >> cat;
         node_ss >> rc;
+        
+        if(aa == '0') tmp_rule.is_aa = false;
+        else tmp_rule.is_aa = true;
+        
         if(cat == '0') tmp_rule.is_cat = false;
         else tmp_rule.is_cat = true;
         
-        if(rc == '0') tmp_rule.is_rc = false;
-        else tmp_rule.is_rc = true;
+        //if(rc == '0') tmp_rule.is_rc = false;
+        //else tmp_rule.is_rc = true;
         
-        if(!tmp_rule.is_cat && !tmp_rule.is_rc){
-          // axis-aligned decision rule
+        if(tmp_rule.is_aa && !tmp_rule.is_cat){
+          // axis-aligned
           node_ss >> tmp_rule.c;
           node_ss >> tmp_rule.v_aa;
-        } else if(!tmp_rule.is_cat && tmp_rule.is_rc){
-          // random combination rule
-          node_ss >> tmp_rule.c; // get the cutpoint first
-          while(node_ss){
-            node_ss >> tmp_v;
-            node_ss >> tmp_phi;
-            tmp_rule.rc_weight.insert(std::pair<int,double>(tmp_v, tmp_phi));
-          }
-        } else if(tmp_rule.is_cat && !tmp_rule.is_rc){
+        } else if(!tmp_rule.is_aa && tmp_rule.is_cat){
           // categorical rule
           node_ss >> tmp_rule.v_cat; // get the variable index
           node_ss >> K; // we now know how many levels of the categorical variable there were
@@ -352,8 +323,16 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
           
           tmp_rule.l_vals = set_str.hex_to_set(K, l_hex);
           tmp_rule.r_vals = set_str.hex_to_set(K, r_hex);
+        } else if(!tmp_rule.is_aa && !tmp_rule.is_cat){
+          // random combination
+          node_ss >> tmp_rule.c; // get the cutpoint first
+          while(node_ss){
+            node_ss >> tmp_v;
+            node_ss >> tmp_phi;
+            tmp_rule.rc_weight.insert(std::pair<int,double>(tmp_v, tmp_phi));
+          }
         } else{
-          Rcpp::Rcout << "cannot resolve the type of rule" << std::endl;
+          Rcpp::stop("[read tree]: rule cannot be axis-aligned and categorical");
         }
         decision_nodes.insert(std::pair<int, rule_t>(nid, tmp_rule));
       } // closes if/else checking what type of node we're parsing
@@ -462,8 +441,9 @@ arma::mat boruvka(arma::mat &W)
   std::vector<std::vector<int> > mst_components;
   find_components(mst_components, A_mst);
   
-  int counter = 0; // failsafe which should *never* be triggered since graph is connected
-  while( (mst_components.size() > 1) && (counter < 100) ){
+  int counter = 0; // failsafe which should *never* be triggered since graph is connected.
+  // Boruvka's requires O(log(n)) steps so we have intentionally set the upper bound on the number of iterations much higher.
+  while( (mst_components.size() > 1) && (counter < n) ){
     for(std::vector<std::vector<int> >::iterator it = mst_components.begin(); it != mst_components.end(); ++it){
       
       std::pair<int,int> min_edge = find_min_edge_weight(*it,n, W);
@@ -480,6 +460,65 @@ arma::mat boruvka(arma::mat &W)
   return A_mst;
 }
 
+
+arma::uword get_cut_edge(const arma::mat &cut_A, const arma::mat &cut_W, const arma::uvec mst_edge_index, const int &mst_cut_type, RNG &gen)
+{
+  // cut_A is the lower triangular adjacency matrix of the MST
+  // cut_W is the lower triangular weighted adjacency matrix of the MST
+  // we are going to output a single index which will be cut
+  
+  int n = cut_A.n_rows;
+  
+  // n is the number of nodes
+  // there should only be n-1 edges in the MST
+  std::vector<double> cut_ix_probs(n-1, 1.0/( (double) (n-1) ));
+  double tmp_sum;
+  int cut_ix;
+  arma::uword cut_edge_index;
+  if(mst_cut_type == 0){
+    // delete an edge uniformly at random
+    cut_edge_index = mst_edge_index(gen.multinomial(n-1, cut_ix_probs));
+  } else if(mst_cut_type == 1){
+    // delete edge w.p. proportional to the weight of the
+    tmp_sum = 0.0;
+    for(int e_ix = 0; e_ix < n-1; e_ix++){
+      cut_ix_probs[e_ix] = cut_W(mst_edge_index(e_ix));
+      tmp_sum += cut_ix_probs[e_ix];
+    }
+    for(int e_ix = 0; e_ix < n-1; e_ix++) cut_ix_probs[e_ix] /= tmp_sum;
+    cut_edge_index = mst_edge_index(gen.multinomial(n-1, cut_ix_probs));
+    
+  } else if(mst_cut_type == 2){
+    // size-biased
+    tmp_sum = 0.0;
+    arma::mat tmp_cut_A = cut_A;
+    for(int e_ix = 0; e_ix < n-1; e_ix++){
+      tmp_cut_A = cut_A;
+      if(tmp_cut_A(mst_edge_index(e_ix)) == 0) Rcpp::stop("trying to delete an edge not in the MST!");
+      else{
+        tmp_cut_A(mst_edge_index(e_ix)) = 0; // delete the edge!
+        arma::mat part_mst_A = arma::symmatl(tmp_cut_A); // adjacency of the partitioned tree
+        std::vector<std::vector<int>> cut_components;
+        find_components(cut_components, part_mst_A);
+        cut_ix_probs[e_ix] = (double) std::min(cut_components[0].size(), cut_components[1].size());
+        tmp_sum += cut_ix_probs[e_ix];
+      }
+    }
+    for(int e_ix = 0; e_ix < n-1; e_ix++) cut_ix_probs[e_ix] /= tmp_sum;
+    cut_edge_index = mst_edge_index(gen.multinomial(n-1, cut_ix_probs));
+  } else if(mst_cut_type == 3){
+    // delete the edge with largest weight
+    cut_edge_index = cut_W.index_max();
+  } else{
+    Rcpp::stop("[get_cut_edge]: don't know how to cut an edge from the MST!");
+  }
+}
+
+
+
+
+
+/*
 void get_edge_probs(std::vector<double> &cut_ix_probs, const arma::mat &cut_A, const arma::uvec &mst_index, const int &n)
 {
   arma::mat tmp_cut_A = cut_A;
@@ -502,23 +541,23 @@ void get_edge_probs(std::vector<double> &cut_ix_probs, const arma::mat &cut_A, c
   
   for(int cut_ix = 0; cut_ix < n-1; cut_ix++) cut_ix_probs[cut_ix] /= tmp_sum;
 }
-
+*/
 
 // adj_support is only for the lower triangle of the adjacency matrix
 void graph_partition(std::set<int> &vals, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<unsigned int> &adj_support, int &K, bool &reweight, RNG &gen)
 {
   arma::mat W = arma::zeros<arma::mat>(K,K); // we need to recreate the a weighted version of adjacency matrix
-  // note that W is lower triangular
   for(std::vector<unsigned int>::iterator w_it = adj_support.begin(); w_it != adj_support.end(); ++w_it) W(*w_it) = gen.uniform();
+  // note that at this point W is lower triangular
   W = arma::symmatl(W); // make W symmetric
   
   // we need to subset  W to just the rows & columns corresponding to vals
-  int n = vals.size();
+  int n = vals.size(); // how many levels of the variable are there = how many vertices in the induced subgraph
   if(n == 1) Rcpp::stop("[graph_partition]: vals contains only one 1 value; cannot partition it further!");
+    
+  arma::uword cut_edge_index;
   
-  std::vector<double> cut_ix_probs(n-1, 1.0/( (double) (n-1) ));
-  //int cut_ix = gen.multinomial(n-1,cut_ix_probs);
-  int cut_ix = 0;
+  // need to subset A and W to just the subgraph induced by the vertices corresponding to the levels in vals
   std::vector<unsigned int> tmp_in;
   for(set_it it = vals.begin(); it != vals.end(); ++it) tmp_in.push_back( (unsigned int) *it);
   arma::uvec index(tmp_in); //
@@ -527,67 +566,85 @@ void graph_partition(std::set<int> &vals, std::set<int> &l_vals, std::set<int> &
   std::vector<std::vector<int> > components;
   find_components(components, tmp_W); // how many connected components are in W?
   if(components.size() != 1){
+    // eventually it'd be nice to handle this case
+    // one proposition: randomly assign entire components to left or right uniformly at random
     Rcpp::stop("subgraph induced by current set of levels is not connected");
   } else{
     // now that we know levels induces a connected subgraph of the original graph
     // we can run Boruvka's algorithm
-    arma::mat A_mst = boruvka(tmp_W);
+    arma::mat A_mst = boruvka(tmp_W); // adjacency matrix of the MST
+    arma::mat W_mst = A_mst % tmp_W; // what are the weights
     arma::mat cut_A = arma::trimatl(A_mst); // get the lower triangle of the adjacency matrix of the MST
-    arma::uvec mst_index = arma::find(cut_A); // get the indices of the edges in the MST
+    arma::mat cut_W = arma::trimatl(W_mst); // get the lower triangle of the weighted adjacency matrix
+    arma::uvec mst_edge_index = arma::find(A_mst); // indices of edges in cut_A
     
-    if(reweight){
-      // probability that edge gets deleted is proportional to the size of the smallest component
-      // that results when edge gets deleted.
-      // this will lower the chance that we propose a split
-      // to avoid splits that create singleton partition cells, what if we compute the size of the smallest component formed by deleting an edge
-      get_edge_probs(cut_ix_probs, cut_A, mst_index, n);
-    } else{
-      // delete an edge uniformly at random
-      cut_ix_probs.resize(n-1, 1.0/( (double) (n-1)));
-    }
-    cut_ix = gen.multinomial(n-1, cut_ix_probs);
-  
-    arma::uvec cut_sub = arma::ind2sub(arma::size(cut_A), mst_index(cut_ix)); // get the row/column subscripts corresponding to the edge being deleted
+    cut_ix = get_cut_edge(cut_A, cut_W, mst_edge_index, mst_cut_type, gen);
     
-    if(cut_A(cut_sub(0), cut_sub(1)) != 1){
-      Rcpp::stop("Trying to delete an edge that doesn't exist...");
-    }
-    
-    cut_A(cut_sub(0), cut_sub(1)) = 0; // delete the edge!
-    arma::mat part_mst_A = arma::symmatl(cut_A); // adjacency matrix of the partitioned tree
-    std::vector<std::vector<int> > cut_components;
-    find_components(cut_components, part_mst_A); // get the connected components of the partitioned tree!
-    
-    if(cut_components.size() != 2){
-      Rcpp::stop("we have more than 2 connected components after deleting a single edge from a MST...");
-    } else{
-      l_vals.clear();
-      r_vals.clear();
-      
-      // *it is an integer between 0 & n and indexes the temporary edge labels
-      // the i-th element of tmp_in corresponds to the i-th edge label
-      // we need to look up the correct level (i.e. value in vals) using tmp_in
-      for(int_it it = cut_components[0].begin(); it != cut_components[0].end(); ++it) l_vals.insert( (int) tmp_in[*it]);
-      for(int_it it = cut_components[1].begin(); it != cut_components[1].end(); ++it) r_vals.insert( (int) tmp_in[*it]);
-    } // closes if/else checking that we have 2 components after deleting an edge
+    if(cut_A(cut_edge_index) != 1) Rcpp::stop("[graph_partition]: attempting to delete an edge which does not seem to exist!");
+    else{
+      cut_A(cut_edge_index) = 0; // actually delete the edge
+      arma::mat part_mst_A = arma::symmatl(tmp_cut_A); // full adjacency matrix of the partitioned tree
+      std::vector<std::vector<int>> cut_components;
+      find_components(cut_components, part_mst_A);
+      if(cut_components.size() != 2){
+        // this should never get thrown
+        Rcpp::stop("[graph_partition]: we have more than 2 connected components after deleting a single edge from a MST!");
+      } else{
+        l_vals.clear();
+        r_vals.clear();
+        // *it is an integer between 0 & n and indexes the temporary edge labels
+        // the i-th element of tmp_in corresponds to the i-th edge label
+        // we need to look up the correct level (i.e. value in vals) using tmp_in
+        for(int_it it = cut_components[0].begin(); it != cut_components[0].end(); ++it) l_vals.insert( (int) tmp_in[*it]);
+        for(int_it it = cut_components[1].begin(); it != cut_components[1].end(); ++it) r_vals.insert( (int) tmp_in[*it]);
+      }
+    } // closes if/else checking that the edge we are trying to delete actually exists
   } // closes if/else checking that levels in vals induced a connected subgraph of the original adjancecy matrix
-  
 }
 
-
-/* eventually we will add this functionality back in.
-void update_theta_cont(std::vector<double> &theta_cont, std::vector<int> &cont_var_count, int &cont_rule_count, double &a_cont, double &b_cont, int &p_cont, RNG &gen)
+void update_theta_u(std::vector<double> &theta, double &u, std::vector<int> &var_count, int &p, double &a_u, double &b_u, RNG &gen)
 {
-  if(theta_cont.size() != p_cont) Rcpp::stop("[update_theta_cont]: theta_cont must have size p_cont");
-  double a_post = a_cont;
-  double b_post = b_cont;
-  for(int j = 0; j < p_cont; j++){
-    a_post = a_cont + (double) cont_var_count[j];
-    b_post = b_cont + (double)(cont_rule_count - cont_var_count[j]);
-    theta_cont[j] = gen.beta(a_post, b_post);
+  if(theta.size() != p){
+    Rcpp::Rcout << "theta has size " << theta.size() << "  p = " << p << std::endl;
+    Rcpp::stop("theta must have size p!");
+  } else{
+    double tmp_sum = 0.0;
+    double tmp_concentration = 0.0;
+    double sum_log_theta = 0.0;
+    int v_count;
+    std::vector<double> tmp_gamma(p_cat);
+    
+    // update theta first
+    double u_orig = u;
+    for(int j = 0; j < p; j++){
+      v_count = var_count[j];
+      tmp_concentration = u_orig/(1.0 - u_orig) + (double) v_count;
+      tmp_gamma[j] = gen.gamma(tmp_concentration, 1.0);
+      tmp_sum += tmp_gamma[j];
+    }
+    for(int j = 0; j < p; j++){
+      theta[j] = tmp_gamma[j]/tmp_sum;
+      sum_log_theta += log(theta[j]);
+    }
+    
+    // we're now ready to update u
+    double u_prop = gen.beta(a_u,b_u);
+    double log_like_prop = (u_prop)/(1.0 - u_prop) * sum_log_theta;
+    double log_like_orig = (u_orig)/(1.0 - u_orig) * sum_log_theta;
+    
+    log_like_prop += lgamma( (double) p * u_prop/(1.0 - u_prop)) - ((double) p) * lgamma(u_prop/(1.0 - u_prop));
+    log_like_orig += lgamma( (double) p * u_orig/(1.0 - u_orig)) - ((double) p) * lgamma(u_orig/(1.0 - u_orig));
+    double log_accept = log_like_prop - log_like_orig;
+    if(gen.log_uniform() <= log_accept) u = u_prop;
+    else u = u_orig;
   }
   
 }
+
+
+
+/* eventually we will add this functionality back in.
+
 
 void update_theta_u_cat(std::vector<double> &theta_cat, std::vector<int> &cat_var_count, double &u_cat, double& a_cat, double& b_cat, int &p_cat, RNG &gen)
 {
@@ -629,6 +686,21 @@ void update_theta_u_cat(std::vector<double> &theta_cat, std::vector<int> &cat_va
   if(gen.log_uniform() <= log_accept) u_cat = u_prop;
   else u_cat = u_orig;
 }
+ 
+ 
+ 
+ void update_theta_cont(std::vector<double> &theta_cont, std::vector<int> &cont_var_count, int &cont_rule_count, double &a_cont, double &b_cont, int &p_cont, RNG &gen)
+ {
+   if(theta_cont.size() != p_cont) Rcpp::stop("[update_theta_cont]: theta_cont must have size p_cont");
+   double a_post = a_cont;
+   double b_post = b_cont;
+   for(int j = 0; j < p_cont; j++){
+     a_post = a_cont + (double) cont_var_count[j];
+     b_post = b_cont + (double)(cont_rule_count - cont_var_count[j]);
+     theta_cont[j] = gen.beta(a_post, b_post);
+   }
+   
+ }
 */
 
 

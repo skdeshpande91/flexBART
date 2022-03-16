@@ -21,8 +21,9 @@ typedef suff_stat::iterator suff_stat_it; // iterator for sufficient statistc ma
 
 class rule_t{
 public:
-  bool is_cat; // is it a categorial split?
-  bool is_rc; // is it a random combination split?
+  bool is_aa; // is it an axis-aligned split
+  bool is_cat; // is it a categorical split
+
   int v_aa;
   std::map<int, double> rc_weight; // weights of random combination
   double c; // cutpoint
@@ -31,9 +32,26 @@ public:
   std::set<int> l_vals; // holds unique values of levels of v associated w/ left child
   std::set<int> r_vals; // holds unique values of levels of v associated w/ right child
   
-  rule_t(){is_cat = false; is_rc = false; v_aa = 0;rc_weight = std::map<int,double>(); c = 0.0;v_cat = 0; l_vals = std::set<int>(); r_vals = std::set<int>(); }
-  void clear(){is_cat = false; is_rc = false; v_aa = 0; rc_weight.clear(); c = 0.0;
-    v_cat = 0;  l_vals.clear(); r_vals.clear();}
+  rule_t(){
+    is_aa = true;
+    is_cat = false;
+    v_aa = 0;
+    rc_weight = std::map<int,double>();
+    c = 0.0;
+    v_cat = 0;
+    l_vals = std::set<int>();
+    r_vals = std::set<int>();
+  }
+  void clear(){
+    is_aa = false;
+    is_cat = false;
+    v_aa = 0;
+    rc_weight.clear();
+    c = 0.0;
+    v_cat = 0;
+    l_vals.clear();
+    r_vals.clear();
+  }
 };
 
 
@@ -48,7 +66,8 @@ public:
   int p; // total number of predictors (likely will never every use this)
   
   double* x_cont; // pointer to the matrix of continuous predictors
-  bool unif_cuts; // do we use uniform cutpoints or do we use user-supplied cutpoints
+  //bool* unif_cuts; // do we use uniform cutpoints or do we use user-supplied cutpoints
+  int* unif_cuts;
   std::vector<std::set<double> >* cutpoints;
   int* x_cat; // pointer to matrix of categorical predictors (levels coded as integers, beginning with 0)
   std::vector<int>* K; // number of levels of each categorical variable
@@ -69,23 +88,28 @@ public:
   double prob_bd; // prob of proposing a grow (birth) or prune (death) move. almost always set to 1
   double prob_b; // prob of proposing a grow (birth) move. almost always set to 0.5
   
-  double prob_aa; // prob. of proposing an axis-aligned split. almost always set to 1/3
-  double prob_rc; // prob. of proposing a random combination split. almost always set to 1/3
+  //double prob_aa; // prob. of proposing an axis-aligned split
+  double prob_rc; // prob. of proposing a random combination split. almost always set to 0
 
   bool mst_split; // do we split categorical variables using a random MST?
-  bool mst_reweight; // if we split categorical variables using a random MST, do we reweight edge deletion probabilities?
+  //bool mst_reweight; // if we split categorical variables using a random MST, do we reweight edge deletion probabilities?
+  int mst_cut_type; // integer indicating how we cut the MST;
 
-  int* aa_rule_count; // how many times do we use an axis-aligned rule
+  //int* aa_rule_count; // how many times do we use an axis-aligned rule
+  int* rule_count; // how many total rules did we propose?
   int* rc_rule_count; // how many times do we use a random combination rule
-  int* cat_rule_count; // how many time do we use a categorial rule
+  //int* cat_rule_count; // how many time do we use a categorial rule
   
-  std::vector<int>* aa_var_count; // counts how many times we've used each continuous variable in axis-aligned decision rule
-  int* rc_var_count; // the total number variables used in ALL random combination rules
-  std::vector<int>* cat_var_count; // counts how many times we use each categorical variable in a decision rule
+  //std::vector<int>* aa_var_count; // counts how many times we've used each continuous variable in axis-aligned decision rule
+  //int* rc_var_count; // the total number variables used in ALL random combination rules
+  //std::vector<int>* cat_var_count; // counts how many times we use each categorical variable in a decision rule
+  std::vector<int> *var_count; // counts how many times we split on a single variable
+  int* rc_var_count; // the total number of variables used in ALL random combination rules
   
-  std::vector<double>* theta_aa; // probabilities of selecting continuous predictor for an axis aligned decision rule
+  std::vector<double>*theta; // if we are not doing a random combination split, we have to pick one variable out of p_cont + p_cat
+  //std::vector<double>* theta_aa; // probabilities of selecting continuous predictor for an axis aligned decision rule
   double* theta_rc; // for random combination rule, this is the slab weight
-  std::vector<double>* theta_cat; // probabilities of selecting categorical predictor in
+  //std::vector<double>* theta_cat; // probabilities of selecting categorical predictor in
   // hyperparameters will go here eventually
   double tau;
   double mu0; // prior mean
@@ -96,22 +120,21 @@ public:
     beta = 2.0;
     prob_bd = 1.0;
     prob_b = 0.5;
-    prob_aa = 1.0/3.0;
-    prob_rc = 1.0/3.0;
+    //prob_aa = 1.0/3.0;
+    prob_rc = 0.0;
     mst_split = true;
-    mst_reweight = true;
+    mst_cut_type = 0;
   
-    aa_rule_count = 0; // 0 pointer
+    //aa_rule_count = 0; // 0 pointer
+    rule_count = 0; // 0 pointer
     rc_rule_count = 0; // 0 pointer
-    cat_rule_count = 0; // 0 pointer
+    //cat_rule_count = 0; // 0 pointer
     
-    aa_var_count = 0; // 0 pointer
+    var_count = 0; // 0 pointer
     rc_var_count = 0; // 0 pointer
-    cat_var_count = 0; // 0 pointer
     
-    theta_aa = 0; // 0 pointer
+    theta = 0; // 0 pointer
     theta_rc = 0; // 0 pointers
-    theta_cat = 0; // 0 pointer
     
     tau = 1.0;
     mu0 = 0.0;}
@@ -221,6 +244,58 @@ public:
 }
 ;
 
+inline void parse_cat_levels(std::vector<std::set<int>> &cat_levels, std::vector<int> &K, int &R_cat, Rcpp::List &tmp_cat_levels)
+{
+  cat_levels.clear();
+  K.clear();
+  if(tmp_cat_levels.size() == R_cat){
+    for(int j = 0; j < R_cat; j++){
+      Rcpp::IntegerVector levels_vec = Rcpp::as<Rcpp::IntegerVector>(tmp_cat_levels[j]);
+      std::set<int> levels_set;
+      for(int l = 0; l < levels_vec.size(); l++) levels_set.insert(levels_vec[l]);
+      cat_levels.push_back(levels_set);
+      K.push_back(levels_set.size());
+    }
+  } else{
+    Rcpp::Rcout << "R_cat = " << R_cat;
+    Rcpp::Rcout << "cat_levels_list.size() = " << tmp_cat_levels.size();
+    Rcpp::stop("cat_levels_list must have size equal to R_cat!");
+  }
+}
+
+inline void parse_cat_adj(std::vector<std::vector<unsigned int>> &adj_support, int R_cat, Rcpp::List &tmp_adj_support)
+{
+  adj_support.clear();
+  if(tmp_adj_support.size() == R_cat){
+    Rcpp::IntegerVector adj_rvec = Rcpp::as<Rcpp::IntegerVector>(tmp_adj_support[j]);
+    std::vector<unsisnged int> adj_uvec;
+    for(int l = 0; l < adj_rvec.size(); l++) adj_uvec.push_back( (unsigned int) adj_rvec[l]);
+    adj_support.push_back(adj_uvec);
+  } else{
+    Rcpp::Rcout << "R_cat = " << R_cat;
+    Rcpp::Rcout << "adj_levels_list.size() = " << tmp_adj_support.size() << std::endl;
+    Rcpp::stop("adj_levels_list must have size equal to R_cat!");
+  }
+}
+
+inline void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int R_cont, Rcpp::List &tmp_cutpoints)
+{
+  cutpoints.clear();
+  if(tmp_cutpoints.size() == R_cont){
+    for(int j = 0; j < R_cont; j++){
+      Rcpp::NumericVector cutpoints_vec = Rcpp::as<Rcpp::NumericVector>(tmp_cutpoints[j]);
+      std::set<double> xi_set;
+      for(int l = 0; l < cutpoints_vec.size(); l++) xi_set.insert(cutpoints_vec[l]);
+      cutpoints.push_back(xi_set);
+    }
+  } else{
+    Rcpp::Rcout << "R_cont = " << R_cont;
+    Rcpp::Rcout << "  cutpoints_list.size() = " << tmp_cutpoints.size() << std::endl;
+    Rcpp::stop("cutpoints_list needs to have length R_cont!");
+  }
+}
+
+/*
 // processes the inputted information about categorical predictors (if they exist)
 inline void parse_categorical(std::vector<std::set<int>> &cat_levels, std::vector<std::vector<unsigned int>> &adj_support, std::vector<int> &K,
                               int p_cat, Rcpp::List &tmp_cat_levels, Rcpp::List &tmp_adj_support)
@@ -288,7 +363,7 @@ inline void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont
     Rcpp::stop("cutpoints_list needs to have length p_cont");
   }
 }
-
+*/
  
 inline void parse_training_data(int &n_train, int &p_cont, int &p_cat, Rcpp::NumericMatrix &tX_cont_train, Rcpp::IntegerMatrix &tX_cat_train)
 {
