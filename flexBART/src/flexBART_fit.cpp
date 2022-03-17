@@ -8,18 +8,19 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
                         Rcpp::IntegerMatrix tX_cat_train,
                         Rcpp::NumericMatrix tX_cont_test,
                         Rcpp::IntegerMatrix tX_cat_test,
+                        Rcpp::LogicalVector unif_cuts,
                         Rcpp::Nullable<Rcpp::List> cutpoints_list,
                         Rcpp::Nullable<Rcpp::List> cat_levels_list,
+                        Rcpp::LogicalVector graph_split, int graph_cut_type,
                         Rcpp::Nullable<Rcpp::List> adj_support_list,
-                        Rcpp::LogicalVector unif_cuts,
-                        bool mst_split, bool mst_reweight,
+                        bool rc_split, double prob_rc, double a_rc, double b_rc,
+                        bool sparse, double a_u, double b_u,
                         double mu0, double tau,
-                        double prob_aa, double prob_rc, // probs of axis-aligned and random-combination splits
                         double lambda, double nu,
-                        int M = 50,
-                        int nd = 1000, int burn = 1000, int thin = 1,
-                        bool save_trees = true,
-                        bool verbose = true, int print_every = 50,
+                        int M,
+                        int nd, int burn, int thin,
+                        bool save_trees,
+                        bool verbose, int print_every,
                         bool check_ss_map = false) // check that our sufficient stat map has the right keys
 {
   Rcpp::RNGScope scope;
@@ -44,24 +45,26 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   }
   std::vector<std::set<double>> cutpoints;
   std::vector<std::set<int>> cat_levels;
-  std::vector<int> K; // number of levels for each categorical variable
+  std::vector<int> K; // number of levels for the different categorical variables
   std::vector<std::vector<unsigned int>> adj_support;
   
   if(p_cont > 0){
     if(cutpoints_list.isNotNull()){
       Rcpp::List tmp_cutpoints = Rcpp::List(cutpoints_list);
-      parse_cutpoints(cutpoints, p_cont, tmp_cutpoints);
+      parse_cutpoints(cutpoints, p_cont, tmp_cutpoints, unif_cuts);
     }
   }
   
   if(p_cat > 0){
-    if(cat_levels_list.isNotNull() && adj_support_list.isNotNull()){
+    if(cat_levels_list.isNotNull()){
       Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
+      parse_cat_levels(cat_levels, K, p_cat, tmp_cat_levels);
+    } else{
+      Rcpp::stop("Must provide categorical levels.");
+    }
+    if(adj_support_list.isNotNull()){
       Rcpp::List tmp_adj_support = Rcpp::List(adj_support_list);
-      parse_categorical(cat_levels, adj_support, K, p_cat, tmp_cat_levels, tmp_adj_support);
-    } else if(cat_levels_list.isNotNull() && !adj_support_list.isNotNull()){
-      Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
-      parse_categorical(cat_levels, K, p_cat, tmp_cat_levels);
+      parse_cat_adj(adj_support, p_cat, tmp_adj_support, graph_split);
     }
   }
   
@@ -77,11 +80,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   di_train.p_cont = p_cont;
   di_train.p_cat = p_cat;
   di_train.p = p;
-  di_train.unif_cuts = unif_cuts.begin(); // do we use uniform cutpoints?
-  if(p_cont > 0){
-    di_train.x_cont = tX_cont_train.begin();
-    di_train.cutpoints = &cutpoints;
-  }
+  if(p_cont > 0) di_train.x_cont = tX_cont_train.begin();
   if(p_cat > 0){
     di_train.x_cat = tX_cat_train.begin();
     di_train.cat_levels = &cat_levels;
@@ -105,31 +104,34 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     }
   }
   
-  tree_prior_info tree_pi;
-
-  tree_pi.mst_split = mst_split;
-  tree_pi.mst_cut_type = mst_cut_type;
-  
   // stuff for variable selection
-  int rule_count = 0;
-  int rc_rule_count = 0;
-  
-  std::vector<int> var_count(p, 0);
-  int rc_var_count = 0;
-  
-  std::vector<double> theta(p, 1.0/( (double) p));
-  double theta_rc = 0.0;
-  if(prob_rc > 0.0 && p_cont >= 2){
-    tree_pi.prob_rc = prob_rc;
-    theta_rc = &theta_rc;
-    tree_pi.rc_rule_count = &rc_rule_count;
-    tree_pi.rc_var_count = &rc_var_count;
+  std::vector<double> theta(p, 1.0/ (double) p);
+  double u = 1.0/(1.0 + (double) p);
+  std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
+  int rule_count = 0; // how many total decision rules are there in the ensemble
+  int rc_rule_count = 0; // how many random combination rules are there in the ensemble
+  int rc_var_count = 0; // only when we are using random combination rules
+  double theta_rc = 0.0; // prob of including a variable in a random combination rule
+  if(p_cont >= 2 && rc_split){
+    theta_rc = 2.0/( (double) p_cont);
   }
-  tree_pi.rule_count = &rule_count;
+  
+  tree_prior_info tree_pi;
   tree_pi.theta = &theta;
   tree_pi.var_count = &var_count;
+  tree_pi.rule_count = &rule_count;
   
- 
+  tree_pi.unif_cuts = unif_cuts.begin(); // do we use uniform cutpoints?
+  tree_pi.cutpoints = &cutpoints;
+
+  
+  tree_pi.graph_split = graph_split.begin();
+  tree_pi.graph_cut_type = graph_cut_type;
+  tree_pi.rc_split = rc_split;
+  tree_pi.prob_rc = &prob_rc;
+  tree_pi.theta_rc = &theta_rc;
+  tree_pi.rc_var_count = &rc_var_count;
+  tree_pi.rc_rule_count = &rc_rule_count;
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;
   
@@ -171,11 +173,24 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   
   // output containers
   
-  arma::mat fit_train = arma::zeros<arma::mat>(n_train, nd);
+  //arma::mat fit_train = arma::zeros<arma::mat>(n_train, nd);
+  arma::mat fit_train = arma::zeros<arma::mat>(nd, n_train); // similar to regular BART
   arma::mat fit_test = arma::zeros<arma::mat>(1,1);
-  if(n_test > 0) fit_test.set_size(n_test, nd);
+  //if(n_test > 0) fit_test.set_size(n_test, nd);
+  if(n_test > 0) fit_test.set_size(nd, n_test);
   arma::vec sigma_samples(total_draws);
   arma::vec total_accept_samples(nd);
+  arma::mat theta_samples(1,1); // unless we're doing DART, no need to waste space
+  if(sparse) theta_samples.set_size(total_draws, p);
+  arma::mat var_count_samples(total_draws, p); // always useful to see how often we're splitting on variables in the ensemble
+  arma::vec theta_rc_samples(1);
+  arma::vec rc_rule_count_samples(1);
+  arma::vec rc_var_count_samples(1);
+  if(rc_split){
+    theta_rc_samples.set_size(total_draws);
+    rc_rule_count_samples.set_size(total_draws);
+    rc_var_count_samples.set_size(total_draws);
+  }
   
   Rcpp::List tree_draws(nd);
   
@@ -183,7 +198,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   for(int iter = 0; iter < total_draws; iter++){
     if(verbose){
       if( (iter < burn) && (iter % print_every == 0)){
-        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Burn-in" << std::endl;
+        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
         Rcpp::checkUserInterrupt();
       } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
         Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
@@ -247,13 +262,29 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     //Rcpp::Rcout << std::endl; // DEBUG
     // ready to update sigma
     total_sq_resid = 0.0;
-    //for(int i = 0; i < n_train; i++) total_sq_resid += pow(Y_train[i] - allfit_train[i], 2.0);
     for(int i = 0; i < n_train; i++) total_sq_resid += pow(residual[i], 2.0); // sum of squared residuals
     
     scale_post = lambda * nu + total_sq_resid;
     nu_post = nu + ( (double) n_train);
     sigma = sqrt(scale_post/gen.chi_square(nu_post));
     sigma_samples(iter) = sigma;
+    
+    if(sparse){
+      update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
+      for(int j = 0; j < p; j++){
+        theta_samples(iter, j) = theta[j];
+        var_count_samples(iter,j) = var_count[j];
+      }
+    } else{
+      for(int j = 0; j < p; j++) var_count_samples(iter, j) = var_count[j];
+    }
+    if(rc_split){
+      update_theta_rc(theta_rc, rc_var_count, rc_rule_count, a_rc, b_rc, p_cont, gen);
+      theta_rc_samples(iter) = theta_rc;
+      rc_var_count_samples(iter) = rc_var_count;
+      rc_rule_count_samples(iter) = rc_rule_count;
+    }
+    
     
     if( (iter >= burn) && ( (iter - burn)%thin == 0)){
       sample_index = (int) ( (iter-burn)/thin);
@@ -269,10 +300,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         tree_draws[sample_index] = tree_string_vec; // dump a character vector holding each tree's draws into an element of an Rcpp::List
       }
       
-      for(int i = 0; i < n_train; i++) fit_train(i, sample_index) = allfit_train[i];
+      for(int i = 0; i < n_train; i++) fit_train(sample_index, i) = allfit_train[i];
       if(n_test > 0){
         fit_ensemble(allfit_test, t_vec, di_test);
-        for(int i = 0; i < n_test; i++) fit_test(i, sample_index) = allfit_test[i];
+        for(int i = 0; i < n_test; i++) fit_test(sample_index, i) = allfit_test[i];
       }
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop
@@ -282,6 +313,13 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   if(n_test > 0) results["fit_test"] = fit_test;
   results["sigma"] = sigma_samples;
   results["total_accept"] = total_accept_samples;
+  results["var_count"] = var_count_samples;
   if(save_trees) results["trees"] = tree_draws;
+  if(sparse) results["theta"] = theta_samples;
+  if(rc_split){
+    results["theta_rc_samples"] = theta_rc_samples;
+    results["rc_var_count_samples"] = rc_var_count_samples;
+    results["rc_rule_count_samples"] = rc_rule_count_samples;
+  }
   return results;
 }

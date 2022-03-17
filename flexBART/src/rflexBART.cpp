@@ -11,12 +11,14 @@
 // [[Rcpp::export(".draw_tree")]]
 Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
                     Rcpp::IntegerMatrix tX_cat,
+                    Rcpp::LogicalVector unif_cuts,
+                    Rcpp::Nullable<Rcpp::List> cutpoints_list,
                     Rcpp::Nullable<Rcpp::List> cat_levels_list,
+                    Rcpp::LogicalVector graph_split, int graph_cut_type,
                     Rcpp::Nullable<Rcpp::List> adj_support_list,
-                    bool mst_split, bool mst_reweight,
+                    bool rc_split, double prob_rc,
                     double alpha, double beta,
-                    double mu0, double tau,
-                    double prob_aa, double prob_rc)
+                    double mu0, double tau)
 {
   Rcpp::RNGScope scope;
   RNG gen;
@@ -26,20 +28,32 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   int p_cont = 0;
   int p_cat = 0;
   parse_training_data(n,p_cont, p_cat, tX_cont, tX_cat);
-
   int p = p_cont + p_cat;
   //Rcpp::Rcout << "n = " << n << " p_cont = " << p_cont << " p_cat" << std::endl;
   
   // format the categorical levels
+  std::vector<std::set<double>> cutpoints;
   std::vector<std::set<int>> cat_levels;
   std::vector<int> K; // number of levels for the different categorical variables
   std::vector<std::vector<unsigned int>> adj_support;
   
+  if(p_cont > 0){
+    if(cutpoints_list.isNotNull()){
+      Rcpp::List tmp_cutpoints = Rcpp::List(cutpoints_list);
+      parse_cutpoints(cutpoints, p_cont, tmp_cutpoints, unif_cuts);
+    }
+  }
+  
   if(p_cat > 0){
-    if(cat_levels_list.isNotNull() && adj_support_list.isNotNull()){
+    if(cat_levels_list.isNotNull()){
       Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
+      parse_cat_levels(cat_levels, K, p_cat, tmp_cat_levels);
+    } else{
+      Rcpp::stop("Must provide categorical levels.");
+    }
+    if(adj_support_list.isNotNull()){
       Rcpp::List tmp_adj_support = Rcpp::List(adj_support_list);
-      parse_categorical(cat_levels, adj_support, K, p_cat, tmp_cat_levels, tmp_adj_support);
+      parse_cat_adj(adj_support, p_cat, tmp_adj_support, graph_split);
     }
   }
 
@@ -56,40 +70,21 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
     di.adj_support = &adj_support;
   }
   
-  tree_prior_info tree_pi;
-  if(p_cont == 0){
-    // no continuous variables so no axis aligned or random combination rules
-    tree_pi.prob_aa = 0.0;
-    tree_pi.prob_rc = 0.0;
-  } else{
-    if(p_cat == 0){
-      // no categorical variables, ensure that prob_aa + prob_rc = 1
-      tree_pi.prob_aa = prob_aa/(prob_aa + prob_rc);
-      tree_pi.prob_rc = prob_rc/(prob_aa + prob_rc);
-    } else{
-      tree_pi.prob_aa = prob_aa;
-      tree_pi.prob_rc = prob_rc;
-    }
-  }
   
-  std::vector<double> theta_aa;
+  std::vector<double> theta(p, 1.0/ (double) p);
   double theta_rc = 0.0;
-  std::vector<double> theta_cat;
-  if(p_cont > 0){
-    theta_aa.resize(p_cont, 1.0/( (double) p_cont));
+  if(p_cont >= 2 && rc_split){
     theta_rc = 2.0/( (double) p_cont);
-    tree_pi.theta_aa = &theta_aa;
-    tree_pi.theta_rc = &theta_rc;
-    
-  }
-  if(p_cat > 0){
-    theta_cat.resize(p_cat, 1.0/ ( (double) p_cat) );
-    tree_pi.theta_cat = &theta_cat;
   }
   
-  
-  tree_pi.mst_split = mst_split;
-  tree_pi.mst_reweight = mst_reweight;
+  tree_prior_info tree_pi;
+  tree_pi.theta = &theta;
+  tree_pi.unif_cuts = unif_cuts.begin();
+  tree_pi.cutpoints = &cutpoints;
+  tree_pi.graph_split = graph_split.begin();
+  tree_pi.graph_cut_type = graph_cut_type;
+  tree_pi.prob_rc = &prob_rc;
+  tree_pi.theta_rc = &theta_rc;
   tree_pi.alpha = alpha;
   tree_pi.beta = beta;
   tree_pi.mu0 = mu0;
@@ -128,12 +123,14 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
 // [[Rcpp::export(".draw_ensemble")]]
 Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
                         Rcpp::IntegerMatrix tX_cat,
+                        Rcpp::LogicalVector unif_cuts,
+                        Rcpp::Nullable<Rcpp::List> cutpoints_list,
                         Rcpp::Nullable<Rcpp::List> cat_levels_list,
+                        Rcpp::LogicalVector graph_split, int graph_cut_type,
                         Rcpp::Nullable<Rcpp::List> adj_support_list,
-                        bool mst_split, bool mst_reweight,
+                        bool rc_split, double prob_rc,
                         double alpha, double beta,
-                        double mu0, double tau,
-                        double prob_aa, double prob_rc, int M,
+                        double mu0, double tau, int M,
                         bool verbose, int print_every)
 {
   Rcpp::RNGScope scope;
@@ -144,19 +141,32 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   int p_cont = 0;
   int p_cat = 0;
   parse_training_data(n,p_cont, p_cat, tX_cont, tX_cat);
-
   int p = p_cont + p_cat;
+  //Rcpp::Rcout << "n = " << n << " p_cont = " << p_cont << " p_cat" << std::endl;
   
   // format the categorical levels
+  std::vector<std::set<double>> cutpoints;
   std::vector<std::set<int>> cat_levels;
   std::vector<int> K; // number of levels for the different categorical variables
   std::vector<std::vector<unsigned int>> adj_support;
   
+  if(p_cont > 0){
+    if(cutpoints_list.isNotNull()){
+      Rcpp::List tmp_cutpoints = Rcpp::List(cutpoints_list);
+      parse_cutpoints(cutpoints, p_cont, tmp_cutpoints, unif_cuts);
+    }
+  }
+  
   if(p_cat > 0){
-    if(cat_levels_list.isNotNull() && adj_support_list.isNotNull()){
+    if(cat_levels_list.isNotNull()){
       Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
+      parse_cat_levels(cat_levels, K, p_cat, tmp_cat_levels);
+    } else{
+      Rcpp::stop("Must provide categorical levels.");
+    }
+    if(adj_support_list.isNotNull()){
       Rcpp::List tmp_adj_support = Rcpp::List(adj_support_list);
-      parse_categorical(cat_levels, adj_support, K, p_cat, tmp_cat_levels, tmp_adj_support);
+      parse_cat_adj(adj_support, p_cat, tmp_adj_support, graph_split);
     }
   }
 
@@ -173,40 +183,21 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
     di.adj_support = &adj_support;
   }
   
-  tree_prior_info tree_pi;
-  if(p_cont == 0){
-    // no continuous variables so no axis aligned or random combination rules
-    tree_pi.prob_aa = 0.0;
-    tree_pi.prob_rc = 0.0;
-  } else{
-    if(p_cat == 0){
-      // no categorical variables, ensure that prob_aa + prob_rc = 1
-      tree_pi.prob_aa = prob_aa/(prob_aa + prob_rc);
-      tree_pi.prob_rc = prob_rc/(prob_aa + prob_rc);
-    } else{
-      tree_pi.prob_aa = prob_aa;
-      tree_pi.prob_rc = prob_rc;
-    }
-  }
   
-  std::vector<double> theta_aa;
+  std::vector<double> theta(p, 1.0/ (double) p);
   double theta_rc = 0.0;
-  std::vector<double> theta_cat;
-  if(p_cont > 0){
-    theta_aa.resize(p_cont, 1.0/( (double) p_cont));
+  if(p_cont >= 2 && rc_split){
     theta_rc = 2.0/( (double) p_cont);
-    tree_pi.theta_aa = &theta_aa;
-    tree_pi.theta_rc = &theta_rc;
-    
-  }
-  if(p_cat > 0){
-    theta_cat.resize(p_cat, 1.0/ ( (double) p_cat) );
-    tree_pi.theta_cat = &theta_cat;
   }
   
-  
-  tree_pi.mst_split = mst_split;
-  tree_pi.mst_reweight = mst_reweight;
+  tree_prior_info tree_pi;
+  tree_pi.theta = &theta;
+  tree_pi.unif_cuts = unif_cuts.begin();
+  tree_pi.cutpoints = &cutpoints;
+  tree_pi.graph_split = graph_split.begin();
+  tree_pi.graph_cut_type = graph_cut_type;
+  tree_pi.prob_rc = &prob_rc;
+  tree_pi.theta_rc = &theta_rc;
   tree_pi.alpha = alpha;
   tree_pi.beta = beta;
   tree_pi.mu0 = mu0;
@@ -248,120 +239,3 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   results["leaf"] = leaf_id;
   return results;
 }
-
-/*
-// [[Rcpp::export(".rflexBART")]]
-Rcpp::List rflexBART(Rcpp::NumericMatrix tX_cont,
-                     Rcpp::IntegerMatrix tX_cat,
-                     Rcpp::Nullable<Rcpp::List> cat_levels_list,
-                     Rcpp::Nullable<Rcpp::List> adj_support_list,
-                     bool mst_split, bool mst_reweight,
-                     double mu0, double tau,
-                     double prob_aa, double prob_rc,
-                     int M, int nd, bool save_trees)
-{
-  
-  Rcpp::RNGScope scope;
-  RNG gen;
-  set_str_conversion set_str; // for converting sets of integers into string
-  
-  int n = 0;
-  int p_cont = 0;
-  int p_cat = 0;
-  parse_training_data(n,p_cont, p_cat, tX_cont, tX_cat);
-
-  int p = p_cont + p_cat;
-  
-  // format the categorical levels
-  std::vector<std::set<int>> cat_levels;
-  std::vector<int> K; // number of levels for the different categorical variables
-  std::vector<std::vector<unsigned int>> adj_support;
-  
-  if(p_cat > 0){
-    if(cat_levels_list.isNotNull() && adj_support_list.isNotNull()){
-      Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
-      Rcpp::List tmp_adj_support = Rcpp::List(adj_support_list);
-      parse_categorical(cat_levels, adj_support, K, p_cat, tmp_cat_levels, tmp_adj_support);
-    }
-  }
-
-  data_info di;
-  di.n = n;
-  di.p_cont = p_cont;
-  di.p_cat = p_cat;
-  di.p = p;
-  if(p_cont > 0) di.x_cont = tX_cont.begin();
-  if(p_cat > 0){
-    di.x_cat = tX_cat.begin();
-    di.cat_levels = &cat_levels;
-    di.K = &K;
-    di.adj_support = &adj_support;
-  }
-  
-  tree_prior_info tree_pi;
-  if(p_cont == 0){
-    // no continuous variables so no axis aligned or random combination rules
-    tree_pi.prob_aa = 0.0;
-    tree_pi.prob_rc = 0.0;
-  } else{
-    if(p_cat == 0){
-      // no categorical variables, ensure that prob_aa + prob_rc = 1
-      tree_pi.prob_aa = prob_aa/(prob_aa + prob_rc);
-      tree_pi.prob_rc = prob_rc/(prob_aa + prob_rc);
-    } else{
-      tree_pi.prob_aa = prob_aa;
-      tree_pi.prob_rc = prob_rc;
-    }
-  }
-  
-  std::vector<double> theta_aa;
-  double theta_rc = 0.0;
-  std::vector<double> theta_cat;
-  if(p_cont > 0){
-    theta_aa.resize(p_cont, 1.0/( (double) p_cont));
-    theta_rc = 2.0/( (double) p_cont);
-    tree_pi.theta_aa = &theta_aa;
-    tree_pi.theta_rc = &theta_rc;
-    
-  }
-  if(p_cat > 0){
-    theta_cat.resize(p_cat, 1.0/ ( (double) p_cat) );
-    tree_pi.theta_cat = &theta_cat;
-  }
-  
-  
-  tree_pi.mst_split = mst_split;
-  tree_pi.mst_reweight = mst_reweight;
-  tree_pi.mu0 = mu0;
-  tree_pi.tau = tau;
-  
-  // now we are ready for to do the trees
-  Rcpp::List tree_draws(nd);
-  
-  
-  for(int iter = 0; iter < nd; iter++){
-    for(int m = 0; m < M; m++){
-      t_vec[m].to_null(); // kill off the current value of the m-th tree
-      draw_tree(t_vec[m], di, tree_pi, true, gen);
-    }
-  }
-  
-  
-  
-  
-  std::vector<tree> t_vec(M);
-  Rcpp::CharacterVector tree_string_vec(M);
-  for(int m = 0; m < M; m++){
-    draw_tree(t_vec[m], di, tree_pi, true, gen);
-    t_vec[m].print();
-    tree_string_vec[m] = write_tree(t_vec[m], di, set_str);
-  }
-
-  
-  
-  Rcpp::List results;
-  results["trees"] = tree_string_vec;
-  return results;
-  
-}
-*/

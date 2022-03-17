@@ -7,10 +7,10 @@ library(RcppArmadillo)
 sourceCpp("flexBART/src/rflexBART.cpp")
 
 K <- 10
-g <- erdos.renyi.game(K, 0.1, type = "gnp")
+g <- erdos.renyi.game(K, 0.25, type = "gnp")
 counter <- 0
 while( (!is_connected(g)) & counter < 100){
-  g <- erdos.renyi.game(K, 0.1, type = "gnp")
+  g <- erdos.renyi.game(K, 0.25, type = "gnp")
   counter <- counter + 1
 }
 if(!is_connected(g)) stop("graph isn't connected")
@@ -28,6 +28,7 @@ adj_support_list <- list(which(A_lower != 0) - 1) # C++ is 1-indexed
 X_cont <- matrix(1, nrow = 1, ncol = 1)
 X_cat <- matrix(as.integer(0:(K-1)), nrow = K, ncol = 1)
 
+
 #
 M <- 50000
 
@@ -35,35 +36,73 @@ M <- 50000
 # when we split, we partition the vertices of the induced subgraph
 # into two sets uniformly at random (conditionally on not producing a trivial partition)
 no_adj_trees <- .draw_ensemble(tX_cont = t(X_cont),
-                         tX_cat = t(X_cat),
-                         cat_levels_list = cat_levels_list,
-                         adj_support_list = adj_support_list,
-                         mst_split = FALSE, mst_reweight = FALSE,
-                         alpha = 0.95, beta = 2, mu0 = 0, tau = 1,
-                         prob_aa = 0, prob_rc = 0, M = M, verbose = TRUE, print_every = M/10)
-
+                               tX_cat = t(X_cat),
+                               unif_cuts = rep(FALSE, times = 1),
+                               cutpoints_list = NULL,
+                               cat_levels_list = cat_levels_list,
+                               mst_split = rep(FALSE, times = 1), mst_cut_type = 0, # mst_cut_type is ignored here
+                               adj_support_list = adj_support_list,
+                               rc_split = FALSE, prob_rc = 0.0, 
+                               alpha = 0.95, beta = 2, mu0 = 0, tau = 1/sqrt(M),
+                               M = M, verbose = TRUE, print_every = M/10)
 # now let's respect adjacency: we split by 
 # (1) drawing uniform weights for edges of induced subgraph
 # (2) computing MST for this weighted subgraph
 # (3) delete one edge from the MST uniformly at random
+
+
 unif_edge_trees <- .draw_ensemble(tX_cont = t(X_cont),
-                            tX_cat = t(X_cat),
-                            cat_levels_list = cat_levels_list,
-                            adj_support_list = adj_support_list,
-                            mst_split = TRUE, mst_reweight = FALSE,
-                            alpha = 0.95, beta = 2, mu0 = 0, tau = 1,
-                            prob_aa = 0, prob_rc = 0, M = M, verbose = TRUE, print_every = M/10)
+                                  tX_cat = t(X_cat),
+                                  unif_cuts = rep(FALSE, times = 1),
+                                  cutpoints_list = NULL,
+                                  cat_levels_list = cat_levels_list,
+                                  mst_split = rep(TRUE, times = 1), mst_cut_type = 0,
+                                  adj_support_list = adj_support_list,
+                                  rc_split = FALSE, prob_rc = 0.0, 
+                                  alpha = 0.95, beta = 2, mu0 = 0, tau = 1/sqrt(M),
+                                  M = M, verbose = TRUE, print_every = M/10)
+
+# same as above but instead of deleting an edge uniformly at random
+# delete edge with probability proportional to the largest edge weight
+edge_weight_trees <- .draw_ensemble(tX_cont = t(X_cont),
+                                    tX_cat = t(X_cat),
+                                    unif_cuts = rep(FALSE, times = 1),
+                                    cutpoints_list = NULL,
+                                    cat_levels_list = cat_levels_list,
+                                    mst_split = rep(TRUE, times = 1), mst_cut_type = 1,
+                                    adj_support_list = adj_support_list,
+                                    rc_split = FALSE, prob_rc = 0.0, 
+                                    alpha = 0.95, beta = 2, mu0 = 0, tau = 1/sqrt(M),
+                                    M = M, verbose = TRUE, print_every = M/10)
+
+
 # same as above but instead of deleting an edge uniformly at random
 # delete edge with prob proportional to the size of the *smallest* cluster
 # that is produced when edge is deleted
 # this biases us away from creating singletons
 size_biased_trees <- .draw_ensemble(tX_cont = t(X_cont),
-                              tX_cat = t(X_cat),
-                              cat_levels_list = cat_levels_list,
-                              adj_support_list = adj_support_list,
-                              mst_split = TRUE, mst_reweight = TRUE,
-                              alpha = 0.95, beta = 2, mu0 = 0, tau = 1,
-                              prob_aa = 0, prob_rc = 0, M = M, verbose = TRUE, print_every = M/10)
+                                    tX_cat = t(X_cat),
+                                    unif_cuts = rep(FALSE, times = 1),
+                                    cutpoints_list = NULL,
+                                    cat_levels_list = cat_levels_list,
+                                    mst_split = rep(TRUE, times = 1), mst_cut_type = 2,
+                                    adj_support_list = adj_support_list,
+                                    rc_split = FALSE, prob_rc = 0.0, 
+                                    alpha = 0.95, beta = 2, mu0 = 0, tau = 1/sqrt(M),
+                                    M = M, verbose = TRUE, print_every = M/10)
+
+# similar to above but delete edge with largest weight
+max_weight_trees <- .draw_ensemble(tX_cont = t(X_cont),
+                                    tX_cat = t(X_cat),
+                                    unif_cuts = rep(FALSE, times = 1),
+                                    cutpoints_list = NULL,
+                                    cat_levels_list = cat_levels_list,
+                                    mst_split = rep(TRUE, times = 1), mst_cut_type = 3,
+                                    adj_support_list = adj_support_list,
+                                    rc_split = FALSE, prob_rc = 0.0, 
+                                    alpha = 0.95, beta = 2, mu0 = 0, tau = 1/sqrt(M),
+                                    M = M, verbose = TRUE, print_every = M/10)
+
 
 # .draw_ensemble returns a list. one element, named tree_fits, is a matrix of size n x M,
 # recording the fit of each tree, where n is number of rows in X_cat
@@ -86,10 +125,15 @@ get_kernel <- function(n, tree_fits){
 
 no_adj_kernel <- get_kernel(K, no_adj_trees$tree_fits)
 unif_edge_kernel <- get_kernel(K, unif_edge_trees$tree_fits)
+edge_weight_kernel <- get_kernel(K, edge_weight_trees$tree_fits)
 size_biased_kernel <- get_kernel(K, size_biased_trees$tree_fits)
+max_weight_kernel <- get_kernel(K, max_weight_trees$tree_fits)
+
 
 View(round(no_adj_kernel, digits = 3))
 View(round(unif_edge_kernel, digits = 3))
+View(round(edge_weight_kernel, digits = 3))
 View(round(size_biased_kernel, digits = 3))
+View(round(max_weight_kernel, digits = 3))
 
 # graph laplacian 

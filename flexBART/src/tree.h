@@ -14,6 +14,10 @@ public:
   friend void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di, tree_prior_info &tree_pi, RNG &gen);
   friend void prune_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di, tree_prior_info &tree_pi, RNG &gen);
   friend void update_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di, tree_prior_info &tree_pi, RNG &gen);
+  // if we're updating the suff_stat map for the training data, might as well do it for the testing data as well!
+  friend void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
+  friend void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
+  friend void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
   
   //------------------------------
   //typedefs

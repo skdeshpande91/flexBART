@@ -228,7 +228,7 @@ std::string write_tree(tree &t, data_info &di, set_str_conversion &set_str)
       // os << rule.is_cat << " " << rule.is_rc << " ";
       os << rule.is_aa << " " << rule.is_cat << " ";
 
-      if(rule.is_aa && !rule.is_rc){
+      if(rule.is_aa && !rule.is_cat){
         // axis-aligned rule
         os << rule.c << " " << rule.v_aa;
       } else if(!rule.is_aa && rule.is_cat){
@@ -291,8 +291,8 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
         leaf_nodes.insert(std::pair<int,double>(nid, tmp_mu));
       } else if(stream_type == 'r'){
         tmp_rule.clear();
+        node_ss >> aa;
         node_ss >> cat;
-        node_ss >> rc;
         
         if(aa == '0') tmp_rule.is_aa = false;
         else tmp_rule.is_aa = true;
@@ -366,6 +366,144 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
   }
   
 }
+
+
+
+void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen){
+  rule.clear(); // clear out the rule
+  // we now are ready to draw a decision rule
+
+  int rule_counter = 0; // we are allowed multiple tries to draw a valid random combination or categorical rule
+  double c_upper = 1.0; // upper bound for range of cutpoints in axis aligned split
+  double c_lower = -1.0; // lower bound for range of cutpoints in axis aligned split
+  double tmp_weight = 0.0; // weights of random combination
+  double c_max = 1.0; // upper bound for absolute value of cutpoint in random combination split
+  tree::tree_p nx = t.get_ptr(nid); // at what node are we proposing this rule.
+  
+  double unif = gen.uniform();
+  if( (!tree_pi.rc_split) || (tree_pi.rc_split && unif > *tree_pi.prob_rc) ){
+    // either we were never allowed to try a rc split OR (1) we are allowed to try rc splits but (2) randomly choose a different type of rule
+    int v_raw = gen.multinomial(di.p, tree_pi.theta);
+    if(v_raw < di.p_cont){
+      // continuous variable so it's an axis-aligned splitting rule
+      rule.is_aa = true;
+      rule.is_cat = false;
+      rule.v_aa = v_raw;
+      if(tree_pi.unif_cuts[rule.v_aa] == 0){
+        // draw the cutpoint from the supplied cutpoints
+        c_lower = *(tree_pi.cutpoints->at(rule.v_aa).begin()); // returns smallest element in set
+        c_upper = *(tree_pi.cutpoints->at(rule.v_aa).rbegin()); // reverse iterator, returns largest value in set
+        nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+        if(c_lower >= c_upper){
+          // this is a weird tree and we'll just propose a trivial split
+          c_lower = *(tree_pi.cutpoints->at(rule.v_aa).begin());
+          c_upper = *(tree_pi.cutpoints->at(rule.v_aa).rbegin());
+        }
+        std::vector<double> valid_cutpoints;
+        if(tree_pi.cutpoints->at(rule.v_aa).count(c_lower) != 1 || tree_pi.cutpoints->at(rule.v_aa).count(c_upper) != 1){
+          // c_lower and c_upper were not found in the set of available cutpoints
+          Rcpp::Rcout << "[grow tree]: attempting to select a cutpoint from given set" << std::endl;
+          Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << tree_pi.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
+          Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << tree_pi.cutpoints->at(rule.v_aa).count(c_upper) << std::endl;
+          //Rcpp::Rcout << "  cutpoints are:";
+          //for(std::set<double>::iterator it = tree_pi.cutpoints->at(rule.v_aa).begin(); it != tree_pi.cutpoints->at(rule.v_aa).end(); ++it) Rcpp::Rcout << " " << *it;
+          //Rcpp::Rcout << std::endl;
+          Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");
+        }
+        // we want to draw from the cutpoints exclusive of c_lower & c_upper;
+        // i.e. we want to start with the one just after c_lower and just before c_upper
+        // std::set::lower_bound: iterator at first element that is not considered to come before
+        // std::set::upper_bound: iterator at first element considered to come after
+        // if value is not in set, lower_bound and upper_bound give same result
+        // if value is in set: lower bound returns the value, upper bound returns the next value
+        for(std::set<double>::iterator it = tree_pi.cutpoints->at(rule.v_aa).upper_bound(c_lower); it != tree_pi.cutpoints->at(rule.v_aa).lower_bound(c_upper); ++it){
+          valid_cutpoints.push_back(*it);
+        }
+        int num_cutpoints = valid_cutpoints.size();
+        if(num_cutpoints < 1){
+          // no valid splits are available; we will just pick something, all of the observations will go to one child anyway...
+          valid_cutpoints.clear();
+          for(std::set<double>::iterator it = tree_pi.cutpoints->at(rule.v_aa).begin(); it != tree_pi.cutpoints->at(rule.v_aa).end(); ++it){
+            valid_cutpoints.push_back(*it);
+          }
+          num_cutpoints = valid_cutpoints.size();
+        }
+        // at this point, valid cutpoints is a vector containing the available cutpoints at this node. we pick one uniformly.
+        rule.c = valid_cutpoints[floor(gen.uniform() * num_cutpoints)];
+        
+      } else{
+        // draw cutpoints uniformly
+        c_upper = 1.0;
+        c_lower = -1.0;
+        nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
+        if(c_lower >= c_upper){
+          c_lower = -1.0;
+          c_upper = 1.0;
+        }
+        rule.c = gen.uniform(c_lower, c_upper);
+      }
+    } else{
+      // categorical decision rule
+      rule.is_aa = false;
+      rule.is_cat = true;
+      rule.v_cat = v_raw - di.p_cont;
+
+      std::set<int> avail_levels = di.cat_levels->at(rule.v_cat); // get the full set of levels for this variable
+      nx->get_rg_cat(rule.v_cat, avail_levels); // determine the set of levels available at nx.
+      // if there is only one level left for this variable at nx, we will just propose a trivial split
+      // and will reset the value of avail_levels to be the full set of all levels for the variable
+      if(avail_levels.size() <= 1) avail_levels = di.cat_levels->at(rule.v_cat);
+      
+      rule.l_vals.clear();
+      rule.r_vals.clear();
+      
+      if(tree_pi.graph_split[rule.v_cat] == 1 && (di.adj_support->at(rule.v_cat).size() > 0)){
+        // if we explicitly say to use the MST to split the variables
+        graph_partition(avail_levels, rule.l_vals, rule.r_vals, di.adj_support->at(rule.v_cat), di.K->at(rule.v_cat), tree_pi.graph_cut_type, gen);
+      } else{
+        // otherwise we default to splitting the available levels uniformly at random: prob 0.5 to go to each child
+        rule_counter = 0;
+        while( ((rule.l_vals.size() == 0) || (rule.r_vals.size() == 0)) && rule_counter < 1000 ){
+          rule.l_vals.clear();
+          rule.r_vals.clear();
+          for(set_it it = avail_levels.begin(); it != avail_levels.end(); ++it){
+            if(gen.uniform() <= 0.5) rule.l_vals.insert(*it);
+            else rule.r_vals.insert(*it);
+          }
+          ++(rule_counter);
+        }
+        if(rule_counter == 1000){
+          Rcpp::stop("failed to generate valid categorical split in 1000 attempts"); // this should almost surely not get triggered.
+        }
+      }
+      if( (rule.l_vals.size() == 0) || (rule.r_vals.size() == 0) ) Rcpp::stop("proposed an invalid categorical rule!");
+    } // closes if/else determining whether we do an axis-aligned or categorical decision rule
+  } else if(tree_pi.rc_split && unif <= *tree_pi.prob_rc){
+    // random combination rule
+    rule.is_aa = false;
+    rule.is_cat = false;
+
+    while( (rule.rc_weight.size() < 2) && (rule_counter < 1000) ){
+      rule.rc_weight.clear();
+      c_max = 0.0;
+      for(int j = 0; j < di.p_cont; j++){
+        if(gen.uniform() < (*tree_pi.theta_rc)){
+          tmp_weight = gen.uniform(-1.0,1.0); // Breiman used Uniform(-1,1) weights and so shall we
+          rule.rc_weight.insert(std::pair<int,double>(j,tmp_weight));
+          c_max += fabs(tmp_weight);
+        }
+      }
+      ++(rule_counter);
+    }
+    if(rule.rc_weight.size() < 2) Rcpp::stop("[propose_rule]: failed to generate a valid random combination rule in 1000 attempts!");
+    else{
+      rule.c = gen.uniform(-1.0,1.0) * c_max;
+    }
+  } else{
+    Rcpp::stop("[draw_rule]: unable to draw a rule. check values of rc_split & prob_rc");
+  } // closes all if/else determining the type of rule (axis-aligned or categorical) OR random combination
+}
+
 
 // depth-first search, used to find connected components of a graph
 void dfs(int i, std::vector<bool> &visited, std::vector<int> &comp, int &n, arma::mat &A)
@@ -461,7 +599,7 @@ arma::mat boruvka(arma::mat &W)
 }
 
 
-arma::uword get_cut_edge(const arma::mat &cut_A, const arma::mat &cut_W, const arma::uvec mst_edge_index, const int &mst_cut_type, RNG &gen)
+arma::uword get_cut_edge(const arma::mat &cut_A, const arma::mat &cut_W, const arma::uvec mst_edge_index, const int &graph_cut_type, RNG &gen)
 {
   // cut_A is the lower triangular adjacency matrix of the MST
   // cut_W is the lower triangular weighted adjacency matrix of the MST
@@ -473,12 +611,11 @@ arma::uword get_cut_edge(const arma::mat &cut_A, const arma::mat &cut_W, const a
   // there should only be n-1 edges in the MST
   std::vector<double> cut_ix_probs(n-1, 1.0/( (double) (n-1) ));
   double tmp_sum;
-  int cut_ix;
   arma::uword cut_edge_index;
-  if(mst_cut_type == 0){
+  if(graph_cut_type == 0){
     // delete an edge uniformly at random
     cut_edge_index = mst_edge_index(gen.multinomial(n-1, cut_ix_probs));
-  } else if(mst_cut_type == 1){
+  } else if(graph_cut_type == 1){
     // delete edge w.p. proportional to the weight of the
     tmp_sum = 0.0;
     for(int e_ix = 0; e_ix < n-1; e_ix++){
@@ -488,7 +625,7 @@ arma::uword get_cut_edge(const arma::mat &cut_A, const arma::mat &cut_W, const a
     for(int e_ix = 0; e_ix < n-1; e_ix++) cut_ix_probs[e_ix] /= tmp_sum;
     cut_edge_index = mst_edge_index(gen.multinomial(n-1, cut_ix_probs));
     
-  } else if(mst_cut_type == 2){
+  } else if(graph_cut_type == 2){
     // size-biased
     tmp_sum = 0.0;
     arma::mat tmp_cut_A = cut_A;
@@ -506,12 +643,13 @@ arma::uword get_cut_edge(const arma::mat &cut_A, const arma::mat &cut_W, const a
     }
     for(int e_ix = 0; e_ix < n-1; e_ix++) cut_ix_probs[e_ix] /= tmp_sum;
     cut_edge_index = mst_edge_index(gen.multinomial(n-1, cut_ix_probs));
-  } else if(mst_cut_type == 3){
+  } else if(graph_cut_type == 3){
     // delete the edge with largest weight
     cut_edge_index = cut_W.index_max();
   } else{
     Rcpp::stop("[get_cut_edge]: don't know how to cut an edge from the MST!");
   }
+  return cut_edge_index;
 }
 
 
@@ -544,9 +682,9 @@ void get_edge_probs(std::vector<double> &cut_ix_probs, const arma::mat &cut_A, c
 */
 
 // adj_support is only for the lower triangle of the adjacency matrix
-void graph_partition(std::set<int> &vals, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<unsigned int> &adj_support, int &K, bool &reweight, RNG &gen)
+void graph_partition(std::set<int> &vals, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<unsigned int> &adj_support, int &K, int &graph_cut_type, RNG &gen)
 {
-  arma::mat W = arma::zeros<arma::mat>(K,K); // we need to recreate the a weighted version of adjacency matrix
+  arma::mat W = arma::zeros<arma::mat>(K,K); // we need to create a weighted adjacency matrix
   for(std::vector<unsigned int>::iterator w_it = adj_support.begin(); w_it != adj_support.end(); ++w_it) W(*w_it) = gen.uniform();
   // note that at this point W is lower triangular
   W = arma::symmatl(W); // make W symmetric
@@ -560,30 +698,58 @@ void graph_partition(std::set<int> &vals, std::set<int> &l_vals, std::set<int> &
   // need to subset A and W to just the subgraph induced by the vertices corresponding to the levels in vals
   std::vector<unsigned int> tmp_in;
   for(set_it it = vals.begin(); it != vals.end(); ++it) tmp_in.push_back( (unsigned int) *it);
-  arma::uvec index(tmp_in); //
+  arma::uvec index(tmp_in); // arma is weird with indexing with vectors, need to use a uvec
   arma::mat tmp_W = W(index,index);
   
   std::vector<std::vector<int> > components;
   find_components(components, tmp_W); // how many connected components are in W?
-  if(components.size() != 1){
-    // eventually it'd be nice to handle this case
-    // one proposition: randomly assign entire components to left or right uniformly at random
-    Rcpp::stop("subgraph induced by current set of levels is not connected");
+  if(components.size() == 0){
+    Rcpp::stop("subgraph induced by current set of levels appears to have no connected components...");
+  } else if(components.size() > 1){
+    // there are multiple connected components
+    // for now: just randomly assign whole components to the left or right uniformly at random
+    l_vals.clear();
+    r_vals.clear();
+    int rule_counter = 0;
+    while( ((l_vals.size() == 0 || r_vals.size() == 0)) && rule_counter < 1000 ){
+      l_vals.clear();
+      r_vals.clear();
+      for(int comp_ix = 0; comp_ix < components.size(); comp_ix++){
+        if(gen.uniform() <= 0.5){
+          // send everything in this component to the left child
+          for(int_it it = components[comp_ix].begin(); it != components[comp_ix].end(); ++it) l_vals.insert( (int) tmp_in[*it]);
+        } else{
+          // send everything in this component to the right child
+          for(int_it it = components[comp_ix].begin(); it != components[comp_ix].end(); ++it) r_vals.insert( (int) tmp_in[*it]);
+        }
+      }
+      ++rule_counter;
+    }
+    if(rule_counter == 1000){
+      Rcpp::stop("[graph partition]: graph disconnected. failed to generate a non-trivial partiton of components in 1000 attempts!");
+    }
   } else{
-    // now that we know levels induces a connected subgraph of the original graph
+    // now that we know levels induce a connected subgraph of the original graph
     // we can run Boruvka's algorithm
     arma::mat A_mst = boruvka(tmp_W); // adjacency matrix of the MST
     arma::mat W_mst = A_mst % tmp_W; // what are the weights
     arma::mat cut_A = arma::trimatl(A_mst); // get the lower triangle of the adjacency matrix of the MST
     arma::mat cut_W = arma::trimatl(W_mst); // get the lower triangle of the weighted adjacency matrix
-    arma::uvec mst_edge_index = arma::find(A_mst); // indices of edges in cut_A
+    arma::uvec mst_edge_index = arma::find(cut_A); // indices of edges in cut_A
     
-    cut_ix = get_cut_edge(cut_A, cut_W, mst_edge_index, mst_cut_type, gen);
+    cut_edge_index = get_cut_edge(cut_A, cut_W, mst_edge_index, graph_cut_type, gen);
     
-    if(cut_A(cut_edge_index) != 1) Rcpp::stop("[graph_partition]: attempting to delete an edge which does not seem to exist!");
+    if(cut_A(cut_edge_index) != 1){
+      //Rcpp::Rcout << "mst_edge_index = " << std::endl;
+      //mst_edge_index.t().print();
+      //Rcpp::Rcout << "cut_edge_index = " << cut_edge_index << std::endl;
+      //Rcpp::Rcout << cut_A(cut_edge_index) << std::endl;
+      Rcpp::stop("[graph_partition]: attempting to delete an edge which does not seem to exist!");
+    
+    }
     else{
       cut_A(cut_edge_index) = 0; // actually delete the edge
-      arma::mat part_mst_A = arma::symmatl(tmp_cut_A); // full adjacency matrix of the partitioned tree
+      arma::mat part_mst_A = arma::symmatl(cut_A); // full adjacency matrix of the partitioned tree
       std::vector<std::vector<int>> cut_components;
       find_components(cut_components, part_mst_A);
       if(cut_components.size() != 2){
@@ -612,7 +778,7 @@ void update_theta_u(std::vector<double> &theta, double &u, std::vector<int> &var
     double tmp_concentration = 0.0;
     double sum_log_theta = 0.0;
     int v_count;
-    std::vector<double> tmp_gamma(p_cat);
+    std::vector<double> tmp_gamma(p, 0.0);
     
     // update theta first
     double u_orig = u;
@@ -638,10 +804,30 @@ void update_theta_u(std::vector<double> &theta, double &u, std::vector<int> &var
     if(gen.log_uniform() <= log_accept) u = u_prop;
     else u = u_orig;
   }
-  
 }
-
-
+void update_theta_rc(double& theta_rc, int &rc_var_count, int &rc_rule_count, double &a_rc, double &b_rc, int &p_cont, RNG &gen)
+{
+  // since we disallow rc rules with 0 or 1 variable, the posterior is proportional to
+  // theta^(a + rc_var_count - 1) * (1 - theta)^(b + p_cont * rc_rule_count - rc_var_count - 1)/(1 - (1- theta)^p_cont - p_cont * theta * 1 - theta)^(p_cont - 1))
+  // note that the denominator here is just P(Bin(p_cont, theta) >= 2) as a function of theta
+  
+  // use independence MH: transition proposal is Beta(a  + rc_var_count, b + p_cont * rc_rule_count)
+  // acceptance ratio turns out to:
+  // P( Bin(p_cont, theta_orig) >= 2) / P(Bin(p_cont, theta_prop))
+  
+  double a_post = a_rc + (double) rc_var_count;
+  double b_post = b_rc + ((double) p_cont) * rc_rule_count - (double) rc_var_count;
+  
+  double theta_orig = theta_rc;
+  double theta_prop = gen.beta(a_post, b_post);
+  
+  double log_post_prop = log(1.0 - pow(1.0 - theta_prop, p_cont) - (double) p_cont * theta_prop * pow(1.0 - theta_prop, p_cont-1));
+  double log_post_orig = log(1.0 - pow(1.0 - theta_orig, p_cont) - (double) p_cont * theta_orig * pow(1.0 - theta_orig, p_cont-1));
+ 
+  double log_alpha = log_post_orig - log_post_prop;
+  if(gen.log_uniform() < log_alpha) theta_rc = theta_prop;
+  else theta_rc = theta_orig;
+}
 
 /* eventually we will add this functionality back in.
 

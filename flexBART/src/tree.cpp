@@ -10,7 +10,7 @@ tree::tree(){
   mu = 0.0;
   
   rule.is_aa = true;
-  rule.is_rc = false;
+  rule.is_cat = false;
   rule.v_aa = 0;
   rule.rc_weight = std::map<int, double>();
   rule.c = 0.0;
@@ -61,13 +61,11 @@ void tree::print(bool pc) const // pc is flag to print children
     // tree is just the top node
     Rcpp::Rcout << "  mu: " << mu << std::endl;
   } else { // internal node or nnog or top node
-    if(!p) Rcpp::Rcout << " tree contains only the root node" << std::endl;
-    else if(rule.is_aa && !rule.is_cat){
-      // axis-aligned decision rule
+    if(rule.is_aa && !rule.is_cat){
       Rcpp::Rcout << "  axis-aligned split on X_cont[," << rule.v_aa+1 << "] at c = " << rule.c << std::endl;
     } else if(!rule.is_aa && rule.is_cat){
       // categorical decision rule
-      Rcpp::Rcout << "  split on categorical X_cat[," << rule.v_cat + 1 << "]" << std::endl;
+      Rcpp::Rcout << "  split on categorical X_cat[," << rule.v_cat+1 << "]" << std::endl;
       Rcpp::Rcout << "    left levels: ";
       for(set_it it = rule.l_vals.begin(); it != rule.l_vals.end(); ++it) Rcpp::Rcout << " " << *it;
       Rcpp::Rcout << std::endl;
@@ -85,8 +83,10 @@ void tree::print(bool pc) const // pc is flag to print children
       for(rc_it it = rule.rc_weight.begin(); it != rule.rc_weight.end(); ++it) Rcpp::Rcout << " " << it->second;
       Rcpp::Rcout << std::endl;
       Rcpp::Rcout << "      cutpoint = " << rule.c << std::endl;
+    } else if(rule.is_aa && rule.is_cat){
+      Rcpp::stop("[tree::print]: decision rule cannot be both axis-aligned continuous rule and a categorical rule!");
     } else{
-      Rcpp::stop("[tree::print]: decision rule cannot be both axis-aligned and categorical!");
+      Rcpp::stop("[tree::print]: something has gone quite wrong here");
     }
   }
   
@@ -266,6 +266,7 @@ tree::tree_cp tree::get_bn(double* x_cont, int* x_cat)
       }
     } else{
       Rcpp::Rcout << "[get_bn]: encountered categorical decision rule but no categorical predictors were supplied!" << std::endl;
+      return 0;
     }
   } else if(!rule.is_aa && !rule.is_cat){
     // random combination rule
@@ -354,7 +355,7 @@ void tree::death(int nid)
 
 void tree::get_rg_aa(int &v, double &c_lower, double &c_upper){
   if(p){
-    if(!p->rule.is_cat && !p->rule.is_rc && p->rule.v_aa == v){
+    if(p->rule.is_aa && p->rule.v_aa == v){
       // my parent does an axis-aligned split on v
       if(this == p->l){
         // this is the left child of its parent
