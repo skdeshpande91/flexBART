@@ -6,6 +6,7 @@ library(RcppArmadillo)
 library(BART)
 
 sourceCpp("flexBART/src/flexBART_fit.cpp")
+
 sourceCpp("flexBART/src/flexBARTfast_fit.cpp")
 
 
@@ -39,6 +40,7 @@ set.seed(129)
 X_cont <- matrix(runif(n * p_cont, -1, 1), nrow = n, ncol = p_cont)
 X_cat <- matrix(NA, nrow = n, ncol = p_cat)
 
+
 #X_cat[,1] <- as.integer(sample(0:50, size = n, replace = TRUE))
 cat_levels_list <- list()
 for(j in 1:p_cat){
@@ -53,7 +55,9 @@ set.seed(129)
 Y_all <- mu_all + sigma * rnorm(n, 0, 1)
 
 
-rmse_test <- matrix(nrow = 25, ncol = 4, dimnames = list(c(), c("flexBART", "flexBARTfast", "BART", "DART")))
+rmse_test <- matrix(nrow = 25, ncol = 6, dimnames = list(c(), c("flexBART_dense", "flexBART_sparse", 
+                                                                "flexBARTfast_dense", "flexBARTfast_sparse",
+                                                                "BART", "DART")))
 rmse_train <- rmse_test
 timing <- rmse_test
 
@@ -102,43 +106,87 @@ for(r in 1:25){
   cutpoints_list <- NULL
   adj_support_list <- NULL
 
-  set.seed(22022022+r)
-  #set.seed(31521+r)
-  time1 <- system.time(fit1 <- .flexBART_fit(Y_train = std_Y_train,
-                                             tX_cont_train = t(X_cont_train),
-                                             tX_cat_train = t(X_cat_train),
-                                             tX_cont_test = t(X_cont_test),
-                                             tX_cat_test = t(X_cat_test),
-                                             cutpoints_list = cutpoints_list,
-                                             cat_levels_list = cat_levels_list,
-                                             adj_support_list = adj_support_list,
-                                             unif_cuts = TRUE,
-                                             mst_split = FALSE, mst_reweight = FALSE,
-                                             prob_aa = 0.5, prob_rc = 0, # prob_aa = 0 tells flexBART not to try to split on continuous variables
-                                             mu0 = 0, tau = tau,
-                                             lambda = lambda, nu = nu,
-                                             M = M, 
-                                             nd = 1000, burn = 1000, thin = 1,
-                                             save_trees = FALSE, verbose = FALSE, print_every = 50))
+  unif_cuts <- rep(TRUE, times = p_cont)
+  graph_split <- rep(FALSE, times = p_cat)
+  #set.seed(22022022+r)
+  set.seed(31822+r)
+  time1_dense <- system.time(
+    fit1_dense <- .flexBART_fit(Y_train = std_Y_train,
+                                tX_cont_train = t(X_cont_train),
+                                tX_cat_train = t(X_cat_train),
+                                tX_cont_test = t(X_cont_test),
+                                tX_cat_test = t(X_cat_test),
+                                unif_cuts = unif_cuts,
+                                cutpoints_list = NULL,
+                                cat_levels_list = cat_levels_list,
+                                graph_split = graph_split,
+                                graph_cut_type = 0, 
+                                adj_support_list = NULL,
+                                rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
+                                sparse = FALSE, a_u = 0.5, b_u = 1, 
+                                mu0 = 0, tau = tau,
+                                lambda = lambda, nu = nu,
+                                M = M, nd = 1000, burn = 1000, thin = 1,
+                                save_trees = FALSE, verbose = FALSE, print_every = 50))
+  set.seed(31822 + r)
+  time1_sparse <- system.time(
+    fit1_sparse <- .flexBART_fit(Y_train = std_Y_train,
+                                  tX_cont_train = t(X_cont_train),
+                                  tX_cat_train = t(X_cat_train),
+                                  tX_cont_test = t(X_cont_test),
+                                  tX_cat_test = t(X_cat_test),
+                                  unif_cuts = unif_cuts,
+                                  cutpoints_list = NULL,
+                                  cat_levels_list = cat_levels_list,
+                                  graph_split = graph_split,
+                                  graph_cut_type = 0, 
+                                  adj_support_list = NULL,
+                                  rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
+                                  sparse = TRUE, a_u = 0.5, b_u = 1, 
+                                  mu0 = 0, tau = tau,
+                                  lambda = lambda, nu = nu,
+                                  M = M, nd = 1000, burn = 1000, thin = 1,
+                                  save_trees = FALSE, verbose = FALSE, print_every = 50))
   
-  set.seed(22022022+r)
-  time2 <- system.time(
-    fit2 <- .flexBARTfast_fit(Y_train = std_Y_train,
-                              tX_cont_train = t(X_cont_train),
-                              tX_cat_train = t(X_cat_train),
-                              tX_cont_test = t(X_cont_test),
-                              tX_cat_test = t(X_cat_test),
-                              cutpoints_list = cutpoints_list,
-                              cat_levels_list = cat_levels_list,
-                              adj_support_list = adj_support_list,
-                              unif_cuts = TRUE,
-                              mst_split = FALSE, mst_reweight = FALSE,
-                              prob_aa = 0.5, prob_rc = 0, # prob_aa = 0 tells flexBART not to try to split on continuous variables
-                              mu0 = 0, tau = tau,
-                              lambda = lambda, nu = nu,
-                              M = M, 
-                              nd = 1000, burn = 1000, thin = 1,
-                              save_trees = FALSE, verbose = FALSE, print_every = 50))
+  #set.seed(22022022+r)
+  set.seed(31822+r)
+  time2_dense <- system.time(
+    fit2_dense <- .flexBARTfast_fit(Y_train = std_Y_train,
+                                    tX_cont_train = t(X_cont_train),
+                                    tX_cat_train = t(X_cat_train),
+                                    tX_cont_test = t(X_cont_test),
+                                    tX_cat_test = t(X_cat_test),
+                                    unif_cuts = unif_cuts,
+                                    cutpoints_list = NULL,
+                                    cat_levels_list = cat_levels_list,
+                                    graph_split = graph_split,
+                                    graph_cut_type = 0, 
+                                    adj_support_list = NULL,
+                                    rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
+                                    sparse = FALSE, a_u = 0.5, b_u = 1, 
+                                    mu0 = 0, tau = tau,
+                                    lambda = lambda, nu = nu,
+                                    M = M, nd = 1000, burn = 1000, thin = 1,
+                                    save_trees = FALSE, verbose = FALSE, print_every = 50))
+  set.seed(31822+r)
+  time2_sparse <- system.time(
+    fit2_sparse <- .flexBARTfast_fit(Y_train = std_Y_train,
+                                    tX_cont_train = t(X_cont_train),
+                                    tX_cat_train = t(X_cat_train),
+                                    tX_cont_test = t(X_cont_test),
+                                    tX_cat_test = t(X_cat_test),
+                                    unif_cuts = unif_cuts,
+                                    cutpoints_list = NULL,
+                                    cat_levels_list = cat_levels_list,
+                                    graph_split = graph_split,
+                                    graph_cut_type = 0, 
+                                    adj_support_list = NULL,
+                                    rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
+                                    sparse = TRUE, a_u = 0.5, b_u = 1, 
+                                    mu0 = 0, tau = tau,
+                                    lambda = lambda, nu = nu,
+                                    M = M, nd = 1000, burn = 1000, thin = 1,
+                                    save_trees = FALSE, verbose = FALSE, print_every = 50))
   
   # Using the same starting point & same random seed
   # flexBART and flexBARTfast should have identical results
@@ -147,21 +195,26 @@ for(r in 1:25){
   
   #range(fit1$fit_train - fit2$fit_train)
   #range(fit1$fit_test - fit2$fit_test)
+  dense_train <- y_mean + y_sd * colMeans(fit1_dense$fit_train)
+  sparse_train <- y_mean + y_sd * colMeans(fit1_sparse$fit_train)
   
-  post_mean_train1 <- y_mean + y_sd * rowMeans(fit1$fit_train)
-  post_mean_train2 <- y_mean + y_sd * rowMeans(fit2$fit_train)
+  dense_fast_train <- y_mean + y_sd * colMeans(fit2_dense$fit_train)
+  sparse_fast_train <- y_mean + y_sd * colMeans(fit2_sparse$fit_train)
   
-  post_mean_test1 <- y_mean + y_sd * rowMeans(fit1$fit_test)
-  post_mean_test2 <- y_mean + y_sd * rowMeans(fit2$fit_test)
+  dense_test <- y_mean + y_sd * colMeans(fit1_dense$fit_test)
+  sparse_test <- y_mean + y_sd * colMeans(fit1_sparse$fit_test)
+  
+  dense_fast_test <- y_mean + y_sd * colMeans(fit2_dense$fit_test)
+  sparse_fast_test <- y_mean + y_sd * colMeans(fit2_sparse$fit_test)
   
   
-  set.seed(22022022+r)
-  
+  #set.seed(22022022+r)
+  set.seed(31822+ r)
   bart1_time <- system.time(
     bart_fit1 <- wbart(x.train = df_X_train, y.train = Y_train,
                        x.test = df_X_test, sparse = FALSE, ndpost = 1000, nskip = 1000,
                        printevery = 5000))
-  set.seed(22022022+r)
+  set.seed(31822+r)
   bart2_time <- system.time(
     bart_fit2 <- wbart(x.train = df_X_train, y.train = Y_train,
                        x.test = df_X_test, sparse = TRUE, ndpost = 1000, nskip = 1000,
@@ -173,18 +226,24 @@ for(r in 1:25){
   bart_mean_train2 <- bart_fit2$yhat.train.mean
   bart_mean_test2 <- bart_fit2$yhat.test.mean
   
-  rmse_train[r, "flexBART"] <- sqrt(mean( (mu_train - post_mean_train1)^2 ))
-  rmse_train[r, "flexBARTfast"] <- sqrt(mean( (mu_train - post_mean_train2)^2 ))
+  rmse_train[r, "flexBART_dense"] <- sqrt(mean( (mu_train - dense_train)^2 ))
+  rmse_train[r, "flexBART_sparse"] <- sqrt(mean( (mu_train - sparse_train)^2 ))
+  rmse_train[r, "flexBARTfast_dense"] <- sqrt(mean( (mu_train - dense_fast_train)^2 ))
+  rmse_train[r, "flexBARTfast_sparse"] <- sqrt(mean( (mu_train - sparse_fast_train)^2 ))
   rmse_train[r, "BART"] <- sqrt(mean( (mu_train - bart_mean_train1)^2 ))
   rmse_train[r, "DART"] <- sqrt(mean( (mu_train - bart_mean_train2)^2 ))
   
-  rmse_test[r, "flexBART"] <- sqrt(mean( (mu_test - post_mean_test1)^2 ))
-  rmse_test[r, "flexBARTfast"] <- sqrt(mean( (mu_test - post_mean_test2)^2 ))
+  rmse_test[r, "flexBART_dense"] <- sqrt(mean( (mu_test - dense_test)^2 ))
+  rmse_test[r, "flexBART_sparse"] <- sqrt(mean( (mu_test - sparse_test)^2 ))
+  rmse_test[r, "flexBARTfast_dense"] <- sqrt(mean( (mu_test - dense_fast_test)^2 ))
+  rmse_test[r, "flexBARTfast_sparse"] <- sqrt(mean( (mu_test - sparse_fast_test)^2 ))
   rmse_test[r, "BART"] <- sqrt(mean( (mu_test - bart_mean_test1)^2 ))
   rmse_test[r, "DART"] <- sqrt(mean( (mu_test - bart_mean_test2)^2 ))
   
-  timing[r, "flexBART"] <- time1["elapsed"]
-  timing[r, "flexBARTfast"] <- time2["elapsed"]
+  timing[r, "flexBART_dense"] <- time1_dense["elapsed"]
+  timing[r, "flexBART_sparse"] <- time1_sparse["elapsed"]
+  timing[r, "flexBARTfast_dense"] <- time2_dense["elapsed"]
+  timing[r, "flexBARTfast_sparse"] <- time2_sparse["elapsed"]
   timing[r, "BART"] <- bart1_time["elapsed"]
   timing[r, "DART"] <- bart2_time["elapsed"]
   
