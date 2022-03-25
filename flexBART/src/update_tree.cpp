@@ -82,7 +82,7 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
     if(rule.is_aa && !rule.is_cat){
       ++(tree_pi.var_count->at(rule.v_aa)); // in our bookkeeping, continuous variables come first
     } else if(!rule.is_aa && rule.is_cat){
-      double v_raw = rule.v_cat + di.p_cont;
+      int v_raw = rule.v_cat + di.p_cont;
       ++(tree_pi.var_count->at(v_raw));
     } else if(!rule.is_aa && !rule.is_cat){
       ++(*tree_pi.rc_rule_count);
@@ -194,7 +194,7 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
     if(rule.is_aa && !rule.is_cat){
       ++(tree_pi.var_count->at(rule.v_aa)); // in our bookkeeping, continuous variables come first
     } else if(!rule.is_aa && rule.is_cat){
-      double v_raw = rule.v_cat + di_train.p_cont;
+      int v_raw = rule.v_cat + di_train.p_cont;
       ++(tree_pi.var_count->at(v_raw));
     } else if(!rule.is_aa && !rule.is_cat){
       ++(*tree_pi.rc_rule_count);
@@ -312,8 +312,8 @@ void prune_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &d
       // we pruned away an axis-aligned or categorical rule
      --(tree_pi.var_count->at(nx->get_v_aa()));
     } else if(!nx->get_is_aa() && nx->get_is_cat()){
-        int v_raw = di.p_cont + nx->get_v_cat();
-        --(tree_pi.var_count->at(v_raw));
+      int v_raw = di.p_cont + nx->get_v_cat();
+      --(tree_pi.var_count->at(v_raw));
     } else if( !nx->get_is_aa() && !nx->get_is_cat()){
       // random combination rule
       std::map<int,double> rc_weight = nx->get_rc_weight();
@@ -404,8 +404,8 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, d
       // we pruned away an axis-aligned or categorical rule
      --(tree_pi.var_count->at(nx->get_v_aa()));
     } else if(!nx->get_is_aa() && nx->get_is_cat()){
-        int v_raw = di_train.p_cont + nx->get_v_cat();
-        --(tree_pi.var_count->at(v_raw));
+      int v_raw = di_train.p_cont + nx->get_v_cat();
+      --(tree_pi.var_count->at(v_raw));
     } else if( !nx->get_is_aa() && !nx->get_is_cat()){
       // random combination rule
       std::map<int,double> rc_weight = nx->get_rc_weight();
