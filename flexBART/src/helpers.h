@@ -284,7 +284,7 @@ inline void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont
 {
   cutpoints.clear();
   cutpoints.resize(p_cont, std::set<double>());
-  if(tmp_cutpoints.size() == p_cont){
+  if(tmp_cutpoints.size() == p_cont && unif_cuts.size() == p_cont){
     for(int j = 0; j < p_cont; j++){
       
       if(unif_cuts[j] == 0){
@@ -303,7 +303,8 @@ inline void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont
   } else{
     Rcpp::Rcout << "p_cont = " << p_cont;
     Rcpp::Rcout << "  cutpoints_list.size() = " << tmp_cutpoints.size() << std::endl;
-    Rcpp::stop("cutpoints_list needs to have length p_cont!");
+    Rcpp::Rcout << "  unif_cuts.size() = " << unif_cuts.size() << std::endl;
+    Rcpp::stop("cutpoints_list & unif_cuts needs to have length p_cont!");
   }
 }
 
