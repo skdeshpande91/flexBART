@@ -1,11 +1,12 @@
 #include "funs.h"
 
-// [[Rcpp::export(".predict_flexBART")]]
+// [[Rcpp::export("predict_flexBART")]]
 arma::mat predict_flexBART(Rcpp::List tree_draws,
                            Rcpp::NumericMatrix tX_cont,
                            Rcpp::IntegerMatrix tX_cat,
                            Rcpp::Nullable<Rcpp::List> cat_levels_list,
                            Rcpp::Nullable<Rcpp::List> adj_support_list,
+                           Rcpp::LogicalVector graph_split,
                            bool verbose = true, int print_every = 50)
 {
 
@@ -23,10 +24,15 @@ arma::mat predict_flexBART(Rcpp::List tree_draws,
   std::vector<std::vector<unsigned int>> adj_support;
   
   if(p_cat > 0){
-    if(cat_levels_list.isNotNull() && adj_support_list.isNotNull()){
+    if(cat_levels_list.isNotNull()){
       Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
+      parse_cat_levels(cat_levels, K, p_cat, tmp_cat_levels);
+    } else{
+      Rcpp::stop("Must provide categorical levels.");
+    }
+    if(adj_support_list.isNotNull()){
       Rcpp::List tmp_adj_support = Rcpp::List(adj_support_list);
-      parse_categorical(cat_levels, adj_support, K, p_cat, tmp_cat_levels, tmp_adj_support);
+      parse_cat_adj(adj_support, p_cat, tmp_adj_support, graph_split);
     }
   }
   

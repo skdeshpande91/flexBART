@@ -1,0 +1,11 @@
+Package: flexBART
+Type: Package
+Title: A more flexible BART model
+Version: 1.0
+Date: 2022-05-01
+Author: Sameer K. Deshpande
+Maintainer: Questions and comments to  <sameer.deshpande@wisc.edu>
+Description: A more flexible implementation of BART that accomodates structured categorical variables.
+License: GNU GPL v3.0
+LinkingTo: Rcpp, RcppArmadillo
+Suggests: igraph
