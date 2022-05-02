@@ -12,6 +12,11 @@ double RNG::log_uniform(){
   return -1.0 * exponential(1.0);
   // if U ~ Uniform(0,1), then (-1 * log(U)) ~ Exponential(1)
 }
+// if U ~ uniform(0,1), then -log(u) ~ Exponential(1)
+// Furthermore, -log(-log(U)) ~ Gumbel(0,1)
+double RNG::gumbel(){
+  return -1.0 * log(exponential(1.0));
+}
 
 double RNG::normal(double mu, double sd ){
   return R::rnorm(mu,sd);
@@ -29,6 +34,26 @@ double RNG::chi_square(double df){
   return R::rchisq(df);
 }
 
+int RNG::categorical(std::vector<double> &probs){
+  int n = probs.size();
+  int output = 0;
+  double tmp = 0.0;
+  if(n > 1){
+    double max_quantity = log(probs[0]) + gumbel();
+    for(int i = 1; i < n; i++){
+      tmp = log(probs[i]) + gumbel();
+      if(tmp > max_quantity){
+        max_quantity = tmp;
+        output = i;
+      }
+    }
+  } else{
+    // this is totally redundant
+    output = 0;
+  }
+  return output;
+}
+
 
 void RNG::dirichlet(std::vector<double> &theta, std::vector<double> &concentration)
 {
@@ -43,6 +68,7 @@ void RNG::dirichlet(std::vector<double> &theta, std::vector<double> &concentrati
   for(int j = 0; j < p; j++) theta[j] = tmp_gamma[j]/tmp_sum;
 }
 
+// we can probably deprecate this
 int RNG::multinomial(const int &R, const std::vector<double> &probs){
   int x = 0;
   double cumsum = 0.0;
@@ -57,6 +83,7 @@ int RNG::multinomial(const int &R, const std::vector<double> &probs){
   return(x);
 }
 
+// we can likely deprecate this
 int RNG::multinomial(const int &R, std::vector<double>* probs){
   int x = 0;
   double cumsum = 0.0;
@@ -70,6 +97,7 @@ int RNG::multinomial(const int &R, std::vector<double>* probs){
   }
   return(x);
 }
+
 
 arma::vec RNG::std_norm_vec(int d){
   arma::vec results(d);

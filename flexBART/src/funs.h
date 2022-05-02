@@ -24,6 +24,18 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
 
 void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen);
 
+
+void build_symmetric_edge_map(edge_map &emap, std::vector<edge> &edges);
+std::vector<edge> get_induced_edges(std::vector<edge> &edges, std::set<int> &vertex_subset);
+void dfs(int v, std::map<int, bool> &visited, std::vector<int> &comp, edge_map &emap);
+void find_components(std::vector<std::vector<int> > &components, std::vector<edge> &edges, std::set<int> &vertices);
+void get_unique_edges(std::vector<edge> &edges);
+
+std::vector<edge> boruvka(std::vector<edge> &edges, std::set<int> &vertices);
+std::vector<edge> wilson(std::vector<edge> &edges, std::set<int> &vertices, RNG &gen);
+
+void graph_partition(std::set<int> &avail_levels, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, int &K, bool &use_wilson, int &cut_type, RNG &gen);
+/*
 void dfs(int i, std::vector<bool> &visited, std::vector<int> &comp, int &n, arma::mat &A);
 void find_components(std::vector<std::vector<int> > &components, arma::mat &A);
 std::pair<int,int> find_min_edge_weight(std::vector<int> &components, int &n, arma::mat &W);
@@ -31,7 +43,7 @@ arma::mat boruvka(arma::mat &W);
 //void get_edge_probs(std::vector<double> &cut_ix_probs, const arma::mat &cut_A, const arma::uvec &mst_index, const int &n);
 arma::uword get_cut_edge(const arma::mat &cut_A, const arma::mat &cut_W, const arma::uvec mst_edge_index, const int &mst_cut_type, RNG &gen);
 void graph_partition(std::set<int> &vals, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<unsigned int> &adj_support, int &K, int &mst_cut_type, RNG &gen);
-
+*/
 void update_theta_u(std::vector<double> &theta, double &u, std::vector<int> &var_count, int &p, double &a_u, double &b_u, RNG &gen);
 void update_theta_rc(double& theta_rc, int &rc_var_count, int &rc_rule_count, double &a_rc, double &b_rc, int &p_cont, RNG &gen);
 //void update_theta_cont(std::vector<double> &theta_cont, std::vector<int> &cont_var_count, int &cont_rule_count, double &a_cont, double &b_cont, int &p_cont, RNG &gen);

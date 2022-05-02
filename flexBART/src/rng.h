@@ -11,12 +11,14 @@ public:
   double uniform(double x = 0.0, double y = 1.0);
   double exponential(double lambda);
   double log_uniform();
+  double gumbel();
   double normal(double mu = 0.0, double sd = 1.0);
   double gamma(double shape, double scale);
   double chi_square(double df);
   
   double beta(double a1, double a2);
-
+  int categorical(std::vector<double> &probs);
+  
   void dirichlet(std::vector<double> &theta, std::vector<double> &concentration);
   
   

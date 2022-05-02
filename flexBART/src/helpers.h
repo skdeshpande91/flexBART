@@ -19,6 +19,20 @@ typedef std::map<int, double>::const_iterator rc_it; // iterator type for random
 typedef std::map<int, std::vector<int>> suff_stat; // sufficient statistic map: key is node id, value is vector of observations that land in that node
 typedef suff_stat::iterator suff_stat_it; // iterator for sufficient statistc map
 
+// helpful structures for graph partitioning
+struct edge{
+  int source;
+  int sink;
+  double weight;
+  edge(){source = 0; sink = 0; weight = 1.0;}
+  edge(int source_in, int sink_in){source = source_in; sink = sink_in; weight = 1.0;}
+  edge(int source_in, int sink_in, double weight_in){source = source_in; sink = sink_in; weight = weight_in;}
+  void copy_edge(edge edge_in){source = edge_in.source; sink = edge_in.sink; weight = edge_in.weight;} // unlikely to ever use this
+}
+typedef std::map<int, std::vector<edge> > edge_map;
+typedef std::vector<edge>::iterator edge_vec_it;
+typedef std::map<int, std::vector<edge>>::iterator edge_map_it;
+
 class rule_t{
 public:
   bool is_aa; // is it an axis-aligned split
@@ -256,7 +270,8 @@ inline void parse_cat_levels(std::vector<std::set<int>> &cat_levels, std::vector
     Rcpp::stop("cat_levels_list must have size equal to p_cat!");
   }
 }
-
+/*
+ deprecate this!
 inline void parse_cat_adj(std::vector<std::vector<unsigned int>> &adj_support, int p_cat, Rcpp::List &tmp_adj_support, Rcpp::LogicalVector &graph_split)
 {
   adj_support.clear();
@@ -279,6 +294,29 @@ inline void parse_cat_adj(std::vector<std::vector<unsigned int>> &adj_support, i
     Rcpp::stop("adj_levels_list must have size equal to p_cat!");
   }
 }
+*/
+// we will pass a list of Rcpp::NumericMatrices, which are computed using igraph::get_data_frame
+// this function reads those matrices and builds a vector of edges
+
+void parse_edge_mat(std::vector<edge> &edges, Rcpp::NumericMatrix &edge_mat, int &n_vertex)
+{
+  int n_edges = edge_mat.rows();
+  edges.clear();
+  
+  if(edge_mat.cols() == 3){
+    for(int i = 0; i < n_edges; i++){
+      edges.push_back(edge( (int) edge_mat(i,0), (int) edge_mat(i,1), edge_mat(i,2)));
+    }
+  } else if(edge_mat.cols() == 2){
+    for(int i = 0; i < n_edges; i++){
+      edges.push_back(edge( (int) edge_mat(i,0), (int) edge_mat(i,1), 1.0));
+    }
+  } else{
+    Rcpp::stop("[parse_edge_mat]: The matrix edge_mat must have 2 columns (unweighted graph) or 3 columns (weighted graph)");
+  }
+  
+}
+
 
 inline void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont, Rcpp::List &tmp_cutpoints, Rcpp::LogicalVector &unif_cuts)
 {
