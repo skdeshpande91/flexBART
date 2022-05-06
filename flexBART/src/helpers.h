@@ -83,9 +83,9 @@ public:
   //bool* unif_cuts; // do we use uniform cutpoints or do we use user-supplied cutpoints
   
   int* x_cat; // pointer to matrix of categorical predictors (levels coded as integers, beginning with 0)
-  std::vector<int>* K; // number of levels of each categorical variable
-  std::vector<std::set<int> >* cat_levels; // holds unique values of each categorical variable
-  std::vector<std::vector<unsigned int> >* adj_support; // support of lower triangle of adjancecy matrix for categorical levels
+  //std::vector<int>* K; // number of levels of each categorical variable
+  //std::vector<std::set<int> >* cat_levels; // holds unique values of each categorical variable
+  //std::vector<std::vector<unsigned int> >* adj_support; // support of lower triangle of adjancecy matrix for categorical levels
   double* rp; // partial residual;
   data_info(){n = 0; p_cont = 0; p_cat = 0; p = 0; x_cont = 0; x_cat = 0; K = 0; cat_levels = 0; adj_support = 0; rp = 0;}
 };
@@ -109,8 +109,17 @@ public:
   int* unif_cuts; // unif_cuts = 1 to draw cuts uniformly, = 0 to draw from pre-specified cutpoints, = minimum integer for NA
   std::vector<std::set<double> >* cutpoints;
   
-  int* graph_split; // do we split categorical variables using a random MST? // read in just like
-  int graph_cut_type; // integer indicating how we cut the MST;
+  
+  
+  
+  int* graph_split; // do we split categorical variables using the graph? // read in just like
+  int graph_cut_type; // integer indicating how we cut the graph
+  
+  std::vector<std::vector<edge>>* edges; // pointer to a vector of vector of edges for each categorical variable's graph
+  std::vector<int>* K; // number of levels
+  std::vector<std::vector<int>> *cat_levels;
+  int perc_rounds; // number of rounds to try the percolation process
+  double perc_threshold;
   
   bool rc_split;
   double* prob_rc; // prob. of proposing a random combination split. almost always set to 0
@@ -121,6 +130,9 @@ public:
   // hyperparameters will go here eventually
   double tau;
   double mu0; // prior mean
+  
+  
+  
   
   // constructor
   tree_prior_info(){
@@ -137,6 +149,12 @@ public:
     
     graph_split = 0; // 0 pointer
     graph_cut_type = 0;
+    
+    edges = 0; // 0 pointer
+    K = 0; // 0 pointer
+    cat_levels = 0; // 0 pointer
+    perc_rounds = 2;
+    perc_threshold = 0.5;
     
     rc_split = false;
     prob_rc = 0; // 0 pointer
@@ -298,24 +316,10 @@ inline void parse_cat_adj(std::vector<std::vector<unsigned int>> &adj_support, i
 // we will pass a list of Rcpp::NumericMatrices, which are computed using igraph::get_data_frame
 // this function reads those matrices and builds a vector of edges
 
-void parse_edge_mat(std::vector<edge> &edges, Rcpp::NumericMatrix &edge_mat, int &n_vertex)
-{
-  int n_edges = edge_mat.rows();
-  edges.clear();
-  
-  if(edge_mat.cols() == 3){
-    for(int i = 0; i < n_edges; i++){
-      edges.push_back(edge( (int) edge_mat(i,0), (int) edge_mat(i,1), edge_mat(i,2)));
-    }
-  } else if(edge_mat.cols() == 2){
-    for(int i = 0; i < n_edges; i++){
-      edges.push_back(edge( (int) edge_mat(i,0), (int) edge_mat(i,1), 1.0));
-    }
-  } else{
-    Rcpp::stop("[parse_edge_mat]: The matrix edge_mat must have 2 columns (unweighted graph) or 3 columns (weighted graph)");
-  }
-  
-}
+// we will pass a list of Rcpp::NumericMatrices, which are computed using igraph::get_data_frame
+// this function reads those matrices and builds a vector of edges
+
+
 
 
 inline void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont, Rcpp::List &tmp_cutpoints, Rcpp::LogicalVector &unif_cuts)
@@ -345,6 +349,63 @@ inline void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont
     Rcpp::stop("cutpoints_list & unif_cuts needs to have length p_cont!");
   }
 }
+
+inline void parse_cat_levels(std::vector<std::set<int>> &cat_levels, std::vector<int> &K, int &p_cat, Rcpp::List &tmp_cat_levels)
+{
+  cat_levels.clear();
+  cat_levels.resize(p_cat, std::set<int>());
+  K.clear();
+  K.resize(p_cat);
+  if(tmp_cat_levels.size() == p_cat){
+    for(int j = 0; j < p_cat; j++){
+      Rcpp::IntegerVector levels_vec = Rcpp::as<Rcpp::IntegerVector>(tmp_cat_levels[j]);
+      for(int l = 0; l < levels_vec.size(); l++) cat_levels[j].insert(levels_vec[l]);
+      K[j] = levels_vec.size();
+    }
+  } else{
+    Rcpp::Rcout << "p_cat = " << p_cat;
+    Rcpp::Rcout << "cat_levels_list.size() = " << tmp_cat_levels.size();
+    Rcpp::stop("cat_levels_list must have size equal to p_cat!");
+  }
+}
+
+void parse_edge_mat(std::vector<edge> &edges, Rcpp::NumericMatrix &edge_mat, int &n_vertex)
+{
+  int n_edges = edge_mat.rows();
+  edges.clear();
+  if(edge_mat.cols() == 3){
+    for(int i = 0; i < n_edges; i++){
+      edges.push_back(edge( (int) edge_mat(i,0), (int) edge_mat(i,1), edge_mat(i,2)));
+    }
+  } else if(edge_mat.cols() == 2){
+    for(int i = 0; i < n_edges; i++){
+      edges.push_back(edge( (int) edge_mat(i,0), (int) edge_mat(i,1), 1.0));
+    }
+  } else{
+    Rcpp::stop("[parse_edge_mat]: The matrix edge_mat must have 2 columns (unweighted graph) or 3 columns (weighted graph)");
+  }
+}
+
+inline void parse_graphs(std::vector<std::vector<edge>> &edges, int &p_cat, std::vector<int> &K, Rcpp::List &tmp_edge_mats, Rcpp::LogicalVector &graph_split)
+{
+  edges.clear();
+  edges.resize(p_cat, std::vector<edge>());
+  if(tmp_edge_mats.size() == p_cat){
+    for(int j = 0; j < p_cat; j++){
+      if(graph_split(j) == 1){
+        Rcpp::NumericMatrix edge_mat = Rcpp::as<Rcpp::NumericMatrix>(tmp_edge_mats);
+        parse_edge_mat(edges[j], edge_mat, K[j]);
+      } else{
+        // do nothing
+      }
+    }
+  } else{
+    Rcpp::Rcout << "[parse_graphs]: detected " << p_cat << " categorical variables";
+    Rcpp::Rcout << " edge_mat_list has length " << tmp_edge_mats.size() << std::endl;
+    Rcpp::stop("edge_mat_list must have length equal to p_cat!");
+  }
+}
+
 
 /*
 // processes the inputted information about categorical predictors (if they exist)

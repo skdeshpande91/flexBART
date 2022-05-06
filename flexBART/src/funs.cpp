@@ -457,9 +457,11 @@ void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &
       rule.l_vals.clear();
       rule.r_vals.clear();
       
-      if(tree_pi.graph_split[rule.v_cat] == 1 && (di.adj_support->at(rule.v_cat).size() > 0)){
-        // if we explicitly say to use the MST to split the variables
-        graph_partition(avail_levels, rule.l_vals, rule.r_vals, di.adj_support->at(rule.v_cat), di.K->at(rule.v_cat), tree_pi.graph_cut_type, gen);
+      //if(tree_pi.graph_split[rule.v_cat] == 1 && (di.adj_support->at(rule.v_cat).size() > 0)){
+      if(tree_pi.graph_split[rule.v_cat] == 1 && tree_pi.edges->at(rule.v_cat).size() > 0){
+        // if we explicitly say to use the graph to split the variables
+        //graph_partition(avail_levels, rule.l_vals, rule.r_vals, di.adj_support->at(rule.v_cat), di.K->at(rule.v_cat), tree_pi.graph_cut_type, gen);
+        graph_partition(avail_levels, rule.l_vals, rule.r_vals, tree_pi.edges->at(rule.v_cat), tree_pi.K->at(rule.v_cat), tree_pi.graph_cut_type, tree_pi.perc_rounds, tree_pi.perc_threshold, gen);
       } else{
         // otherwise we default to splitting the available levels uniformly at random: prob 0.5 to go to each child
         rule_counter = 0;
@@ -509,30 +511,24 @@ void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &
 // sometimes it's convenient to have a redundant (i.e. symmetric) representation of the edges
 // each edge represented in two elements of the map with keys correspond to the "source" and "sink"
 // will call this specifically in boruvka's and in the LERW style code
-void build_symmetric_edge_map(edge_map &emap, std::vector<edge> &edges){
+void build_symmetric_edge_map(edge_map &emap, std::vector<edge> &edges, std::set<int> &vertices)
+{
   emap.clear();
+  
+  // create an element with a key for each vertex in the specified set
+  for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it) emap.insert(std::pair<int, std::vector<edge>>(*v_it, std::vector<edge>()));
   
   for(edge_vec_it it = edges.begin(); it != edges.end(); ++it){
     
-    // first check if edge source is already in our map
-    if(emap.count(it->source) == 1){
-      // we already have an element in our map corresponding to the source
-      edge_map_it source_it = emap.find(it->source);
-      source_it->second.push_back(edge(it->source, it->sink, it->weight));
+    if(emap.count(it->source) != 1 || emap.count(it->sink) != 1){
+      Rcpp::Rcout << "[build_symmetric_edge_map]: Supplied set includes an edge with one vertex outside set of supplied vertices!" << std::endl;
+      Rcpp::Rcout << "  edge is from " << it->source << " to " << it->sink << std::endl;
+      Rcpp::Rcout << "  Supplied vertices:";
+      for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it) Rcpp::Rcout << " " << *v_it;
+      Rcpp::Rcout << std::endl;
     } else{
-      // we do not yet have an element in our map corresponding to the source
-      // we add one and we ensure that the current edge (i.e. *it) is being added.
-      emap.insert(std::pair<int, std::vector<edge>>(it->source, std::vector<edge>(1,edge(it->source, it->sink, it->weight))));
-    }
-    
-    if(emap.count(it->sink) == 1){
-      // we already have an element in our map corresponding to the sink
-      edge_map_it sink_it = emap.find(it->sink);
-      sink_it->second.push_back(edge(it->sink, it->source, it->weight)); // remember to symmetrize!
-    } else{
-      // we do not yet have an element in our map corresponding to the sink
-      // we add one and we ensure that the current edge (i.e. *it) is being added.
-      emap.insert(std::pair<int, std::vector<edge>>(it->sink, std::vector<edge>(1,edge(it->sink, it->source, it->weight))));
+      emap.find(it->source)->second.push_back(edge(it->source, it->sink, it->weight));
+      emap.find(it->sink)->second.push_back(edge(it->sink, it->source, it->weight));
     }
   } // finish looping over all of the edges
 }
@@ -558,25 +554,45 @@ std::vector<edge> get_induced_edges(std::vector<edge> &edges, std::set<int> &ver
 // stuff for finding connected components:
 //  depth-first search: we maintain a map with keys corresponding to vertices and boolean values; this records which vertices our DFS has visited
 //  dfs should only ever be called using a *symmetric* edge_map; we need a key for every vertex
-void dfs(int v, std::map<int, bool> &visited, std::vector<int> &comp, edge_map &emap){
+void dfs(int v, std::map<int, bool> &visited, std::vector<int> &comp, edge_map &emap)
+{
   // this is the first time we have visited vertex labelled v
   std::map<int,bool>::iterator v_it = visited.find(v);
   v_it->second = true; // mark that we have visited vertex v
   comp.push_back(v); // now that v has been marked, we can add it to the connected component
-  
-  
+
   // now find the element of our map containing all verties whose source is v
-  edge_map_it v_edges_it = emap.find(v);
-  for(edge_vec_it it = v_edges_it->second.begin(); it != v_edges_it->second.end(); ++it){
-    // it now contains an edge incident to v, let us see if the sink has been visited
-    int vv = it->sink;
-    std::map<int,bool>::iterator vv_it = visited.find(vv);
-    if(!vv_it->second){
-      // we have not yet visited the vertex vv and so we continue our dfs from there
-      dfs(vv, visited, comp, emap);
-    }
-  }
+  if(emap.count(v) != 1){
+    // if we are calling dfs correctly this should *never* be hit
+    Rcpp::Rcout << "[dfs]: at vertex" << v << std::endl;
+    Rcpp::Rcout << "keys in emap are:";
+    for(edge_map_it tmp_it = emap.begin(); tmp_it != emap.end(); ++tmp_it) Rcpp::Rcout << " " << tmp_it->first << std::endl;
+    Rcpp::stop("something is wrong with our edge map");
+  } else{
+    edge_map_it v_edges_it = emap.find(v);
+    for(edge_vec_it it = v_edges_it->second.begin(); it != v_edges_it->second.end(); ++it){
+      // it points to an edge leaving v, let us see if the sink has been visited
+      int vv = it->sink;
+      std::map<int,bool>::iterator vv_it = visited.find(vv);
+      if(vv_it == visited.end()){
+        // we were unable to find an entry for vv in visited.
+        // if we are calling dfs correctly, this should *never* be hit
+        Rcpp::Rcout<< "[dfs]: Traversing edges from " << v << " to " << vv << std::endl;
+        Rcpp::Rcout << "  did not find entry for " << vv << " in visited" << std::endl;
+        Rcpp::Rcout << "  keys of visited:";
+        for(std::map<int,bool>::iterator visit_it = visited.begin(); visit_it != visited.end(); ++visit_it) Rcpp::Rcout << " " << visit_it->first;
+        Rcpp::Rcout << std::endl;
+        Rcpp::stop("something is wrong with our edge map or visited!");
+      } else{
+        if(!vv_it->second){
+          // we have not yet visited the vertex vv and so we continue our dfs from there
+          dfs(vv, visited, comp, emap);
+        }
+      }
+    } // closes loop over edges incident to v
+  } // closes if/else checking that we have an entry for v in our edge_map
 }
+
 
 void find_components(std::vector<std::vector<int> > &components, std::vector<edge> &edges, std::set<int> &vertices)
 {
@@ -584,17 +600,18 @@ void find_components(std::vector<std::vector<int> > &components, std::vector<edg
   
   if(edges.size() == 0){
     // no edges: every vertex is is its own component
+    //Rcpp::Rcout << "[find_components]: no edges" << std::endl;
     for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it) components.push_back(std::vector<int>(1, *v_it));
   } else{
     std::map<int, bool> visited;
-    // initial mark every vertex as having been unvisited
+    // initially mark every vertex as unvisited
     for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it) visited.insert(std::pair<int,bool>(*v_it, false));
-    // now build the symmetrized map
     edge_map emap;
-    build_symmetric_edge_map(emap, edges);
+    build_symmetric_edge_map(emap, edges, vertices);
     
     // loop over the vertices and run dfs if we haven't already visited that vertex
     for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it){
+      //Rcpp::Rcout << " starting from " << *v_it << std::endl;
       if(!visited.find(*v_it)->second){
         // we have not yet visited vertex labelled *v_it, so it represents a new component
         std::vector<int> new_comp;
@@ -628,12 +645,14 @@ void get_unique_edges(std::vector<edge> &edges)
   for(std::vector<edge>::iterator it = unik_edges.begin(); it != unik_edges.end(); ++it) edges.push_back(edge(it->source, it->sink, it->weight));
 }
 
-std::vector<edge> boruvka(std::vector<edge> &edges, std::set<int> &vertices)
+void boruvka(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int> &vertices)
 {
-  edge_map emap;
-  build_symmetric_edge_map(emap, edges);
   
-  std::vector<edge> mst_edges;
+  mst_edges.clear();
+  
+  edge_map emap;
+  build_symmetric_edge_map(emap, edges, vertices);
+
   std::vector<std::vector<int> > mst_components;
   find_components(mst_components, mst_edges, vertices);
   int n_vertex = vertices.size();
@@ -641,12 +660,12 @@ std::vector<edge> boruvka(std::vector<edge> &edges, std::set<int> &vertices)
   // Boruvka has worst-case complexity of O(log(n)), so we add a considerable buffer
   while( mst_components.size() > 1 && counter < 2*n_vertex ){
     std::vector<edge> new_edges; // the new edges that will get added to the MST
-    
+    //Rcpp::Rcout << " Starting Round " << counter << " of Boruvka. Edges are:" << std::endl;
+    //for(std::vector<edge>::iterator mst_eit = mst_edges.begin(); mst_eit != mst_edges.end(); ++mst_eit){
+    //  Rcpp::Rcout << mst_eit->source << " to " << mst_eit->sink << std::endl;
+    //}
     for(std::vector<std::vector<int> >::iterator comp_it = mst_components.begin(); comp_it != mst_components.end(); ++comp_it){
       // looping over all of the existing components in the current MST
-      //Rcpp::Rcout << "  Visiting component containing :";
-      //for(std::vector<int>::iterator v_it = comp_it->begin(); v_it != comp_it->end(); ++v_it) Rcpp::Rcout << " " << *v_it;
-      //Rcpp::Rcout << std::endl;
       int min_source = 0;
       int min_sink = 0;
       double min_weight = 1.0;
@@ -654,54 +673,48 @@ std::vector<edge> boruvka(std::vector<edge> &edges, std::set<int> &vertices)
         // v_it points to a particular vertex in the component *comp_it.
         // We need to loop over all incident edges to *v_it
         // we check whether (A) the "sink" is outside the component and (B) whether it has smallest weight
+        
         //Rcpp::Rcout << "    Visiting vertex " << *v_it << std::endl;
         
         edge_map_it ve_it = emap.find(*v_it); // ve_it points to the vector of edges incident to *v_it
         for(std::vector<edge>::iterator e_it = ve_it->second.begin(); e_it != ve_it->second.end(); ++e_it){
           // e_it points to a specific edge
-          //Rcpp::Rcout << "      edge from " << e_it->source << " to " << e_it->sink << " " << e_it->weight << " count = " << std::count(comp_it->begin(), comp_it->end(), e_it->sink) << std::endl;
+          // we check whether (A) the "sink" is outside the component and (B) whether it has smallest weight
+          //Rcpp::Rcout << "   checking edge from " << e_it->source << " to " << e_it->sink << " count = " << std::count(comp_it->begin(), comp_it->end(), e_it->sink) << std::endl;
           if(std::count(comp_it->begin(), comp_it->end(), e_it->sink) == 0 && e_it->weight < min_weight){
+            // found a new minimum edge weight leaving the component!
             min_source = e_it->source; // this had better be *v_it
             min_sink = e_it->sink;
             min_weight = e_it->weight;
           }
         } // closes loop over edge incident to vertex *v_it
       } // closes loop over vertices in component *comp_it
-      //Rcpp::Rcout << "  minimum weight edge from " << min_source << " to " << min_sink << " " << min_weight << std::endl;
       new_edges.push_back(edge(min_source, min_sink, min_weight));
     } // closes loop over components
     
-    //Rcpp::Rcout << "We are trying to add the following edges" << std::endl;
+    // at this point, we've finished looping over all of the vertices in a particular component and we have found the edge
+    // that leaves the component and has minimum weight. we dump that edge into our running collection of edges in the MSt
+    
     for(std::vector<edge>::iterator it = new_edges.begin(); it != new_edges.end(); ++it){
-      //Rcpp::Rcout << it->source << " to " << it->sink << std::endl;
       mst_edges.push_back(*it);
     }
-    //std::vector<edge> unik_edges = get_unique_edges(new_edges);
-    //get_unique_edges(new_edges);
-    //Rcpp::Rcout << "The unique edges:" << std::endl;
-    //for(std::vector<edge>::iterator it = new_edges.begin(); it != new_edges.end(); ++it){
-    //  Rcpp::Rcout << it->source << " to " << it->sink << std::endl;
-    //  mst_edges.push_back(*it); // add the unique edges to the MST
-    //}
-    get_unique_edges(mst_edges);
-    find_components(mst_components, mst_edges, vertices);
+    get_unique_edges(mst_edges); // we have may duplicate edges so kill them off here.
+    find_components(mst_components, mst_edges, vertices); // re-compute the number of components
     counter++;
+  } // closes main while loop
+  
+  if(mst_components.size() > 1){
+    Rcpp::Rcout << "[boruvka]: after " << counter << " rounds, we have not yet formed a single connected MST" << std::endl;
+    Rcpp::Rcout << "  returning an empty set of edges" << std::endl;
+    mst_edges.clear();
   }
-  
-  if(mst_components.size() > 1) mst_edges.clear(); // clear it out
-  return(mst_edges);
-  
 }
-
-std::vector<edge> wilson(std::vector<edge> &edges, std::set<int> &vertices, RNG &gen)
+void wilson(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen)
 {
   int n_vertex = vertices.size();
-  
-  
   edge_map emap;
-  build_symmetric_edge_map(emap, edges);
+  build_symmetric_edge_map(emap, edges, vertices);
   
-  std::vector<edge> mst_edges; // vector of edges in the MST that we'll output
   
   std::map<int, bool> in_tree; // key is vertex label, value is boolean of whether vertex is in tree
   std::vector<int> possible_roots; // we have to start the tree from somewhere
@@ -715,7 +728,6 @@ std::vector<edge> wilson(std::vector<edge> &edges, std::set<int> &vertices, RNG 
   
   
   bool tree_full = true; // true when all vertices are members of the tree
-  
   
   // when we start, we know most values in in_tree are false so this loop isn't super expensive
   for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it){
@@ -758,18 +770,18 @@ std::vector<edge> wilson(std::vector<edge> &edges, std::set<int> &vertices, RNG 
     int edge_index;
     
     // next few lines only for testing purposes
-    Rcpp::Rcout << "Starting Round " << outer_counter << "! Tree contains:";
-    for(std::map<int,bool>::iterator tr_it = in_tree.begin(); tr_it != in_tree.end(); ++tr_it){
-      if(tr_it->second) Rcpp::Rcout << " " << tr_it->first;
-    }
-    Rcpp::Rcout << std::endl;
+    //Rcpp::Rcout << "Starting Round " << outer_counter << "! Tree contains:";
+    //for(std::map<int,bool>::iterator tr_it = in_tree.begin(); tr_it != in_tree.end(); ++tr_it){
+    //  if(tr_it->second) Rcpp::Rcout << " " << tr_it->first;
+    //}
+    //Rcpp::Rcout << std::endl;
     // done with the printing used to test
     
     while(!in_tree.find(next_state)->second && inner_counter < (int) 10 * pow(n_vertex,3.0)){
       old_state = next_state;
       edge_map_it em_it = emap.find(old_state); // em_it now points to vector of edges incident to old_state
       if(em_it->second.size() == 0){
-        Rcpp::Rcout << "Random walk is a vertex that has no incident edges. Stopping now" << std::endl;
+        //Rcpp::Rcout << "Random walk is a vertex that has no incident edges. Stopping now" << std::endl;
         mst_edges.clear(); // clear out mst_edges
         tree_full = true;
         break; // break out of inner loop
@@ -825,7 +837,7 @@ std::vector<edge> wilson(std::vector<edge> &edges, std::set<int> &vertices, RNG 
             lew.push_back(next_state); // ...so we add that back in!
             
             // prev_eit points to the last edge that goes INTO next_state
-            // we this is not an edge in the cycle being popped
+            // this is not an edge in the cycle being popped
             int prev_source = prev_eit->source;
             int prev_sink = prev_eit->sink; // had better be equal to next_state!
             double prev_weight = prev_eit->weight;
@@ -840,7 +852,7 @@ std::vector<edge> wilson(std::vector<edge> &edges, std::set<int> &vertices, RNG 
               else if(std::count(lew.begin(), lew.end(), visit_it->first) == 0) visit_it->second = false;
               else{
                 Rcpp::Rcout << "[wilson]: After popping cycle, our LERW visits a vertex twice!" << std::endl;
-                Rcpp::Rcout << "  LERW current contains:";
+                Rcpp::Rcout << "  LERW currently contains:";
                 for(std::vector<int>::iterator lew_it = lew.begin(); lew_it != lew.end(); ++lew_it) Rcpp::Rcout << " " << *lew_it;
                 Rcpp::Rcout << std::endl;
                 Rcpp::stop("LERW somehome contains a loop...");
@@ -873,55 +885,182 @@ std::vector<edge> wilson(std::vector<edge> &edges, std::set<int> &vertices, RNG 
       }
       
       // some printing only used for testing
-      Rcpp::Rcout << "Ending Round " << outer_counter << "! Tree contains:";
-      for(std::map<int,bool>::iterator tr_it = in_tree.begin(); tr_it != in_tree.end(); ++tr_it){
-        if(tr_it->second) Rcpp::Rcout << " " << tr_it->first;
-      }
-      Rcpp::Rcout << std::endl;
+      //Rcpp::Rcout << "Ending Round " << outer_counter << "! Tree contains:";
+      //for(std::map<int,bool>::iterator tr_it = in_tree.begin(); tr_it != in_tree.end(); ++tr_it){
+      //  if(tr_it->second) Rcpp::Rcout << " " << tr_it->first;
+      //}
+      //Rcpp::Rcout << std::endl;
     }
     outer_counter++;
   } // closes outer loop
-  if(!tree_full) mst_edges.clear();
-  return mst_edges;
+  
+  if(!tree_full){
+    Rcpp::Rcout << "[wilson]: unable to reach every vertex in the graph. returning an empty set of edges" << std::endl;
+    mst_edges.clear();
+  }
 }
 
-void graph_partition(std::set<int> &avail_levels, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges, int &K, bool &use_wilson, int &cut_type, RNG &gen)
+void percolation(std::set<int> &l_vals, std::set<int> &r_vals, int rounds, double threshold, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen)
+{
+  // first we need our edge map
+  edge_map emap;
+  build_symmetric_edge_map(emap, edges, vertices);
+  
+  // pick a seed for the percolation
+  int seed_index = floor(vertices.size() * gen.uniform());
+  std::set<int>::iterator seed_it = vertices.begin();
+  std::advance(seed_it, seed_index);
+  
+  //Rcpp::Rcout << vertex_subset(seed_index) << " " << *seed_it << std::endl;
+  
+  std::vector<int> perc_front(1, *seed_it); // put seed_it
+  
+  std::map<int,bool> visited;
+  for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it) visited.insert(std::pair<int,bool>(*v_it, false));
+  visited.find(*seed_it)->second = true; // mark the seed as having been visited by our percolation process
+  
+  std::vector<int> next_front;
+  int r = 0;
+  bool keep_percolating = true;
+  
+  // this will eventually get wrapped by a while loop
+  Rcpp::Rcout << "seed node = " << *seed_it << std::endl;
+  
+  while( (r < rounds) && keep_percolating){
+    //Rcpp::Rcout << "  Round" << r << std::endl;
+    // loop over everything in perc_front
+    for(std::vector<int>::iterator v_it = perc_front.begin(); v_it != perc_front.end(); ++v_it){
+      // now loop over all edges incident to *v_it
+      //Rcpp::Rcout << "    Starting percolation from vertex " << *v_it << std::endl;
+      edge_map_it em_it = emap.find(*v_it); // em_it points to vector of edges with source == *v_it
+      if(em_it == emap.end()){
+        Rcpp::Rcout << "we done goofed with our emap" << std::endl;
+        Rcpp::stop("oops!");
+      } else{
+        for(std::vector<edge>::iterator e_it = em_it->second.begin(); e_it != em_it->second.end(); ++e_it){
+          //Rcpp::Rcout << "    Trying edge from " << e_it->source << " to " << e_it->sink;
+          if(visited.find(e_it->sink)->second) {
+            //Rcpp::Rcout << " already visited" << std::endl;
+          }
+          else{
+            if(gen.uniform() < threshold){
+              // percolation successful!
+              //Rcpp::Rcout << "    success!" << std::endl;
+              visited.find(e_it->sink)->second = true; // mark the sink of edge *e_it as visited!
+              next_front.push_back(e_it->sink);
+            } else{
+              //Rcpp::Rcout << "    failed!" << std::endl;
+            }
+          }
+        } // closes loop over edges from *v_it
+      } // closes if/else making sure that *v_it is a key in our edge_map
+    } // closes loop over all elements of perc_front
+    
+    // now we update perc_front
+    if(next_front.size() == 0) keep_percolating = false;
+    else{
+      keep_percolating = true;
+      // update the value of perc_front: just copy over the values of next_front into it
+      perc_front.clear();
+      for(std::vector<int>::iterator v_it = next_front.begin(); v_it != next_front.end(); ++v_it) perc_front.push_back(*v_it);
+      next_front.clear();
+    }
+    r++;
+  } // closes main while loop
+  
+  l_vals.clear();
+  r_vals.clear();
+  
+  for(std::map<int, bool>::iterator visit_it = visited.begin(); visit_it != visited.end(); ++visit_it){
+    if(visit_it->second) l_vals.insert(visit_it->first);
+    else r_vals.insert(visit_it->first);
+  }
+}
+
+void graph_partition(std::set<int> &avail_levels, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges, int &K, int &cut_type, int &perc_rounds, double &perc_threshold, RNG &gen)
 {
   // get the edges for the induced subgraph
-  std::vector<edge> edges;
-  get_induced_edges(edges, avail_levels);
-  std::vector<edge> mst_edges;
-  // call wilson or boruvka
-  if(use_wilson){
-    mst_edges = wilson(edges, avail_levels, gen);
-  } else{
-    // add random weights
-    for(std::vector<edge>::iterator e_it = edges.begin(); e_it != edges.end(); ++e_it) e_it->weight = gen.uniform();
-    mst_edges = boruvka(edges, avail_levels);
-  }
-  // delete one edge (determine which one using gen.categorical()!)
-  int cut_index = 0;
-  std::vector<double> cut_probs;
-  for(std::vector<edge>::iterator e_it = mst_edges.begin(); e_it != mst_edges.end(); ++e_it){
-    if(cut_type == 0){
-      // delete uniformly
-      cut_probs.push_back(1.0);
-    } else if(cut_type == 1){
-      // delete with prob. proportional to weight
-      cut_probs.push_back(e_it->weight);
-    } else{
-      Rcpp::stop("[graph_partition]: cut_type must be 0 or 1");
+  std::vector<edge> edges = get_induced_edges(orig_edges, avail_levels);
+  
+
+  
+  // check if the induced subgraph is connected
+  std::vector<std::vector<int> > components;
+  find_components(components, edges, avail_levels);
+  if(components.size() == 0){
+    // this should never be reached
+    Rcpp::stop("[graph_partition]: graph has no components...");
+  } else if(components.size() > 1){
+    // graph is not connected. assign whole components to left and right children uniformly at random
+    l_vals.clear();
+    r_vals.clear();
+    int rule_counter = 0;
+    while( ((l_vals.size() == 0 || r_vals.size() == 0)) && rule_counter < 1000 ){
+      l_vals.clear();
+      r_vals.clear();
+      for(int comp_ix = 0; comp_ix < components.size(); comp_ix++){
+        if(gen.uniform() <= 0.5){
+          // send everything in this component to the left child
+          for(int_it it = components[comp_ix].begin(); it != components[comp_ix].end(); ++it) l_vals.insert(*it);
+        } else{
+          // send everything in this component to the right child
+          for(int_it it = components[comp_ix].begin(); it != components[comp_ix].end(); ++it) r_vals.insert(*it);
+        }
+      }
+      ++rule_counter;
     }
-  }
-  cut_index = gen.categorical(cut_probs);
-  // we need to erase at a particular location and then do components.
- 
-  
-  
-  
-  // update l_vals and r_vals
-  
+    if(rule_counter == 1000){
+      Rcpp::stop("[graph partition]: graph disconnected. failed to generate a non-trivial partiton of components in 1000 attempts!");
+    }
+  } else{
+    // induced subgraph is connected and we can form a partition
+    if(cut_type <= 1){
+      std::vector<edge> mst_edges;
+      if(cut_type == 0) wilson(mst_edges, edges, avail_levels, gen);
+      else{
+        // need to assign random weights to each edge
+        for(std::vector<edge>::iterator e_it = edges.begin(); e_it != edges.end(); ++e_it) e_it->weight = gen.uniform();
+        boruvka(mst_edges, edges, avail_levels);
+      }
+      
+      if(mst_edges.size() == 0){
+        // something failed in Wilson or Boruvka algorithm, we should stop
+        Rcpp::stop("[graph_partition]: unable to compute the random spanning tree. Quitting now!");
+      } else{
+        int cut_index = 0;
+        std::vector<double> cut_probs;
+        for(std::vector<edge>::iterator e_it = mst_edges.begin(); e_it != mst_edges.end(); ++e_it){
+          cut_probs.push_back(e_it->weight);
+        }
+        cut_index = gen.categorical(cut_probs);
+        std::vector<edge> cut_mst_edges;
+        for(int e = 0; e < mst_edges.size(); e++){
+          if(e != cut_index) cut_mst_edges.push_back(mst_edges[e]);
+        }
+        std::vector<std::vector<int> > cut_components;
+        find_components(cut_components, cut_mst_edges, avail_levels);
+        
+        if(cut_components.size() != 2){
+          Rcpp::Rcout << "[graph_partition]: Attempted to partition connected subgraph by cutting a random spanning tree" << std::endl;
+          Rcpp::Rcout << "   but after deleting edge from the spanning tree, resulting graph does not have 2 components. something is wrong" << std::endl;
+          Rcpp::stop("error in cutting edge from spanning tree");
+        } else{
+          l_vals.clear();
+          r_vals.clear();
+          for(std::vector<int>::iterator it = cut_components[0].begin(); it != cut_components[0].end(); ++it) l_vals.insert(*it);
+          for(std::vector<int>::iterator it = cut_components[1].begin(); it != cut_components[1].end(); ++it) r_vals.insert(*it);
+        } // closes if/else checking that we have 2 connected components after deleting edge from spanning tree
+      } // closes if/else checking that our spanning tree search was successful
+    } else if(cut_type == 2){
+      // do a percolative split
+      percolation(l_vals, r_vals, perc_rounds, perc_threshold, edges, avail_levels, gen);
+    } else{
+      Rcpp::Rcout << "[graph_partition]: cut_type argument is " << cut_type << std::endl;
+      Rcpp::stop("cut_type argument must be 0, 1, or 2");
+    } // cloeses if/else checking the cut type
+  } // closes if/else checking whether the graph induced by avail_levels is connected or not
 }
+
 
 /*
 // depth-first search, used to find connected components of a graph
