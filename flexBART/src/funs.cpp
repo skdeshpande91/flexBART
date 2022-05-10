@@ -466,7 +466,10 @@ void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &
           Rcpp::stop("failed to generate valid categorical split in 1000 attempts"); // this should almost surely not get triggered.
         }
       }
-      if( (rule.l_vals.size() == 0) || (rule.r_vals.size() == 0) ) Rcpp::stop("proposed an invalid categorical rule!");
+      if( (rule.l_vals.size() == 0) || (rule.r_vals.size() == 0) ){
+        Rcpp::Rcout << "[draw_rule]: proposed an invalid categorical rule" << std::endl;
+        Rcpp::stop("proposed an invalid categorical rule!");
+      }
     } // closes if/else determining whether we do an axis-aligned or categorical decision rule
   } else if(tree_pi.rc_split && unif <= *tree_pi.prob_rc){
     // random combination rule
@@ -912,7 +915,7 @@ void percolation(std::set<int> &l_vals, std::set<int> &r_vals, int rounds, doubl
   bool keep_percolating = true;
   
   // this will eventually get wrapped by a while loop
-  Rcpp::Rcout << "seed node = " << *seed_it << std::endl;
+  //Rcpp::Rcout << "seed node = " << *seed_it << std::endl;
   
   while( (r < rounds) && keep_percolating){
     //Rcpp::Rcout << "  Round" << r << std::endl;
@@ -963,6 +966,21 @@ void percolation(std::set<int> &l_vals, std::set<int> &r_vals, int rounds, doubl
     if(visit_it->second) l_vals.insert(visit_it->first);
     else r_vals.insert(visit_it->first);
   }
+  
+  if(l_vals.size() == 0 || r_vals.size() == 0){
+    Rcpp::Rcout << "[percolation]: somehow one of l_vals and r_vals has size 0" << std::endl;
+    Rcpp::Rcout << "  avail_levels has size " << vertices.size() << std::endl;
+    Rcpp::Rcout << "   seed = " << *seed_it << std::endl;
+    
+    Rcpp::Rcout << " printing visited" << std::endl;
+    for(std::map<int, bool>::iterator visit_it = visited.begin(); visit_it != visited.end(); ++visit_it){
+      Rcpp::Rcout << " node " << visit_it->first << " " << visit_it->second << std::endl;
+      //if(visit_it->second) l_vals.insert(visit_it->first);
+      //else r_vals.insert(visit_it->first);
+    }
+    
+  }
+  
 }
 
 void graph_partition(std::set<int> &avail_levels, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges, int &K, int &cut_type, int &perc_rounds, double &perc_threshold, RNG &gen)

@@ -329,7 +329,7 @@ inline void parse_graphs(std::vector<std::vector<edge>> &edges, int &p_cat, std:
   if(tmp_edge_mats.size() == p_cat){
     for(int j = 0; j < p_cat; j++){
       if(graph_split(j) == 1){
-        Rcpp::NumericMatrix edge_mat = Rcpp::as<Rcpp::NumericMatrix>(tmp_edge_mats);
+        Rcpp::NumericMatrix edge_mat = Rcpp::as<Rcpp::NumericMatrix>(tmp_edge_mats[j]);
         parse_edge_mat(edges[j], edge_mat, K[j]);
       } else{
         // do nothing
