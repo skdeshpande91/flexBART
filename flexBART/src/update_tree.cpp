@@ -94,7 +94,6 @@ void grow_tree(tree &t, suff_stat &ss, int &accept, double &sigma, data_info &di
       Rcpp::stop("[grow tree]: after accepting a birth move, we cannot resolve rule type");
     }
     // we need to update ss, the sufficient statistic object
-    // this accounting is checked in test_grow_tree();
 
     suff_stat_it nxl_it = prop_ss.find(nxl_nid); // iterator at element for nxl in the proposed suff_stat map
     suff_stat_it nxr_it = prop_ss.find(nxr_nid); // iterator at element for nxr in the proposed suff_stat map

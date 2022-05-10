@@ -200,7 +200,7 @@ void draw_mu(tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_in
   }
 }
 
-std::string write_tree(tree &t, data_info &di, set_str_conversion &set_str)
+std::string write_tree(tree &t, tree_prior_info &tree_pi, set_str_conversion &set_str)
 {
   std::ostringstream os;
   os.precision(32);
@@ -233,7 +233,7 @@ std::string write_tree(tree &t, data_info &di, set_str_conversion &set_str)
         os << rule.c << " " << rule.v_aa;
       } else if(!rule.is_aa && rule.is_cat){
         // categorical rule
-        int K = di.K->at(rule.v_cat); // how many levels
+        int K = tree_pi.K->at(rule.v_cat); // how many levels
         os << rule.v_cat << " " << K << " ";
         os << set_str.set_to_hex(K, rule.l_vals) << " ";
         os << set_str.set_to_hex(K, rule.r_vals) << " ";
@@ -254,7 +254,7 @@ std::string write_tree(tree &t, data_info &di, set_str_conversion &set_str)
   
 }
 
-void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_conversion &set_str)
+void read_tree(tree &t, std::string &tree_string, set_str_conversion &set_str)
 {
   std::istringstream tree_ss(tree_string); // an in stringstream of the tree's string representation
   std::string node_string; // string for each individual node in the tree
@@ -266,7 +266,6 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
 
   char aa; // '0' or '1' for rule.is_aa
   char cat; // '0' or '1' for rule.is_cat
-  //char rc; // '0' or '1' for rule.is_rc
   rule_t tmp_rule; // temporary rule that gets populated as we read the tree's string/stream
   
   int tmp_v; // for reading in rc weights
@@ -299,9 +298,7 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
         
         if(cat == '0') tmp_rule.is_cat = false;
         else tmp_rule.is_cat = true;
-        
-        //if(rc == '0') tmp_rule.is_rc = false;
-        //else tmp_rule.is_rc = true;
+
         
         if(tmp_rule.is_aa && !tmp_rule.is_cat){
           // axis-aligned
@@ -313,13 +310,6 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
           node_ss >> K; // we now know how many levels of the categorical variable there were
           node_ss >> l_hex;
           node_ss >> r_hex;
-          
-          if(K != di.K->at(tmp_rule.v_cat)){
-            Rcpp::Rcout << "v_cat = " << tmp_rule.v_cat << std::endl;
-            Rcpp::Rcout << "Read in K = " << K << " total categorical levels" << std::endl;
-            Rcpp::Rcout << "Corresponding entry of di.K has length " << di.K->at(tmp_rule.v_cat) << std::endl;
-            Rcpp::stop("mismatch in number of levels recorded in cat_levels & in saved tree!");
-          }
           
           tmp_rule.l_vals = set_str.hex_to_set(K, l_hex);
           tmp_rule.r_vals = set_str.hex_to_set(K, r_hex);
@@ -349,8 +339,7 @@ void read_tree(tree &t, std::string &tree_string, data_info &di, set_str_convers
   for(std::map<int,rule_t>::iterator it = decision_nodes.begin(); it != decision_nodes.end(); ++it){
     t.birth(it->first, it->second); // do the birth.
   }
-  
-  // since we're messing with private members of tree, do we need to make this function a friend of tree? couldn't hurt.
+
   tree::npv bnv;
   t.get_bots(bnv); // get the bottom nodes
   std::map<int,double>::iterator leaf_it;
@@ -448,16 +437,15 @@ void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &
       rule.is_cat = true;
       rule.v_cat = v_raw - di.p_cont;
 
-      std::set<int> avail_levels = di.cat_levels->at(rule.v_cat); // get the full set of levels for this variable
+      std::set<int> avail_levels = tree_pi.cat_levels->at(rule.v_cat); // get the full set of levels for this variable
       nx->get_rg_cat(rule.v_cat, avail_levels); // determine the set of levels available at nx.
       // if there is only one level left for this variable at nx, we will just propose a trivial split
       // and will reset the value of avail_levels to be the full set of all levels for the variable
-      if(avail_levels.size() <= 1) avail_levels = di.cat_levels->at(rule.v_cat);
+      if(avail_levels.size() <= 1) avail_levels = tree_pi.cat_levels->at(rule.v_cat);
       
       rule.l_vals.clear();
       rule.r_vals.clear();
       
-      //if(tree_pi.graph_split[rule.v_cat] == 1 && (di.adj_support->at(rule.v_cat).size() > 0)){
       if(tree_pi.graph_split[rule.v_cat] == 1 && tree_pi.edges->at(rule.v_cat).size() > 0){
         // if we explicitly say to use the graph to split the variables
         //graph_partition(avail_levels, rule.l_vals, rule.r_vals, di.adj_support->at(rule.v_cat), di.K->at(rule.v_cat), tree_pi.graph_cut_type, gen);
@@ -1061,272 +1049,6 @@ void graph_partition(std::set<int> &avail_levels, std::set<int> &l_vals, std::se
   } // closes if/else checking whether the graph induced by avail_levels is connected or not
 }
 
-
-/*
-// depth-first search, used to find connected components of a graph
-void dfs(int i, std::vector<bool> &visited, std::vector<int> &comp, int &n, arma::mat &A)
-{
-  visited[i] = true; // dfs has reached i for the first time so mark it
-  comp.push_back(i); // now that i has been marked, add it to the connected component
-  for(int ii = 0; ii < n; ii++){
-    if( std::fabs(A(i,ii)) > 1e-16 ){ // in case A is a weighted matrix
-      // i is connected to ii
-      if(!visited[ii]){
-        // somehow ii hasn't been visited before, so we need to continue our dfs from there.
-        dfs(ii, visited, comp, n, A);
-      }
-    }
-  }
-}
-
-// find connected components of a graph
-void find_components(std::vector<std::vector<int> > &components, arma::mat &A)
-{
-  components.clear(); // clear it out
-  int n = A.n_rows;
-  std::vector<bool> visited(n,false);
-  for(int i = 0; i < n; i++){
-    if(!visited[i]){
-      std::vector<int> new_comp;
-      dfs(i, visited, new_comp, n, A);
-      components.push_back(new_comp);
-    }
-  }
-}
-
-// find minimum edge weight in Boruvka's algorithm
-std::pair<int,int> find_min_edge_weight(std::vector<int> &components, int &n, arma::mat &W)
-{
-  if(components.size() == n) Rcpp::stop("[add_min_weight_edge]: component already contains all n nodes!");
-  
-  std::vector<unsigned int> tmp_in;
-  std::vector<unsigned int> tmp_out;
-  
-  std::vector<int>::iterator find_it;
-  for(int i = 0; i < n; i++){
-    find_it = std::find(components.begin(), components.end(), i);
-    if(find_it != components.end()) tmp_in.push_back( (unsigned int) i);
-    else tmp_out.push_back( (unsigned int) i);
-  }
-  arma::uvec in_index(tmp_in);
-  arma::uvec out_index(tmp_out);
-  
-  arma::mat tmp_W = W(in_index, out_index);
-  // check that there are actually edges from component to rest of the graph
-  if(arma::all(arma::abs(arma::vectorise(tmp_W)) < 1e-16)) Rcpp::stop("tmpW contains all 0's");
-  tmp_W.elem(arma::find(arma::abs(tmp_W) < 1e-16)).ones(); // just to be extra safe, convert all 0's into 1's
-  
-  
-  arma::uword min_index = tmp_W.index_min(); //
-  arma::uvec min_sub = arma::ind2sub(arma::size(tmp_W), min_index);
-  std::pair<int,int> results( in_index(min_sub(0)), out_index(min_sub(1)) );
-  return results;
-}
-// implement's Boruvka's algorithm
-arma::mat boruvka(arma::mat &W)
-{
-  int n = W.n_rows;
-  
-  std::vector<std::vector<int> > W_components;
-  find_components(W_components, W);
-  if(W_components.size() > 1){
-    Rcpp::stop("W is not connected!");
-  }
-  
-  arma::mat A_mst = arma::zeros<arma::mat>(n,n); // initialize the
-  std::vector<std::vector<int> > mst_components;
-  find_components(mst_components, A_mst);
-  
-  int counter = 0; // failsafe which should *never* be triggered since graph is connected.
-  // Boruvka's requires O(log(n)) steps so we have intentionally set the upper bound on the number of iterations much higher.
-  while( (mst_components.size() > 1) && (counter < n) ){
-    for(std::vector<std::vector<int> >::iterator it = mst_components.begin(); it != mst_components.end(); ++it){
-      
-      std::pair<int,int> min_edge = find_min_edge_weight(*it,n, W);
-      A_mst(min_edge.first, min_edge.second) = 1;
-      A_mst(min_edge.second, min_edge.first) = 1;
-    }
-    find_components(mst_components, A_mst);
-    ++counter;
-  }
-  
-  if(mst_components.size() > 1){
-    Rcpp::Rcout << "Was not able to find a spanning tree (check connectivity of W!)" << std::endl;
-  }
-  return A_mst;
-}
-
-
-arma::uword get_cut_edge(const arma::mat &cut_A, const arma::mat &cut_W, const arma::uvec mst_edge_index, const int &graph_cut_type, RNG &gen)
-{
-  // cut_A is the lower triangular adjacency matrix of the MST
-  // cut_W is the lower triangular weighted adjacency matrix of the MST
-  // we are going to output a single index which will be cut
-  
-  int n = cut_A.n_rows;
-  
-  // n is the number of nodes
-  // there should only be n-1 edges in the MST
-  std::vector<double> cut_ix_probs(n-1, 1.0/( (double) (n-1) ));
-  double tmp_sum;
-  arma::uword cut_edge_index;
-  if(graph_cut_type == 0){
-    // delete an edge uniformly at random
-    cut_edge_index = mst_edge_index(gen.multinomial(n-1, cut_ix_probs));
-  } else if(graph_cut_type == 1){
-    // delete edge w.p. proportional to the weight of the
-    tmp_sum = 0.0;
-    for(int e_ix = 0; e_ix < n-1; e_ix++){
-      cut_ix_probs[e_ix] = cut_W(mst_edge_index(e_ix));
-      tmp_sum += cut_ix_probs[e_ix];
-    }
-    for(int e_ix = 0; e_ix < n-1; e_ix++) cut_ix_probs[e_ix] /= tmp_sum;
-    cut_edge_index = mst_edge_index(gen.multinomial(n-1, cut_ix_probs));
-    
-  } else if(graph_cut_type == 2){
-    // size-biased
-    tmp_sum = 0.0;
-    arma::mat tmp_cut_A = cut_A;
-    for(int e_ix = 0; e_ix < n-1; e_ix++){
-      tmp_cut_A = cut_A;
-      if(tmp_cut_A(mst_edge_index(e_ix)) == 0) Rcpp::stop("trying to delete an edge not in the MST!");
-      else{
-        tmp_cut_A(mst_edge_index(e_ix)) = 0; // delete the edge!
-        arma::mat part_mst_A = arma::symmatl(tmp_cut_A); // adjacency of the partitioned tree
-        std::vector<std::vector<int>> cut_components;
-        find_components(cut_components, part_mst_A);
-        cut_ix_probs[e_ix] = (double) std::min(cut_components[0].size(), cut_components[1].size());
-        tmp_sum += cut_ix_probs[e_ix];
-      }
-    }
-    for(int e_ix = 0; e_ix < n-1; e_ix++) cut_ix_probs[e_ix] /= tmp_sum;
-    cut_edge_index = mst_edge_index(gen.multinomial(n-1, cut_ix_probs));
-  } else if(graph_cut_type == 3){
-    // delete the edge with largest weight
-    cut_edge_index = cut_W.index_max();
-  } else{
-    Rcpp::stop("[get_cut_edge]: don't know how to cut an edge from the MST!");
-  }
-  return cut_edge_index;
-}
-*/
-
-
-
-
-/*
-void get_edge_probs(std::vector<double> &cut_ix_probs, const arma::mat &cut_A, const arma::uvec &mst_index, const int &n)
-{
-  arma::mat tmp_cut_A = cut_A;
-  cut_ix_probs.clear();
-  double tmp_sum = 0.0;
-  for(int cut_ix = 0; cut_ix < n-1; cut_ix++){
-    tmp_cut_A = cut_A;
-    arma::uvec cut_sub = arma::ind2sub(arma::size(tmp_cut_A), mst_index(cut_ix));
-    if(tmp_cut_A(cut_sub(0), cut_sub(1)) == 0){
-      Rcpp::stop("[get_min_component_size]: trying to remove an edge that doesn't exist...");
-    } else{
-      tmp_cut_A(cut_sub(0), cut_sub(1)) = 0; // delete the edge!
-      arma::mat part_mst_A = arma::symmatl(tmp_cut_A); // adjacency matrix of the partitioned tree
-      std::vector<std::vector<int> > cut_components;
-      find_components(cut_components, part_mst_A);
-      cut_ix_probs.push_back( (double) std::min(cut_components[0].size(), cut_components[1].size()));
-      tmp_sum += (double) std::min(cut_components[0].size(), cut_components[1].size());
-    }
-  }
-  
-  for(int cut_ix = 0; cut_ix < n-1; cut_ix++) cut_ix_probs[cut_ix] /= tmp_sum;
-}
-*/
-
-/*
-// adj_support is only for the lower triangle of the adjacency matrix
-void graph_partition(std::set<int> &vals, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<unsigned int> &adj_support, int &K, int &graph_cut_type, RNG &gen)
-{
-  arma::mat W = arma::zeros<arma::mat>(K,K); // we need to create a weighted adjacency matrix
-  for(std::vector<unsigned int>::iterator w_it = adj_support.begin(); w_it != adj_support.end(); ++w_it) W(*w_it) = gen.uniform();
-  // note that at this point W is lower triangular
-  W = arma::symmatl(W); // make W symmetric
-  
-  // we need to subset  W to just the rows & columns corresponding to vals
-  int n = vals.size(); // how many levels of the variable are there = how many vertices in the induced subgraph
-  if(n == 1) Rcpp::stop("[graph_partition]: vals contains only one 1 value; cannot partition it further!");
-    
-  arma::uword cut_edge_index;
-  
-  // need to subset A and W to just the subgraph induced by the vertices corresponding to the levels in vals
-  std::vector<unsigned int> tmp_in;
-  for(set_it it = vals.begin(); it != vals.end(); ++it) tmp_in.push_back( (unsigned int) *it);
-  arma::uvec index(tmp_in); // arma is weird with indexing with vectors, need to use a uvec
-  arma::mat tmp_W = W(index,index);
-  
-  std::vector<std::vector<int> > components;
-  find_components(components, tmp_W); // how many connected components are in W?
-  if(components.size() == 0){
-    Rcpp::stop("subgraph induced by current set of levels appears to have no connected components...");
-  } else if(components.size() > 1){
-    // there are multiple connected components
-    // for now: just randomly assign whole components to the left or right uniformly at random
-    l_vals.clear();
-    r_vals.clear();
-    int rule_counter = 0;
-    while( ((l_vals.size() == 0 || r_vals.size() == 0)) && rule_counter < 1000 ){
-      l_vals.clear();
-      r_vals.clear();
-      for(int comp_ix = 0; comp_ix < components.size(); comp_ix++){
-        if(gen.uniform() <= 0.5){
-          // send everything in this component to the left child
-          for(int_it it = components[comp_ix].begin(); it != components[comp_ix].end(); ++it) l_vals.insert( (int) tmp_in[*it]);
-        } else{
-          // send everything in this component to the right child
-          for(int_it it = components[comp_ix].begin(); it != components[comp_ix].end(); ++it) r_vals.insert( (int) tmp_in[*it]);
-        }
-      }
-      ++rule_counter;
-    }
-    if(rule_counter == 1000){
-      Rcpp::stop("[graph partition]: graph disconnected. failed to generate a non-trivial partiton of components in 1000 attempts!");
-    }
-  } else{
-    // now that we know levels induce a connected subgraph of the original graph
-    // we can run Boruvka's algorithm
-    arma::mat A_mst = boruvka(tmp_W); // adjacency matrix of the MST
-    arma::mat W_mst = A_mst % tmp_W; // what are the weights
-    arma::mat cut_A = arma::trimatl(A_mst); // get the lower triangle of the adjacency matrix of the MST
-    arma::mat cut_W = arma::trimatl(W_mst); // get the lower triangle of the weighted adjacency matrix
-    arma::uvec mst_edge_index = arma::find(cut_A); // indices of edges in cut_A
-    
-    cut_edge_index = get_cut_edge(cut_A, cut_W, mst_edge_index, graph_cut_type, gen);
-    
-    if(cut_A(cut_edge_index) != 1){
-      //Rcpp::Rcout << "mst_edge_index = " << std::endl;
-      //mst_edge_index.t().print();
-      //Rcpp::Rcout << "cut_edge_index = " << cut_edge_index << std::endl;
-      //Rcpp::Rcout << cut_A(cut_edge_index) << std::endl;
-      Rcpp::stop("[graph_partition]: attempting to delete an edge which does not seem to exist!");
-    
-    }
-    else{
-      cut_A(cut_edge_index) = 0; // actually delete the edge
-      arma::mat part_mst_A = arma::symmatl(cut_A); // full adjacency matrix of the partitioned tree
-      std::vector<std::vector<int>> cut_components;
-      find_components(cut_components, part_mst_A);
-      if(cut_components.size() != 2){
-        // this should never get thrown
-        Rcpp::stop("[graph_partition]: we have more than 2 connected components after deleting a single edge from a MST!");
-      } else{
-        l_vals.clear();
-        r_vals.clear();
-        // *it is an integer between 0 & n and indexes the temporary edge labels
-        // the i-th element of tmp_in corresponds to the i-th edge label
-        // we need to look up the correct level (i.e. value in vals) using tmp_in
-        for(int_it it = cut_components[0].begin(); it != cut_components[0].end(); ++it) l_vals.insert( (int) tmp_in[*it]);
-        for(int_it it = cut_components[1].begin(); it != cut_components[1].end(); ++it) r_vals.insert( (int) tmp_in[*it]);
-      }
-    } // closes if/else checking that the edge we are trying to delete actually exists
-  } // closes if/else checking that levels in vals induced a connected subgraph of the original adjancecy matrix
-}
-*/
 void update_theta_u(std::vector<double> &theta, double &u, std::vector<int> &var_count, int &p, double &a_u, double &b_u, RNG &gen)
 {
   if(theta.size() != p){
