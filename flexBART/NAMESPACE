@@ -1,3 +1,4 @@
 export("flexBART")
 export("predict_flexBART")
+export("rflexBART")
 useDynLib(flexBART)

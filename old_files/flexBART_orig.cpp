@@ -2,26 +2,25 @@
 
 #include "update_tree.h"
 
-// [[Rcpp::export(".flexBARTfast_fit")]]
-Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
-                            Rcpp::NumericMatrix tX_cont_train,
-                            Rcpp::IntegerMatrix tX_cat_train,
-                            Rcpp::NumericMatrix tX_cont_test,
-                            Rcpp::IntegerMatrix tX_cat_test,
-                            Rcpp::LogicalVector unif_cuts,
-                            Rcpp::Nullable<Rcpp::List> cutpoints_list,
-                            Rcpp::Nullable<Rcpp::List> cat_levels_list,
-                            Rcpp::LogicalVector graph_split, int graph_cut_type,
-                            Rcpp::Nullable<Rcpp::List> adj_support_list,
-                            bool rc_split, double prob_rc, double a_rc, double b_rc,
-                            bool sparse, double a_u, double b_u,
-                            double mu0, double tau,
-                            double lambda, double nu,
-                            int M,
-                            int nd, int burn, int thin,
-                            bool save_trees,
-                            bool verbose, int print_every,
-                            bool check_ss_map = false) // check that our sufficient stat map has the right keys
+Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
+                        Rcpp::NumericMatrix tX_cont_train,
+                        Rcpp::IntegerMatrix tX_cat_train,
+                        Rcpp::NumericMatrix tX_cont_test,
+                        Rcpp::IntegerMatrix tX_cat_test,
+                        Rcpp::LogicalVector unif_cuts,
+                        Rcpp::Nullable<Rcpp::List> cutpoints_list,
+                        Rcpp::Nullable<Rcpp::List> cat_levels_list,
+                        Rcpp::LogicalVector graph_split, int graph_cut_type,
+                        Rcpp::Nullable<Rcpp::List> adj_support_list,
+                        bool rc_split, double prob_rc, double a_rc, double b_rc,
+                        bool sparse, double a_u, double b_u,
+                        double mu0, double tau,
+                        double lambda, double nu,
+                        int M,
+                        int nd, int burn, int thin,
+                        bool save_trees,
+                        bool verbose, int print_every,
+                        bool check_ss_map = false) // check that our sufficient stat map has the right keys
 {
   Rcpp::RNGScope scope;
   RNG gen;
@@ -151,8 +150,7 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
   
   // initialize the trees
   std::vector<tree> t_vec(M);
-  std::vector<suff_stat> ss_train_vec(M);
-  std::vector<suff_stat> ss_test_vec(M);
+  std::vector<suff_stat> ss_vec(M);
   
   for(int i = 0; i < n_train; i++) allfit_train[i] = 0.0;
   
@@ -160,25 +158,21 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
     // do an initial tree traversal
     // this is kind of silly when t is just a stump
     // but it may help if we were to allow start from an arbitrary ensemble
-    tree_traversal(ss_train_vec[m], t_vec[m], di_train);
+    tree_traversal(ss_vec[m], t_vec[m], di_train);
     
     // get the fit of each tree
-    for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
+    for(suff_stat_it ss_it = ss_vec[m].begin(); ss_it != ss_vec[m].end(); ++ss_it){
       tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
       for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
         allfit_train[*it] += tmp_mu;
       }
     }
-    
-    if(n_test > 0){
-      tree_traversal(ss_test_vec[m], t_vec[m], di_test);
-    }
-    
-    
   }
   for(int i = 0; i < n_train; i++) residual[i] = Y_train[i] - allfit_train[i];
   
   // output containers
+  
+  //arma::mat fit_train = arma::zeros<arma::mat>(n_train, nd);
   arma::mat fit_train = arma::zeros<arma::mat>(nd, n_train); // similar to regular BART
   arma::mat fit_test = arma::zeros<arma::mat>(1,1);
   //if(n_test > 0) fit_test.set_size(n_test, nd);
@@ -203,18 +197,18 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
   for(int iter = 0; iter < total_draws; iter++){
     if(verbose){
       if( (iter < burn) && (iter % print_every == 0)){
-        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Burn-in" << std::endl;
+        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
         Rcpp::checkUserInterrupt();
       } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
         Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
         Rcpp::checkUserInterrupt();
       }
     }
-    
     // loop over trees
     total_accept = 0;
     for(int m = 0; m < M; m++){
-      for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
+      //Rcpp::Rcout << m << " "; // DEBUG
+      for(suff_stat_it ss_it = ss_vec[m].begin(); ss_it != ss_vec[m].end(); ++ss_it){
         // loop over the bottom nodes in m-th tree
         tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
         for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
@@ -226,18 +220,18 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
         }
       } // this whole loop is O(n)
       
-      update_tree(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
+      update_tree(t_vec[m], ss_vec[m], accept, sigma, di_train, tree_pi, gen); // update the tree!
       total_accept += accept;
     
       if(check_ss_map){
         // this checks whether our sufficient stat map is correct.
         bnv.clear();
         t_vec[m].get_bots(bnv); // get the bottom nodes of the tree
-        if(bnv.size() != ss_train_vec[m].size()){
-          Rcpp::Rcout << "# leafs in tree = " << bnv.size() << " # elements in training suff stat map = " << ss_train_vec[m].size() << std::endl;
+        if(bnv.size() != ss_vec[m].size()){
+          Rcpp::Rcout << "# leafs in tree = " << bnv.size() << " # elements in suff stat map = " << ss_vec[m].size() << std::endl;
           t_vec[m].print();
           Rcpp::Rcout << "suff stat map. nid(# observations):";
-          for(suff_stat_it it = ss_train_vec[m].begin(); it != ss_train_vec[m].end(); ++it){
+          for(suff_stat_it it = ss_vec[m].begin(); it != ss_vec[m].end(); ++it){
             Rcpp::Rcout << " " << it->first << "(" << it->second.size() << ")";
           }
           Rcpp::Rcout << std::endl;
@@ -245,38 +239,17 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
         } else{
           // ss map has the right number of elements
           for(tree::npv_it bn_it = bnv.begin(); bn_it != bnv.end(); ++bn_it){
-            if(ss_train_vec[m].count( (*bn_it)->get_nid() ) != 1){
+            if(ss_vec[m].count( (*bn_it)->get_nid() ) != 1){
               // could not find an element in ss with key equal to the nid of a bottom node
-              Rcpp::Rcout << "bottom node nid " << (*bn_it)->get_nid() << " is not a key in training suff stat map!" << std::endl;
-              Rcpp::stop("there is a mismatch between bottom node id's and the keys of the training suff stat map!");
-            }
-          }
-        }
-        if(n_test > 0){
-          if(bnv.size() != ss_test_vec[m].size()){
-            Rcpp::Rcout << "# leafs in tree = " << bnv.size() << " # elements in training suff stat map = " << ss_test_vec[m].size() << std::endl;
-            t_vec[m].print();
-            Rcpp::Rcout << "suff stat map. nid(# observations):";
-            for(suff_stat_it it = ss_test_vec[m].begin(); it != ss_test_vec[m].end(); ++it){
-              Rcpp::Rcout << " " << it->first << "(" << it->second.size() << ")";
-            }
-            Rcpp::Rcout << std::endl;
-            Rcpp::stop("number of leaves and number of elements in suff stat map must be equal!");
-          } else{
-            // ss map has the right number of elements
-            for(tree::npv_it bn_it = bnv.begin(); bn_it != bnv.end(); ++bn_it){
-              if(ss_test_vec[m].count( (*bn_it)->get_nid() ) != 1){
-                // could not find an element in ss with key equal to the nid of a bottom node
-                Rcpp::Rcout << "bottom node nid " << (*bn_it)->get_nid() << " is not a key in training suff stat map!" << std::endl;
-                Rcpp::stop("there is a mismatch between bottom node id's and the keys of the training suff stat map!");
-              }
+              Rcpp::Rcout << "bottom node nid " << (*bn_it)->get_nid() << " is not a key in suff stat map!" << std::endl;
+              Rcpp::stop("there is a mismatch between bottom node id's and the keys of the suff stat map!");
             }
           }
         }
       } // closes if for checking suff_stat_map and tree are in sync.
       
       // now we need to update the value of allfit
-      for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
+      for(suff_stat_it ss_it = ss_vec[m].begin(); ss_it != ss_vec[m].end(); ++ss_it){
         tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
         for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
           // add fit of m-th tree back to allfit and subtract it from the value of the residual
@@ -285,9 +258,9 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
         }
       } // this loop is also O(n)
     } // closes loop over all of the trees
+    //Rcpp::Rcout << std::endl; // DEBUG
     // ready to update sigma
     total_sq_resid = 0.0;
-    //for(int i = 0; i < n_train; i++) total_sq_resid += pow(Y_train[i] - allfit_train[i], 2.0);
     for(int i = 0; i < n_train; i++) total_sq_resid += pow(residual[i], 2.0); // sum of squared residuals
     
     scale_post = lambda * nu + total_sq_resid;
@@ -311,6 +284,7 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
       rc_rule_count_samples(iter) = rc_rule_count;
     }
     
+    
     if( (iter >= burn) && ( (iter - burn)%thin == 0)){
       sample_index = (int) ( (iter-burn)/thin);
       total_accept_samples(sample_index) = total_accept; // how many trees changed in this iteration
@@ -325,20 +299,11 @@ Rcpp::List flexBARTfast_fit(Rcpp::NumericVector Y_train,
         tree_draws[sample_index] = tree_string_vec; // dump a character vector holding each tree's draws into an element of an Rcpp::List
       }
       
-      for(int i = 0; i < n_train; i++) fit_train(sample_index,i) = allfit_train[i];
-      
+      for(int i = 0; i < n_train; i++) fit_train(sample_index, i) = allfit_train[i];
       if(n_test > 0){
-        for(int i = 0; i < n_test; i++) allfit_test[i] = 0.0; // reset the value of allfit_test
-        
-        for(int m = 0; m < M; m++){
-          for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
-            tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the corresponding leaf
-            for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) allfit_test[*it] += tmp_mu;
-          } // loop over the keys in the m-th sufficient stat map
-        } // closes loop over trees
-        //fit_ensemble(allfit_test, t_vec, di_test);
-        for(int i = 0; i < n_test; i++) fit_test(sample_index,i) = allfit_test[i];
-      } // closes loop checking if we actually have test set observations.
+        fit_ensemble(allfit_test, t_vec, di_test);
+        for(int i = 0; i < n_test; i++) fit_test(sample_index, i) = allfit_test[i];
+      }
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop
 
