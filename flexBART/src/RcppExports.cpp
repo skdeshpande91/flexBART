@@ -126,12 +126,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// summarize_post_pred
+Rcpp::NumericMatrix summarize_post_pred(Rcpp::NumericMatrix fit_samples, Rcpp::NumericVector sigma_samples);
+RcppExport SEXP _flexBART_summarize_post_pred(SEXP fit_samplesSEXP, SEXP sigma_samplesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type fit_samples(fit_samplesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sigma_samples(sigma_samplesSEXP);
+    rcpp_result_gen = Rcpp::wrap(summarize_post_pred(fit_samples, sigma_samples));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_flexBART_flexBART_fit", (DL_FUNC) &_flexBART_flexBART_fit, 31},
     {"_flexBART_predict_flexBART", (DL_FUNC) &_flexBART_predict_flexBART, 5},
     {"_flexBART_drawTree", (DL_FUNC) &_flexBART_drawTree, 18},
     {"_flexBART_drawEnsemble", (DL_FUNC) &_flexBART_drawEnsemble, 21},
+    {"_flexBART_summarize_post_pred", (DL_FUNC) &_flexBART_summarize_post_pred, 2},
     {NULL, NULL, 0}
 };
 

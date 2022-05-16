@@ -17,3 +17,7 @@
     .Call('_flexBART_drawEnsemble', PACKAGE = 'flexBART', tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, perc_rounds, perc_threshold, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every)
 }
 
+summarize_post_pred <- function(fit_samples, sigma_samples) {
+    .Call('_flexBART_summarize_post_pred', PACKAGE = 'flexBART', fit_samples, sigma_samples)
+}
+

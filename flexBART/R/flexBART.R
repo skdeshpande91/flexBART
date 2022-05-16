@@ -52,7 +52,7 @@ flexBART <- function(Y_train,
   results[["y_sd"]] <- y_sd
   results[["yhat_train"]] <- y_mean + y_sd * fit$fit_train
   results[["yhat_test"]] <- y_mean + y_sd * fit$fit_test
-  results[["sigma"]] <- y_sd * fit$fit_test
+  results[["sigma"]] <- y_sd * fit$sigma
   results[["varcounts"]] <- fit$var_count
   return(results)
 }
