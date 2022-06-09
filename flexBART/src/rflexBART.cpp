@@ -8,7 +8,6 @@
 #include "draw_tree.h"
 
 
-// [[Rcpp::export(".draw_tree")]]
 Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
                     Rcpp::IntegerMatrix tX_cat,
                     Rcpp::LogicalVector unif_cuts,
@@ -66,7 +65,7 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   if(p_cat > 0) di.x_cat = tX_cat.begin();
 
   std::vector<double> theta(p, 1.0/ (double) p);
-  double u = 1.0/(1.0 + (double) p);
+  // double u = 1.0/(1.0 + (double) p); unused. consider adding back in if we turn on sparse
   std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
   int rule_count = 0; // how many total decision rules are there in the ensemble
   int rc_rule_count = 0; // how many random combination rules are there in the ensemble
@@ -133,7 +132,7 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
 }
 
 
-// [[Rcpp::export(".draw_ensemble")]]
+// [[Rcpp::export(".drawEnsemble")]]
 Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
                         Rcpp::IntegerMatrix tX_cat,
                         Rcpp::LogicalVector unif_cuts,
@@ -192,7 +191,7 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   if(p_cat > 0) di.x_cat = tX_cat.begin();
 
   std::vector<double> theta(p, 1.0/ (double) p);
-  double u = 1.0/(1.0 + (double) p);
+  //double u = 1.0/(1.0 + (double) p); // unused; consider adding it back in if we turn on sparse
   std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
   int rule_count = 0; // how many total decision rules are there in the ensemble
   int rc_rule_count = 0; // how many random combination rules are there in the ensemble

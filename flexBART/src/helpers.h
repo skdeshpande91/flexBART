@@ -365,7 +365,7 @@ inline void parse_training_data(int &n_train, int &p_cont, int &p_cat, Rcpp::Num
     p_cont = tX_cont_train.rows();
     p_cat = tX_cat_train.rows();
   } else{
-    Rcpp::stop("no training data provided!");
+    Rcpp::stop("no covariate data provided!");
   }
 }
 

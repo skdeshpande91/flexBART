@@ -9,11 +9,7 @@
     .Call('_flexBART_predict_flexBART', PACKAGE = 'flexBART', tree_draws, tX_cont, tX_cat, verbose, print_every)
 }
 
-.draw_tree <- function(tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, perc_rounds, perc_threshold, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau) {
-    .Call('_flexBART_drawTree', PACKAGE = 'flexBART', tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, perc_rounds, perc_threshold, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau)
-}
-
-.draw_ensemble <- function(tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, perc_rounds, perc_threshold, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every) {
+.drawEnsemble <- function(tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, perc_rounds, perc_threshold, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every) {
     .Call('_flexBART_drawEnsemble', PACKAGE = 'flexBART', tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, perc_rounds, perc_threshold, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every)
 }
 

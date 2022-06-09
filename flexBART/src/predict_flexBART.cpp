@@ -19,6 +19,7 @@ Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
   di.n = n;
   di.p_cont = p_cont;
   di.p_cat = p_cat;
+  di.p = p;
   if(p_cont > 0) di.x_cont = tX_cont.begin();
   if(p_cat > 0) di.x_cat = tX_cat.begin();
   

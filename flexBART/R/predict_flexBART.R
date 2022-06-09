@@ -1,4 +1,7 @@
-predict_flexBART <- function(fit, X_cont, X_cat, verbose, print_every)
+predict_flexBART <- function(fit, 
+                             X_cont = matrix(0, nrow = 1, ncol = 1), 
+                             X_cat = matrix(0, nrow = 1, ncol = 1), 
+                             verbose = FALSE, print_every = 50)
 {
   tmp <- .predict_flexBART(tree_draws = fit$trees,
                            tX_cont = t(X_cont),

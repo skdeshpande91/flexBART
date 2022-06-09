@@ -1,19 +1,15 @@
 flexBART <- function(Y_train,
-                     X_cont_train,
-                     X_cat_train,
-                     X_cont_test,
-                     X_cat_test,
-                     unif_cuts,
-                     cutpoints_list,
-                     cat_levels_list,
-                     edge_mat_list,
-                     graph_split,
-                     graph_cut_type,
-                     perc_rounds, perc_threshold,
-                     sparse,
-                     M,
-                     nd, burn, thin,
-                     save_trees, verbose, print_every)
+                     X_cont_train = matrix(0, nrow = 1, ncol = 1),
+                     X_cat_train = matrix(0, nrow = 1, ncol = 1),
+                     X_cont_test = matrix(0, nrow = 1, ncol = 1),
+                     X_cat_test = matrix(0L, nrow = 1, ncol = 1),
+                     unif_cuts = rep(TRUE, times = ncol(X_cont_train)),
+                     cutpoints_list = NULL,
+                     cat_levels_list,                   
+                     sparse = FALSE,
+                     M = 200,
+                     nd = 1000, burn = 1000, thin = 1,
+                     save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
 {
   y_mean <- mean(Y_train)
   y_sd <- sd(Y_train)
@@ -21,7 +17,6 @@ flexBART <- function(Y_train,
   tau <- (max(std_Y_train) - min(std_Y_train))/(2 * 2 * sqrt(M)) # CGM10 prior sd on all leaf parameters
   nu <- 3
   lambda <- qchisq(0.1, df = nu)/nu
-  
   
   fit <- .flexBART_fit(Y_train = std_Y_train,
                        tX_cont_train = t(X_cont_train),
@@ -31,10 +26,10 @@ flexBART <- function(Y_train,
                        unif_cuts = unif_cuts,
                        cutpoints_list = cutpoints_list,
                        cat_levels_list = cat_levels_list,
-                       edge_mat_list = edge_mat_list,
-                       graph_split = graph_split,
-                       graph_cut_type = graph_cut_type,
-                       perc_rounds = perc_rounds, perc_threshold = perc_threshold,
+                       edge_mat_list = NULL,
+                       graph_split = rep(FALSE, times = ncol(X_cat_train)),
+                       graph_cut_type = 0,
+                       perc_rounds = 0, perc_threshold = 0,
                        rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
                        sparse = sparse, a_u = 0.5, b_u = 1,
                        mu0 = 0, tau = tau, 
@@ -54,8 +49,6 @@ flexBART <- function(Y_train,
   results[["yhat_test"]] <- y_mean + y_sd * fit$fit_test
   results[["sigma"]] <- y_sd * fit$sigma
   results[["varcounts"]] <- fit$var_count
+  if(save_trees) results[["trees"]] <- fit$trees
   return(results)
 }
-
-
-
