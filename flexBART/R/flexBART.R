@@ -12,11 +12,11 @@ flexBART <- function(Y_train,
                      save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
 {
   y_mean <- mean(Y_train)
-  y_sd <- sd(Y_train)
+  y_sd <- stats::sd(Y_train)
   std_Y_train <- (Y_train - y_mean)/y_sd # standardize the output
   tau <- (max(std_Y_train) - min(std_Y_train))/(2 * 2 * sqrt(M)) # CGM10 prior sd on all leaf parameters
   nu <- 3
-  lambda <- qchisq(0.1, df = nu)/nu
+  lambda <- stats::qchisq(0.1, df = nu)/nu
   
   fit <- .flexBART_fit(Y_train = std_Y_train,
                        tX_cont_train = t(X_cont_train),

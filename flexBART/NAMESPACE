@@ -1,6 +1,7 @@
 export("flexBART")
 export("predict_flexBART")
 export("rflexBART")
+export("network_BART")
 export("summarize_post_pred")
 importFrom("stats", "qchisq", "sd")
 useDynLib(flexBART)
