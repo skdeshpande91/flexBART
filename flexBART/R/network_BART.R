@@ -22,10 +22,11 @@ network_BART <- function(Y_train,
   cat_levels_list <- list(0:(n_vertex-1)) # remember C++ is 0-indexed
   X_cat_train <- matrix(as.integer(vertex_id_train - 1), ncol = 1)
   if(!is.null(vertex_id_test)){
-    X_cat_test <- matrix(as.integer(vertex_id_train - 1), ncol = 1)
+    X_cat_test <- matrix(as.integer(vertex_id_test - 1), ncol = 1)
   }
   
-  # given an adjacency matrix, how do we extract the 
+  # get a matrix that lists the edges
+  # this is is similar to what would obtained from igraph::get.data.frame(graph, what = "edges")
   tmp_indices <- which(A !=0, arr.ind = TRUE)
   edge_mat <- tmp_indices[tmp_indices[,1] < tmp_indices[,2],] # get only the lower triangle of A
   colnames(edge_mat) <- c("from", "to")
