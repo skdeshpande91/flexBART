@@ -42,43 +42,4 @@ A list containing the following elements
 \item{trees}{A character vector (of length \code{M}) containing text representations of the sampled trees. Currently this vector cannot be passed immediately to \code{predict_flexBART}}
 \item{tree_fits}{A matrix with \code{M} columns containing the evaluations of each sampled regression trees. Note that \code{rowSums(tree_fits)} will be identical to \code{fit}.}
 \item{leaf}{An integer matrix with recording the ID number of the leaf to which each observation is assigned. Nodes in a regression tree can be numbered as follows: the root is labelled with 1 and the left and right children of a node labelled x are labelled 2x and 2x+1. The rows of this matrix correspond to the rows of \code{X_cont} and \code{X_cat} and columns correspond to the individual tree.}
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
 }
-\references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-%%  ~~who you are~~
-}
-\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
-\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
-}
-\examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function (x) 
-{
-  }
-}
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory (show via RShowDoc("KEYWORDS")):
-% \keyword{ ~kwd1 }
-% \keyword{ ~kwd2 }
-% Use only one keyword per line.
-% For non-standard keywords, use \concept instead of \keyword:
-% \concept{ ~cpt1 }
-% \concept{ ~cpt2 }
-% Use only one concept per line.

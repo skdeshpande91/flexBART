@@ -28,8 +28,8 @@ network_BART <- function(Y_train,
   # given an adjacency matrix, how do we extract the 
   tmp_indices <- which(A !=0, arr.ind = TRUE)
   edge_mat <- tmp_indices[tmp_indices[,1] < tmp_indices[,2],] # get only the lower triangle of A
+  colnames(edge_mat) <- c("from", "to")
   edge_mat_list <- list(edge_mat-1) # remember C++ is 0-indexed
-  
   
   # the usual pre-processing
   y_mean <- mean(Y_train)
