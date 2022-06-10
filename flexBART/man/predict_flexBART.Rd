@@ -23,6 +23,7 @@ predict_flexBART(fit,
 }
 \details{
 Make predictions at new inputs based on the output of \code{flexBART}. Useful when the testing dataset is quite large.
+If \code{fit} were produced by \code{predict_flexBART} then the function outputs draws of the fitted probabilities.
 }
 \value{
 A matrix containing posterior samples of the regression function evaluated at the supplied inputs.

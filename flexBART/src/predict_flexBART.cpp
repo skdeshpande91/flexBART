@@ -5,6 +5,7 @@
 Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
                                      Rcpp::NumericMatrix tX_cont,
                                      Rcpp::IntegerMatrix tX_cat,
+                                     bool probit = false,
                                      bool verbose = true, int print_every = 50)
 {
   set_str_conversion set_str; // for converting sets of integers into strings
@@ -55,7 +56,11 @@ Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
         read_tree(t_vec[m], tmp_string, set_str);
       }
       fit_ensemble(allfit, t_vec, di);
-      for(int i = 0; i < n; i++) pred_out(i,iter) = allfit[i];
+      if(probit){
+        for(int i = 0; i < n; i++) pred_out(i,iter) = R::pnorm(allfit[i], 0.0, 1.0, true, false);
+      } else{
+        for(int i = 0; i < n; i++) pred_out(i,iter) = allfit[i];
+      } 
     } // closes if/else checking that we have M strings for the draw of the ensemble
   } // closes loop over all draws of the ensemble
  

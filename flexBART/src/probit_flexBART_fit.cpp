@@ -293,7 +293,7 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
           } // loop over the keys in the m-th sufficient stat map
         } // closes loop over trees
         //fit_ensemble(allfit_test, t_vec, di_test);
-        for(int i = 0; i < n_test; i++) fit_test(sample_index,i) = R:pnorm(allfit_test[i], 0.0, 1.0, true, false);
+        for(int i = 0; i < n_test; i++) fit_test(sample_index,i) = R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
       } // closes loop checking if we actually have test set observations.
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop
