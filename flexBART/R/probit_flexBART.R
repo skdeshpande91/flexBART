@@ -36,8 +36,8 @@ probit_flexBART <- function(Y_train,
                               print_every = print_every)
   
   results <- list()
-  results[["yhat_train"]] <- fit$fit_train
-  results[["yhat_test"]] <- fit$fit_test
+  results[["prob_train"]] <- fit$fit_train
+  results[["prob_test"]] <- fit$fit_test
   results[["varcounts"]] <- fit$var_count
   if(save_trees) results[["trees"]] <- fit$trees
   results[["is.probit"]] <- TRUE
