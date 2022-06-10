@@ -281,7 +281,7 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
         tree_draws[sample_index] = tree_string_vec; // dump a character vector holding each tree's draws into an element of an Rcpp::List
       }
       
-      for(int i = 0; i < n_train; i++) fit_train(sample_index,i) = allfit_train[i];
+      for(int i = 0; i < n_train; i++) fit_train(sample_index,i) = R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
       
       if(n_test > 0){
         for(int i = 0; i < n_test; i++) allfit_test[i] = 0.0; // reset the value of allfit_test
@@ -293,7 +293,7 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
           } // loop over the keys in the m-th sufficient stat map
         } // closes loop over trees
         //fit_ensemble(allfit_test, t_vec, di_test);
-        for(int i = 0; i < n_test; i++) fit_test(sample_index,i) = allfit_test[i];
+        for(int i = 0; i < n_test; i++) fit_test(sample_index,i) = R:pnorm(allfit_test[i], 0.0, 1.0, true, false);
       } // closes loop checking if we actually have test set observations.
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop
