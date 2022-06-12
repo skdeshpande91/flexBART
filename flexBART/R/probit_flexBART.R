@@ -40,7 +40,7 @@ probit_flexBART <- function(Y_train,
   results <- list()
   results[["prob.train.mean"]] <- fit$fit_train_mean
   if(save_samples) results[["prob.train"]] <- fit$fit_train
-  if(!is.null(fit$fit_test_mean){
+  if(!is.null(fit$fit_test_mean)){
     results[["prob.test.mean"]] <- fit$fit_test_mean
     if(save_samples) results[["prob.test"]] <- fit$fit_test
   }

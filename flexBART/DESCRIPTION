@@ -8,4 +8,5 @@ Maintainer: Questions and comments to  <sameer.deshpande@wisc.edu>
 Description: A more flexible implementation of BART that accomodates structured categorical variables.
 License: GPL (>= 3)
 LinkingTo: Rcpp, RcppArmadillo
+Imports: Rcpp
 Suggests: igraph

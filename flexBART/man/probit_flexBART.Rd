@@ -19,7 +19,7 @@ probit_flexBART(Y_train,
                 sparse = FALSE,
                 M = 200,
                 mu0 = stats::qnorm(mean(Y_train)), tau = 1/sqrt(M),
-                nd = 1000, burn = 1000, thin = 1,
+                nd = 1000, burn = 1000, thin = 1, save_samples = TRUE,
                 save_trees = TRUE, verbose = TRUE, 
                 print_every = floor( (nd*thin + burn))/10)
 }
@@ -40,6 +40,7 @@ probit_flexBART(Y_train,
   \item{nd}{Number of posterior draws to return. Default is 1000.}
   \item{burn}{Number of MCMC iterations to be treated as "warmup" or "burn-in". Default is 1000.}
   \item{thin}{Number of post-warmup MCMC iteration by which to thin. Default is 1.}
+  \item{save_samples}{Logical, indicating whether to return all posterior samples. Default is \code{TRUE}. If \code{FALSE}, only posterior mean is returned.}
   \item{save_trees}{Logical, indicating whether or not to save a text-based representation of the tree samples. This representation can be passed to \code{predict_flexBART} to make predictions at a later time. Default is \code{FALSE}.}
   \item{verbose}{Logical, inciating whether to print progress to R console. Default is \code{TRUE}.}
   \item{print_every}{As the MCMC runs, a message is printed every \code{print_every} iterations. Default is \code{floor( (nd*thin + burn)/10)} so that only 10 messages are printed.}

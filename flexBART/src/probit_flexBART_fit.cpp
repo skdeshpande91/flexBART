@@ -189,7 +189,7 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
   arma::mat fit_test = arma::zeros<arma::mat>(1,1); // posterior samples for testing data (if any)
   if(save_samples){
     // if we are saving all samples, then we resize the containers accordingly
-    fit.train.set_size(nd, n_train);
+    fit_train.set_size(nd, n_train);
     if(n_test > 0) fit_test.set_size(nd, n_test);
   }
   
