@@ -15,7 +15,7 @@ flexBART(Y_train,
          X_cat_test = matrix(0L, nrow = 1, ncol = 1),
          unif_cuts = rep(TRUE, times = ncol(X_cont_train)),
          cutpoints_list = NULL, cat_levels_list, sparse = FALSE,
-         M = 200,nd = 1000, burn = 1000, thin = 1,
+         M = 200,nd = 1000, burn = 1000, thin = 1, save_samples = TRUE,
          save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -33,6 +33,7 @@ flexBART(Y_train,
   \item{nd}{Number of posterior draws to return. Default is 1000.}
   \item{burn}{Number of MCMC iterations to be treated as "warmup" or "burn-in". Default is 1000.}
   \item{thin}{Number of post-warmup MCMC iteration by which to thin. Default is 1.}
+  \item{save_samples}{Logical, indicating whether to return all posterior samples. Default is \code{TRUE}. If \code{FALSE}, only posterior mean is returned.}
   \item{save_trees}{Logical, indicating whether or not to save a text-based representation of the tree samples. This representation can be passed to \code{predict_flexBART} to make predictions at a later time. Default is \code{FALSE}.}
   \item{verbose}{Logical, inciating whether to print progress to R console. Default is \code{TRUE}.}
   \item{print_every}{As the MCMC runs, a message is printed every \code{print_every} iterations. Default is \code{floor( (nd*thin + burn)/10)} so that only 10 messages are printed.}
@@ -46,8 +47,10 @@ Default implementations of Bayesian Additive Regression Trees (BART) represent c
 A list containing
 \item{y_mean}{Mean of the training observations (needed by \code{predict_flexBART})}
 \item{y_sd}{Standard deviation of the training observations (needed by \code{predict_flexBART})}
-\item{yhat_train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation.}
-\item{yhat_test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}}
+\item{yhat.train.mean}{Vector containing posterior mean of evaluations of regression function on training data.}
+\item{yhat.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if \code{save_samples == TRUE}.}
+\item{yhat.test.mean}{Vector containing posterior mean of evaluations of regression function on testing data, if testing data is provided.}
+\item{yhat.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}. Only returned if testing data is passed and \code{save_samples == TRUE}.}
 \item{sigma}{Vector containing ALL samples of the residual standard deviation, including burn-in.}
 \item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{yhat_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors}
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}

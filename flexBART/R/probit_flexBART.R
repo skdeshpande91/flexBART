@@ -9,6 +9,7 @@ probit_flexBART <- function(Y_train,
                             sparse = FALSE,
                             M = 200, mu0 = stats::qnorm(mean(Y_train)), tau = 1/sqrt(M),
                             nd = 1000, burn = 1000, thin = 1,
+                            save_samples = TRUE,
                             save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
 {
   if(!is.integer(Y_train)) stop("Y_train must be an integer vector")
@@ -32,12 +33,17 @@ probit_flexBART <- function(Y_train,
                               sparse = sparse, a_u = 0.5, b_u = 1,
                               mu0 = mu0, tau = tau, 
                               M = M, nd = nd, burn = burn, thin = thin,
+                              save_samples = save_samples,
                               save_trees = save_trees, verbose = verbose, 
                               print_every = print_every)
   
   results <- list()
-  results[["prob_train"]] <- fit$fit_train
-  results[["prob_test"]] <- fit$fit_test
+  results[["prob.train.mean"]] <- fit$fit_train_mean
+  if(save_samples) results[["prob.train"]] <- fit$fit_train
+  if(!is.null(fit$fit_test_mean){
+    results[["prob.test.mean"]] <- fit$fit_test_mean
+    if(save_samples) results[["prob.test"]] <- fit$fit_test
+  }
   results[["varcounts"]] <- fit$var_count
   if(save_trees) results[["trees"]] <- fit$trees
   results[["is.probit"]] <- TRUE

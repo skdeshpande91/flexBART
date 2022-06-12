@@ -108,9 +108,9 @@ void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat,
       if(xx_cont[rule.v_aa] < rule.c) nxl_it->second.push_back(i);
       else if(xx_cont[rule.v_aa] >= rule.c) nxr_it->second.push_back(i);
       else{
-        Rcpp::Rcout << "[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!" << std::endl;
         Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont[rule.v_aa] << " cutpoint = " << rule.c << std::endl;
-        Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child");}
+        Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!");
+      }
     } else if(!rule.is_aa && rule.is_cat){
       // categorical rule
       // we need to see whether i-th observation's value of the categorical pred goes to left or right
@@ -121,9 +121,16 @@ void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat,
       else if(l_count == 0 && r_count == 1) nxr_it->second.push_back(i);
       else if(l_count == 1 && r_count == 1) Rcpp::stop("[compute_ss_grow]: observation goes to both left & right child...");
       else{
-        Rcpp::Rcout << "[compute_ss_grow]: could not assign observation to left or right child in categorical split!" << std::endl;
-        Rcpp::Rcout << "  i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_aa] << std::endl;
-        Rcpp::stop("[compute_ss_grow]: observation doesn't go to left or right child...");
+        Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_aa] << std::endl;
+        Rcpp::Rcout << "left values:";
+        for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
+        Rcpp::Rcout << std::endl;
+        
+        Rcpp::Rcout << "right values:";
+        for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
+        Rcpp::Rcout << std::endl;
+        
+        Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
       }
     } else if(!rule.is_aa && !rule.is_cat){
       // random combination rule

@@ -18,6 +18,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
                         double lambda, double nu,
                         int M,
                         int nd, int burn, int thin,
+                        bool save_samples,
                         bool save_trees,
                         bool verbose, int print_every)
 {
@@ -175,10 +176,18 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   for(int i = 0; i < n_train; i++) residual[i] = Y_train[i] - allfit_train[i];
 
   // output containers
-  // output containers
-  arma::mat fit_train = arma::zeros<arma::mat>(nd, n_train); // similar to regular BART
-  arma::mat fit_test = arma::zeros<arma::mat>(1,1);
-  if(n_test > 0) fit_test.set_size(nd, n_test);
+  arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
+  arma::vec fit_test_mean = arma::zeros<arma::vec>(1); // posterior mean for testing data (if any)
+  if(n_test > 0) fit_test_mean.set_size(n_test);
+  
+  arma::mat fit_train = arma::zeros<arma::mat>(1,1); // posterior samples for training data
+  arma::mat fit_test = arma::zeros<arma::mat>(1,1); // posterior samples for testing data (if any)
+  if(save_samples){
+    // if we are saving all samples, then we resize the containers accordingly
+    fit_train.set_size(nd, n_train);
+    if(n_test > 0) fit_test.set_size(nd, n_test);
+  }
+  
   arma::vec sigma_samples(total_draws);
   arma::vec total_accept_samples(nd);
   arma::mat theta_samples(1,1); // unless we're doing DART, no need to waste space
@@ -275,31 +284,57 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         tree_draws[sample_index] = tree_string_vec; // dump a character vector holding each tree's draws into an element of an Rcpp::List
       }
       
-      for(int i = 0; i < n_train; i++) fit_train(sample_index,i) = allfit_train[i];
+      if(save_samples){
+        for(int i = 0; i < n_train; i++){
+          fit_train(sample_index,i) = allfit_train[i];
+          fit_train_mean(i) += 1.0/( (double) nd) * allfit_train[i];
+        }
+      } else{
+        for(int i = 0; i < n_train; i++) fit_train_mean(i) += 1.0/( (double) nd) * allfit_train[i];
+      }
       
       if(n_test > 0){
         for(int i = 0; i < n_test; i++) allfit_test[i] = 0.0; // reset the value of allfit_test
-        
         for(int m = 0; m < M; m++){
           for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
             tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the corresponding leaf
             for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) allfit_test[*it] += tmp_mu;
           } // loop over the keys in the m-th sufficient stat map
         } // closes loop over trees
-        //fit_ensemble(allfit_test, t_vec, di_test);
-        for(int i = 0; i < n_test; i++) fit_test(sample_index,i) = allfit_test[i];
-      } // closes loop checking if we actually have test set observations.
+        
+        if(save_samples){
+          for(int i = 0; i < n_test; i++){
+            fit_test(sample_index,i) = allfit_test[i];
+            fit_test_mean(i) += 1.0/( (double) nd) * allfit_test[i];
+          }
+        } else{
+          for(int i = 0; i < n_test; i++) fit_test_mean(i) += 1.0/( (double) nd) * allfit_test[i];
+        }
+      }
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop
 
   Rcpp::List results;
-  results["fit_train"] = fit_train;
-  if(n_test > 0) results["fit_test"] = fit_test;
+  
+  results["fit_train_mean"] = fit_train_mean;
+  if(save_samples){
+    results["fit_train"] = fit_train;
+  }
+  if(n_test > 0){
+    results["fit_test_mean"] = fit_test_mean;
+    if(save_samples){
+      results["fit_test"] = fit_test;
+    }
+  }
   results["sigma"] = sigma_samples;
   results["total_accept"] = total_accept_samples;
   results["var_count"] = var_count_samples;
-  if(save_trees) results["trees"] = tree_draws;
-  if(sparse) results["theta"] = theta_samples;
+  if(save_trees){
+    results["trees"] = tree_draws;
+  }
+  if(sparse){
+    results["theta"] = theta_samples;
+  }
   if(rc_split){
     results["theta_rc_samples"] = theta_rc_samples;
     results["rc_var_count_samples"] = rc_var_count_samples;

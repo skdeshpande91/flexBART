@@ -17,6 +17,7 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
                                double mu0, double tau,
                                int M,
                                int nd, int burn, int thin,
+                               bool save_samples,
                                bool save_trees,
                                bool verbose, int print_every)
 {
@@ -180,9 +181,18 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
   double sigma = 1.0; // remember for probit, sigma is always 1!
   
   // output containers
-  arma::mat fit_train = arma::zeros<arma::mat>(nd, n_train); // similar to regular BART
-  arma::mat fit_test = arma::zeros<arma::mat>(1,1);
-  if(n_test > 0) fit_test.set_size(nd, n_test);
+  arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
+  arma::vec fit_test_mean = arma::zeros<arma::vec>(1); // posterior mean for testing data (if any)
+  if(n_test > 0) fit_test_mean.set_size(n_test);
+  
+  arma::mat fit_train = arma::zeros<arma::mat>(1,1); // posterior samples for training data
+  arma::mat fit_test = arma::zeros<arma::mat>(1,1); // posterior samples for testing data (if any)
+  if(save_samples){
+    // if we are saving all samples, then we resize the containers accordingly
+    fit.train.set_size(nd, n_train);
+    if(n_test > 0) fit_test.set_size(nd, n_test);
+  }
+  
   arma::vec total_accept_samples(nd);
   arma::mat theta_samples(1,1); // unless we're doing DART, no need to waste space
   if(sparse) theta_samples.set_size(total_draws, p);
@@ -281,7 +291,14 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
         tree_draws[sample_index] = tree_string_vec; // dump a character vector holding each tree's draws into an element of an Rcpp::List
       }
       
-      for(int i = 0; i < n_train; i++) fit_train(sample_index,i) = R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
+      if(save_samples){
+        for(int i = 0; i < n_train; i++){
+          fit_train(sample_index,i) = R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
+          fit_train_mean(i) += 1.0/( (double) nd) * R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
+        }
+      } else{
+        for(int i = 0; i < n_train; i++) fit_train_mean(i) += 1.0/( (double) nd) * R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
+      }
       
       if(n_test > 0){
         for(int i = 0; i < n_test; i++) allfit_test[i] = 0.0; // reset the value of allfit_test
@@ -292,15 +309,26 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
             for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) allfit_test[*it] += tmp_mu;
           } // loop over the keys in the m-th sufficient stat map
         } // closes loop over trees
-        //fit_ensemble(allfit_test, t_vec, di_test);
-        for(int i = 0; i < n_test; i++) fit_test(sample_index,i) = R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
-      } // closes loop checking if we actually have test set observations.
+        
+        if(save_samples){
+          for(int i = 0; i < n_test; i++){
+            fit_test(sample_index,i) = R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
+            fit_test_mean(i) += 1.0/( (double) nd) * R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
+          }
+        } else{
+          for(int i = 0; i < n_test; i++) fit_test_mean(i) += 1.0/( (double) nd) * R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
+        }
+      } // closes if checking whether we have any test set observations
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop
 
   Rcpp::List results;
-  results["fit_train"] = fit_train;
-  if(n_test > 0) results["fit_test"] = fit_test;
+  results["fit_train_mean"] = fit_train_mean;
+  if(save_samples) results["fit_train"] = fit_train;
+  if(n_test > 0){
+    results["fit_test_mean"] = fit_test_mean;
+    if(save_samples) results["fit_test"] = fit_test;
+  }
   results["total_accept"] = total_accept_samples;
   results["var_count"] = var_count_samples;
   if(save_trees) results["trees"] = tree_draws;

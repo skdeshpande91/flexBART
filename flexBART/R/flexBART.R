@@ -9,6 +9,7 @@ flexBART <- function(Y_train,
                      sparse = FALSE,
                      M = 200,
                      nd = 1000, burn = 1000, thin = 1,
+                     save_samples = TRUE,
                      save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
 {
   y_mean <- mean(Y_train)
@@ -35,18 +36,31 @@ flexBART <- function(Y_train,
                        mu0 = 0, tau = tau, 
                        lambda = lambda, nu = nu,
                        M = M, nd = nd, burn = burn, thin = thin,
+                       save_samples = save_samples,
                        save_trees = save_trees, verbose = verbose, 
                        print_every = print_every)
-
-  yhat_train_samples <- y_mean + y_sd * fit$fit_train
-  yhat_test_samples <- y_mean + y_sd * fit$fit_test
+  
+  yhat_train_mean <- y_mean + y_sd * fit$fit_train_mean
+  if(save_samples){
+    yhat_train_samples <- y_mean + y_sd * fit$fit_train
+  }
+  if(!is.null(fit$fit_test_mean)){
+    yhat_test_mean <- y_mean + y_sd * fit$fit_test_mean
+    if(save_samples){
+      yhat_test_samples <- y_mean + y_sd * fit$fit_test
+    }
+  }
   sigma_samples <- y_sd * fit$sigma
   
   results <- list()
   results[["y_mean"]] <- y_mean
   results[["y_sd"]] <- y_sd
-  results[["yhat_train"]] <- y_mean + y_sd * fit$fit_train
-  results[["yhat_test"]] <- y_mean + y_sd * fit$fit_test
+  results[["yhat.train.mean"]] <- yhat_train_mean
+  if(save_samples) results[["yhat.train"]] <- yhat_train_samples
+  if(!is.null(fit$fit_test_mean)){
+    results[["yhat.test.mean"]] <- yhat_test_mean
+    if(save_samples) results[["yhat.test"]] <- yhat_test_samples
+  }
   results[["sigma"]] <- y_sd * fit$sigma
   results[["varcounts"]] <- fit$var_count
   if(save_trees) results[["trees"]] <- fit$trees
