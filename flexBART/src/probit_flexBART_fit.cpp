@@ -183,14 +183,14 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
   // output containers
   arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
   arma::vec fit_test_mean = arma::zeros<arma::vec>(1); // posterior mean for testing data (if any)
-  if(n_test > 0) fit_test_mean.set_size(n_test);
-  
+  if(n_test > 0) fit_test_mean.zeros(n_test); // set.size() can contain garbage values!!
+
   arma::mat fit_train = arma::zeros<arma::mat>(1,1); // posterior samples for training data
   arma::mat fit_test = arma::zeros<arma::mat>(1,1); // posterior samples for testing data (if any)
   if(save_samples){
     // if we are saving all samples, then we resize the containers accordingly
-    fit_train.set_size(nd, n_train);
-    if(n_test > 0) fit_test.set_size(nd, n_test);
+    fit_train.zeros(nd, n_train);
+    if(n_test > 0) fit_test.zeros(nd, n_test);
   }
   
   arma::vec total_accept_samples(nd);
@@ -294,10 +294,10 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
       if(save_samples){
         for(int i = 0; i < n_train; i++){
           fit_train(sample_index,i) = R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
-          fit_train_mean(i) += 1.0/( (double) nd) * R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
+          fit_train_mean(i) += R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
         }
       } else{
-        for(int i = 0; i < n_train; i++) fit_train_mean(i) += 1.0/( (double) nd) * R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
+        for(int i = 0; i < n_train; i++) fit_train_mean(i) += R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
       }
       
       if(n_test > 0){
@@ -313,14 +313,17 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
         if(save_samples){
           for(int i = 0; i < n_test; i++){
             fit_test(sample_index,i) = R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
-            fit_test_mean(i) += 1.0/( (double) nd) * R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
+            fit_test_mean(i) += R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
           }
         } else{
-          for(int i = 0; i < n_test; i++) fit_test_mean(i) += 1.0/( (double) nd) * R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
+          for(int i = 0; i < n_test; i++) fit_test_mean(i) += R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
         }
       } // closes if checking whether we have any test set observations
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop
+  
+  fit_train_mean /= ( (double) nd);
+  if(n_test > 0) fit_test_mean /= ( (double) nd);
 
   Rcpp::List results;
   results["fit_train_mean"] = fit_train_mean;

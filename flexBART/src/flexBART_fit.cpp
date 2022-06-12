@@ -178,14 +178,14 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   // output containers
   arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
   arma::vec fit_test_mean = arma::zeros<arma::vec>(1); // posterior mean for testing data (if any)
-  if(n_test > 0) fit_test_mean.set_size(n_test);
+  if(n_test > 0) fit_test_mean.zeros(n_test); // arma::set.size can initialize with garbage values
   
   arma::mat fit_train = arma::zeros<arma::mat>(1,1); // posterior samples for training data
   arma::mat fit_test = arma::zeros<arma::mat>(1,1); // posterior samples for testing data (if any)
   if(save_samples){
     // if we are saving all samples, then we resize the containers accordingly
-    fit_train.set_size(nd, n_train);
-    if(n_test > 0) fit_test.set_size(nd, n_test);
+    fit_train.zeros(nd, n_train);
+    if(n_test > 0) fit_test.zeros(nd, n_test);
   }
   
   arma::vec sigma_samples(total_draws);
@@ -287,10 +287,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
       if(save_samples){
         for(int i = 0; i < n_train; i++){
           fit_train(sample_index,i) = allfit_train[i];
-          fit_train_mean(i) += 1.0/( (double) nd) * allfit_train[i];
+          fit_train_mean(i) += allfit_train[i];
         }
       } else{
-        for(int i = 0; i < n_train; i++) fit_train_mean(i) += 1.0/( (double) nd) * allfit_train[i];
+        for(int i = 0; i < n_train; i++) fit_train_mean(i) += allfit_train[i];
       }
       
       if(n_test > 0){
@@ -305,15 +305,18 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         if(save_samples){
           for(int i = 0; i < n_test; i++){
             fit_test(sample_index,i) = allfit_test[i];
-            fit_test_mean(i) += 1.0/( (double) nd) * allfit_test[i];
+            fit_test_mean(i) += allfit_test[i];
           }
         } else{
-          for(int i = 0; i < n_test; i++) fit_test_mean(i) += 1.0/( (double) nd) * allfit_test[i];
+          for(int i = 0; i < n_test; i++) fit_test_mean(i) += allfit_test[i];
         }
       }
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop
 
+  fit_train_mean /= ( (double) nd);
+  if(n_test > 0) fit_test_mean /= ( (double) nd);
+  
   Rcpp::List results;
   
   results["fit_train_mean"] = fit_train_mean;
