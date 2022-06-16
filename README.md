@@ -4,7 +4,7 @@
 ## Motivation
 Default implementations of Bayesian Additive Regression Trees (BART) represent categorical predictors using several binary indicators, one for each level of each categorical predictor. Axis-aligned decision rules are well-defined with these indicators; they send one level of a categorical predictor to the left and all others levels to the right (or vice versa).
 Regression trees built with these rules partition the set of all levels of a categorical predictor by recursively removing one level at a time. 
-Unfortunately, most partitions of the levels cannot be built with this ``remove one at a time'' strategy, meaning that default implementations of BART are extremely limited in their ability to ``borrow strength'' across groups of levels.
+Unfortunately, most partitions of the levels cannot be built with this ''remove one at a time'' strategy, meaning that default implementations of BART are extremely limited in their ability to ''borrow strength'' across groups of levels.
 
 The **flexBART** package overcomes this limitation by utilizing a new prior for decision trees.
 Like other implementations, the drawing a decision tree from the new prior is accomplished by first simulating a branching process and then randomly drawing decision rules for each non-terminal (i.e. non-leaf) node of the tree.
