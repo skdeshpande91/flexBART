@@ -13,12 +13,18 @@ If this variable is a continuous predictor, a single cut-point is drawn uniforml
 However, if the splitting variable is a categorical predictor, the new prior assigns each available levels of that predictor randomly to the left or right branch.
 In this way, the prior over decision tree now allows multiple levels of a categorical variable to be assigned to both the left and right branches of an internal node.
 
-Building on this, the package also provides support for *structured* categorical predictors for which there are a prior preferences about which levels of the predictor ought to be clustered together.
+Building on this, the package also provides support for *structured* categorical predictors for which there are *a priori* preferences about which levels of the predictor ought to be clustered together.
 These preferences are operationalized with a network whose vertices correspond to the levels of the predictor and whose edges encode co-clustering preference.
 An example would be spatial regions where each region is represented by a vertex in a network and an edge is drawn between vertices whose corresponding regions are geographically/spatially adjacent. We would like to get the decision tree prior to respect the supplied adjacency information.
 
 ## Installation and basic usage
 
+The package source files are contained in the sub-directory flexBART.
+To install, you can either download that directory and build and install the package from the command line.
+Alternatively, you can install using `devtools::install_github`:
+```
+devtools::install_github(repo = "skdeshpande91/flexBART", subdir = "flexBART")
+```
 
 ## Notes about the implementation
 
