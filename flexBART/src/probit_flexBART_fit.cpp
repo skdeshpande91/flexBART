@@ -1,26 +1,25 @@
 #include "update_tree.h"
 
-// [[Rcpp::export(".flexBART_fit")]]
-Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
-                        Rcpp::NumericMatrix tX_cont_train,
-                        Rcpp::IntegerMatrix tX_cat_train,
-                        Rcpp::NumericMatrix tX_cont_test,
-                        Rcpp::IntegerMatrix tX_cat_test,
-                        Rcpp::LogicalVector unif_cuts,
-                        Rcpp::Nullable<Rcpp::List> cutpoints_list,
-                        Rcpp::Nullable<Rcpp::List> cat_levels_list,
-                        Rcpp::Nullable<Rcpp::List> edge_mat_list,
-                        Rcpp::LogicalVector graph_split, int graph_cut_type,
-                        int perc_rounds, double perc_threshold,
-                        bool rc_split, double prob_rc, double a_rc, double b_rc,
-                        bool sparse, double a_u, double b_u,
-                        double mu0, double tau,
-                        double lambda, double nu,
-                        int M,
-                        int nd, int burn, int thin,
-                        bool save_samples,
-                        bool save_trees,
-                        bool verbose, int print_every)
+// [[Rcpp::export(".probit_flexBART_fit")]]
+Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
+                               Rcpp::NumericMatrix tX_cont_train,
+                               Rcpp::IntegerMatrix tX_cat_train,
+                               Rcpp::NumericMatrix tX_cont_test,
+                               Rcpp::IntegerMatrix tX_cat_test,
+                               Rcpp::LogicalVector unif_cuts,
+                               Rcpp::Nullable<Rcpp::List> cutpoints_list,
+                               Rcpp::Nullable<Rcpp::List> cat_levels_list,
+                               Rcpp::Nullable<Rcpp::List> edge_mat_list,
+                               Rcpp::LogicalVector graph_split, int graph_cut_type,
+                               int perc_rounds, double perc_threshold,
+                               bool rc_split, double prob_rc, double a_rc, double b_rc,
+                               bool sparse, double a_u, double b_u,
+                               double mu0, double tau,
+                               int M,
+                               int nd, int burn, int thin,
+                               bool save_samples,
+                               bool save_trees,
+                               bool verbose, int print_every)
 {
   Rcpp::RNGScope scope;
   RNG gen;
@@ -70,6 +69,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   
   double* allfit_train = new double[n_train];
   double* residual = new double[n_train];
+  double* latents = new double[n_train]; // holds the latent variables
   
   std::vector<double> allfit_test;
   if(n_test > 0) allfit_test.resize(n_test);
@@ -134,12 +134,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;
   
-  // initialize stuff for sigma
-  double sigma = 1.0;
-  double total_sq_resid = 0.0; // sum of squared residuals
-  double scale_post = 0.0;
-  double nu_post = 0.0;
-  
   // stuff for MCMC loop
   int total_draws = 1 + burn + (nd-1)*thin;
   int sample_index = 0;
@@ -173,13 +167,24 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     }
   }
   
-  for(int i = 0; i < n_train; i++) residual[i] = Y_train[i] - allfit_train[i];
-
+  // draw the initial set of latents and compute the residual
+  for(int i = 0; i < n_train; i++){
+    if(Y_train[i] == 1) latents[i] = gen.lo_trunc_norm(allfit_train[i], 0.0);
+    else if(Y_train[i] == 0) latents[i] = gen.hi_trunc_norm(allfit_train[i],0.0);
+    else{
+      Rcpp::Rcout << " Outcome for observation i = " << i+1 << " is " << Y_train[i] << std::endl;
+      Rcpp::stop("For probit regression, all outcomes must be 1 or 0.");
+    }
+    residual[i] = latents[i] - allfit_train[i];
+  }
+  
+  double sigma = 1.0; // remember for probit, sigma is always 1!
+  
   // output containers
   arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
   arma::vec fit_test_mean = arma::zeros<arma::vec>(1); // posterior mean for testing data (if any)
-  if(n_test > 0) fit_test_mean.zeros(n_test); // arma::set.size can initialize with garbage values
-  
+  if(n_test > 0) fit_test_mean.zeros(n_test); // set.size() can contain garbage values!!
+
   arma::mat fit_train = arma::zeros<arma::mat>(1,1); // posterior samples for training data
   arma::mat fit_test = arma::zeros<arma::mat>(1,1); // posterior samples for testing data (if any)
   if(save_samples){
@@ -188,7 +193,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     if(n_test > 0) fit_test.zeros(nd, n_test);
   }
   
-  arma::vec sigma_samples(total_draws);
   arma::vec total_accept_samples(nd);
   arma::mat theta_samples(1,1); // unless we're doing DART, no need to waste space
   if(sparse) theta_samples.set_size(total_draws, p);
@@ -208,12 +212,23 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   for(int iter = 0; iter < total_draws; iter++){
     if(verbose){
       if( (iter < burn) && (iter % print_every == 0)){
-        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Burn-in" << std::endl;
+        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
         Rcpp::checkUserInterrupt();
       } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
         Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
         Rcpp::checkUserInterrupt();
       }
+    }
+    // at the start of the loop, we need to update the latents
+    for(int i = 0; i < n_train; i++){
+      // residual is latent - allfit
+      if(Y_train[i] == 1) latents[i] = gen.lo_trunc_norm(allfit_train[i], 0.0);
+      else if(Y_train[i] == 0) latents[i] = gen.hi_trunc_norm(allfit_train[i], 0.0);
+      else{
+        Rcpp::Rcout << " Outcome for observation i = " << i+1 << " is " << Y_train[i] << std::endl;
+        Rcpp::stop("For probit regression, all outcomes must be 1 or 0.");
+      }
+      residual[i] = latents[i] - allfit_train[i];
     }
     
     // loop over trees
@@ -244,15 +259,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         }
       } // this loop is also O(n)
     } // closes loop over all of the trees
-    // ready to update sigma
-    total_sq_resid = 0.0;
-    //for(int i = 0; i < n_train; i++) total_sq_resid += pow(Y_train[i] - allfit_train[i], 2.0);
-    for(int i = 0; i < n_train; i++) total_sq_resid += pow(residual[i], 2.0); // sum of squared residuals
-    
-    scale_post = lambda * nu + total_sq_resid;
-    nu_post = nu + ( (double) n_train);
-    sigma = sqrt(scale_post/gen.chi_square(nu_post));
-    sigma_samples(iter) = sigma;
+   
     
     if(sparse){
       update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
@@ -286,15 +293,16 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
       
       if(save_samples){
         for(int i = 0; i < n_train; i++){
-          fit_train(sample_index,i) = allfit_train[i];
-          fit_train_mean(i) += allfit_train[i];
+          fit_train(sample_index,i) = R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
+          fit_train_mean(i) += R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
         }
       } else{
-        for(int i = 0; i < n_train; i++) fit_train_mean(i) += allfit_train[i];
+        for(int i = 0; i < n_train; i++) fit_train_mean(i) += R::pnorm(allfit_train[i], 0.0, 1.0, true, false);
       }
       
       if(n_test > 0){
         for(int i = 0; i < n_test; i++) allfit_test[i] = 0.0; // reset the value of allfit_test
+        
         for(int m = 0; m < M; m++){
           for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
             tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the corresponding leaf
@@ -304,40 +312,30 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         
         if(save_samples){
           for(int i = 0; i < n_test; i++){
-            fit_test(sample_index,i) = allfit_test[i];
-            fit_test_mean(i) += allfit_test[i];
+            fit_test(sample_index,i) = R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
+            fit_test_mean(i) += R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
           }
         } else{
-          for(int i = 0; i < n_test; i++) fit_test_mean(i) += allfit_test[i];
+          for(int i = 0; i < n_test; i++) fit_test_mean(i) += R::pnorm(allfit_test[i], 0.0, 1.0, true, false);
         }
-      }
+      } // closes if checking whether we have any test set observations
     } // closes if that checks whether we should save anything in this iteration
   } // closes the main MCMC for loop
-
+  
   fit_train_mean /= ( (double) nd);
   if(n_test > 0) fit_test_mean /= ( (double) nd);
-  
+
   Rcpp::List results;
-  
   results["fit_train_mean"] = fit_train_mean;
-  if(save_samples){
-    results["fit_train"] = fit_train;
-  }
+  if(save_samples) results["fit_train"] = fit_train;
   if(n_test > 0){
     results["fit_test_mean"] = fit_test_mean;
-    if(save_samples){
-      results["fit_test"] = fit_test;
-    }
+    if(save_samples) results["fit_test"] = fit_test;
   }
-  results["sigma"] = sigma_samples;
   results["total_accept"] = total_accept_samples;
   results["var_count"] = var_count_samples;
-  if(save_trees){
-    results["trees"] = tree_draws;
-  }
-  if(sparse){
-    results["theta"] = theta_samples;
-  }
+  if(save_trees) results["trees"] = tree_draws;
+  if(sparse) results["theta"] = theta_samples;
   if(rc_split){
     results["theta_rc_samples"] = theta_rc_samples;
     results["rc_var_count_samples"] = rc_var_count_samples;

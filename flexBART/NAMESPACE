@@ -1,0 +1,8 @@
+export("flexBART")
+export("predict_flexBART")
+export("rflexBART")
+export("network_BART")
+export("probit_flexBART")
+export("summarize_post_pred")
+importFrom(Rcpp, evalCpp)
+useDynLib(flexBART)

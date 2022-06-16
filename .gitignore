@@ -9,4 +9,5 @@
 *.bbl
 *.blg
 *.log
-
+*Rcheck
+*.tar.gz
