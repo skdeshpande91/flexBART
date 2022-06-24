@@ -1,6 +1,5 @@
 # flexBART
 
-
 ## Motivation
 Default implementations of Bayesian Additive Regression Trees (BART) represent categorical predictors using several binary indicators, one for each level of each categorical predictor. Axis-aligned decision rules are well-defined with these indicators; they send one level of a categorical predictor to the left and all others levels to the right (or vice versa).
 Regression trees built with these rules partition the set of all levels of a categorical predictor by recursively removing one level at a time. 
@@ -25,6 +24,9 @@ Alternatively, you can install using `devtools::install_github`:
 ```
 devtools::install_github(repo = "skdeshpande91/flexBART", subdir = "flexBART")
 ```
+
+The `examples` subdirectory contains some case studies showing how to use flexBART with network data and comparing the run-time to the **BART** package. 
+
 
 ## Notes about the implementation
 
