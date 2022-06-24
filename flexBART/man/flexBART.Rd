@@ -14,7 +14,7 @@ flexBART(Y_train,
          X_cont_test = matrix(0, nrow = 1, ncol = 1),
          X_cat_test = matrix(0L, nrow = 1, ncol = 1),
          unif_cuts = rep(TRUE, times = ncol(X_cont_train)),
-         cutpoints_list = NULL, cat_levels_list, sparse = FALSE,
+         cutpoints_list = NULL, cat_levels_list = NULL, sparse = FALSE,
          M = 200,nd = 1000, burn = 1000, thin = 1, save_samples = TRUE,
          save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
 }
@@ -54,4 +54,78 @@ A list containing
 \item{sigma}{Vector containing ALL samples of the residual standard deviation, including burn-in.}
 \item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{yhat_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors}
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}
+}
+\examples{
+## Friedman's function (from the MARS paper)
+# Slight modification: flexBART requires all X's to be in [-1,1]
+# Friendman's function
+f0 <- function(x_cont, x_cat){
+  if(!all(abs(x_cont) <= 1)){
+    stop("all entries in x_cont must be between -1 and 1")
+  } else{
+    x <- (x_cont+1)/2 # convert to [0,1]
+    return(10 * sin(pi*x[,1]*x[,2]) + 20 * (x[,3] - 0.5)^2 + 10*x[,4] + 5 * x[,5])
+  }
+}
+f1 <- function(x_cont, x_cat){
+  if(!all(abs(x_cont) <= 1)){
+    stop("all entries in x_cont must be between -1 and 1")
+  } else{
+    x <- (x_cont+1)/2
+    z1 <- x[,1]
+    z2 <- 1*(x[,2] > 0.5)
+    return(3 * z1 + (2 - 5 * z2) * sin(pi * z1) - 2 * z2)
+  }
+}
+f <- function(x_cont, x_cat){
+    mu <- rep(NA, times = nrow(x_cont))
+    tmp_f0 <- f0(x_cont, x_cat)
+    tmp_f1 <- f1(x_cont, x_cat)
+    
+    index0 <- which(x_cat[,1] \%in\% c(0,1,3, 5,6, 9))
+    index1 <- which(x_cat[,1] \%in\% c(2,4,7,8))
+    mu[index0] <- tmp_f0[index0]
+    mu[index1] <- tmp_f1[index1]
+    return(mu)
+}
+sigma <- 0.5
+n <- 2000
+n_test <- 100
+p_cont <- 10
+p_cat <- 10
+set.seed(99)
+X_cont <- matrix(runif(n*p_cont, min = -1, max = 1), nrow = n, ncol = p_cont)
+X_cat <- matrix(sample(0:9, size = n*p_cat, replace = TRUE), nrow = n, ncol = p_cat)
+
+mu <- f(X_cont, X_cat)
+y <- mu + sigma * rnorm(n, mean = 0, sd = 1)
+
+# In this example, all categorical variables take values in \{0, 1, ..., 9\}
+cat_levels_list <- list()
+for(j in 1:p_cat) cat_levels_list[[j]] <- 0:9
+
+# Token run that ensures installation was successful
+set.seed(99)
+flexBART_fit <- flexBART(Y_train = y, X_cont_train = X_cont, X_cat_train = X_cat,
+                         cat_levels_list = cat_levels_list,
+                         nd = 5, burn = 5)
+\dontrun{
+X_cont_test <- matrix(runif(n_test*p_cont, min = -1, max = 1), nrow = n_test, ncol = p_cont)
+X_cat_test <- matrix(sample(0:9, size = n_test*p_cat, replace = TRUE), nrow = n_test, ncol = p_cat)
+mu_test <- f(X_cont_test, X_cat_test)
+
+set.seed(99)
+flexBART_fit <- flexBART(Y_train = y, X_cont_train = X_cont, X_cat_train = X_cat,
+                         X_cont_test = X_cont_test, X_cat_test = X_cat_test,
+                         cat_levels_list = cat_levels_list)
+
+par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
+plot(mu, flexBART_fit$yhat.train.mean, pch = 16, cex = 0.5, 
+     xlab = "Truth", ylab = "Estimate", main = "Training")
+abline(a = 0, b = 1, col = 'blue')
+plot(mu_test, flexBART_fit$yhat.test.mean, pch = 16, cex = 0.5, 
+     xlab = "Truth", ylab = "Estimate", main = "Testing")
+abline(a = 0, b = 1, col = 'blue')
+
+}
 }
