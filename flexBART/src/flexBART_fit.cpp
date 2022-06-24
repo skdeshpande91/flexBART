@@ -208,7 +208,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   for(int iter = 0; iter < total_draws; iter++){
     if(verbose){
       if( (iter < burn) && (iter % print_every == 0)){
-        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Burn-in" << std::endl;
+        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
         Rcpp::checkUserInterrupt();
       } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
         Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
