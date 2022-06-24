@@ -1,6 +1,6 @@
 ---
 title: "network_constant"
-output: html_document
+output: rmarkdown::github_document
 date: '2022-06-24'
 ---
 
