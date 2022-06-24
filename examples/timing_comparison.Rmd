@@ -8,7 +8,6 @@ date: '2022-06-24'
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
 **flexBART** is often much faster than **BART** because it avoids a lot of redundant computations.
 The speedup really manifests when you have lots of data.
 To illustrate, let's look compare the two implementations on an easy task (or at least, easy for BART): the [Friedman function](https://www.sfu.ca/~ssurjano/fried.html)!
