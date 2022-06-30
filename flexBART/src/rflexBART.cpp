@@ -76,6 +76,8 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   }
   
   tree_prior_info tree_pi;
+  tree_pi.alpha = alpha;
+  tree_pi.beta = beta;
   tree_pi.theta = &theta;
   tree_pi.var_count = &var_count;
   tree_pi.rule_count = &rule_count;
@@ -202,6 +204,8 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   }
   
   tree_prior_info tree_pi;
+  tree_pi.alpha = alpha;
+  tree_pi.beta = beta;
   tree_pi.theta = &theta;
   tree_pi.var_count = &var_count;
   tree_pi.rule_count = &rule_count;

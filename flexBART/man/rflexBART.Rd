@@ -14,7 +14,7 @@ rflexBART(M,
           cutpoints_list = NULL,
           cat_levels_list = NULL,
           alpha = 0.95, beta = 2, mu0 = 0, tau = 1/sqrt(M),
-          verbose = FALSE, print_every = floor(M/10))
+          verbose = TRUE, print_every = floor(M/10))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
