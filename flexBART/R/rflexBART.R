@@ -5,7 +5,7 @@ rflexBART <- function(M,
                       cutpoints_list = NULL,
                       cat_levels_list = NULL,
                       alpha = 0.95, beta = 2, mu0 = 0, tau = 1/sqrt(M),
-                      verbose = FALSE, print_every = 50)
+                      verbose = TRUE, print_every = floor(M/10))
 {
   tree_draws <- .drawEnsemble(tX_cont = t(X_cont),
                               tX_cat = t(X_cat),

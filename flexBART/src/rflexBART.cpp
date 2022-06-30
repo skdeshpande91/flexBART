@@ -231,6 +231,8 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   Rcpp::NumericMatrix tree_fits(n,M);
   Rcpp::IntegerMatrix leaf_id(n,M);
   Rcpp::NumericVector fit(n);
+  arma::mat kernel = arma::zeros<arma::mat>(n,n); // kernel(i,ii) counts #times obs i & j in same leaf
+  
   for(int i = 0; i < n; i++) fit[i] = 0.0;
   Rcpp::CharacterVector tree_strings(M);
   
@@ -251,15 +253,25 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
         tree_fits(*it,m) = tmp_mu;
         fit[*it] += tmp_mu;
         leaf_id(*it,m) = ss_it->first; // id of the leaf
+        
+        for(int_it iit = it; iit != ss_it->second.end(); ++iit){
+          if(*it != *iit){
+            kernel(*it, *iit) += 1.0;
+            kernel(*iit, *it) += 1.0;
+          } else{
+            kernel(*it, *iit) += 1.0;
+          }
+        }
       }
     }
     tree_strings[m] = write_tree(t, tree_pi, set_str);
   }
-  
+  kernel /= (double) M;
   Rcpp::List results;
   results["fit"] = fit;
   results["trees"] = tree_strings;
   results["tree_fits"] = tree_fits;
   results["leaf"] = leaf_id;
+  results["kernel"] = kernel;
   return results;
 }
