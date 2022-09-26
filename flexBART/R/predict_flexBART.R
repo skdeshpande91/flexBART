@@ -13,5 +13,6 @@ predict_flexBART <- function(fit,
                            verbose = verbose,
                            print_every = print_every)
   if(!fit[["is.probit"]]) output <- fit$y_mean + fit$y_sd * tmp
+  else output <- tmp
   return(output)
 }
