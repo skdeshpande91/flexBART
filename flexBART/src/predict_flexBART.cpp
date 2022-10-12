@@ -27,15 +27,17 @@ Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
   int nd = tree_draws.size();
   Rcpp::CharacterVector first_tree_vec = tree_draws[0];
   int M = first_tree_vec.size();
-  
-  Rcpp::Rcout << "nd = " << nd << "M = " << M;
-  Rcpp::Rcout << " n = " << n << " p_cont = " << p_cont << " p_cat = " << p_cat << std::endl;
-  
+
+  if(verbose){  
+    Rcpp::Rcout << "nd = " << nd << "M = " << M;
+    Rcpp::Rcout << " n = " << n << " p_cont = " << p_cont << " p_cat = " << p_cat << std::endl;
+  }
+
   std::vector<double> allfit(n);
   Rcpp::NumericMatrix pred_out(n,nd);
   
   for(int iter = 0; iter < nd; iter++){
-    if( (iter%print_every == 0)){
+    if(verbose && (iter%print_every == 0)){
       Rcpp::Rcout << "  Iteration: " << iter << " of " << nd <<std::endl;
       Rcpp::checkUserInterrupt();
     }
