@@ -462,16 +462,20 @@ void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &
       
       if(tree_pi.graph_split[rule.v_cat] == 1 && tree_pi.edges->at(rule.v_cat).size() > 0){
         // if we explicitly say to use the graph to split the variables
-        //graph_partition(avail_levels, rule.l_vals, rule.r_vals, di.adj_support->at(rule.v_cat), di.K->at(rule.v_cat), tree_pi.graph_cut_type, gen);
         graph_partition(avail_levels, rule.l_vals, rule.r_vals, tree_pi.edges->at(rule.v_cat), tree_pi.K->at(rule.v_cat), tree_pi.graph_cut_type, tree_pi.perc_rounds, tree_pi.perc_threshold, gen);
       } else{
         // otherwise we default to splitting the available levels uniformly at random: prob 0.5 to go to each child
         rule_counter = 0;
+        double tmp_prob = 0.5;
+        if(tree_pi.a_cat > 0  && tree_pi.b_cat > 0) tmp_prob = gen.beta(tree_pi.a_cat, tree_pi.b_cat);
+        else tmp_prob = 0.5;
+        
         while( ((rule.l_vals.size() == 0) || (rule.r_vals.size() == 0)) && rule_counter < 1000 ){
           rule.l_vals.clear();
           rule.r_vals.clear();
           for(set_it it = avail_levels.begin(); it != avail_levels.end(); ++it){
-            if(gen.uniform() <= 0.5) rule.l_vals.insert(*it);
+            //if(gen.uniform() <= 0.5) rule.l_vals.insert(*it);
+            if(gen.uniform() <= tmp_prob) rule.l_vals.insert(*it);
             else rule.r_vals.insert(*it);
           }
           ++(rule_counter);
@@ -905,6 +909,93 @@ void wilson(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int
   }
 }
 
+void hotspot(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen)
+{
+  // first we need our edge map
+  edge_map emap;
+  build_symmetric_edge_map(emap, edges, vertices);
+  
+  // pick a seed for the hotspot
+  int seed_index = floor(vertices.size() * gen.uniform());
+  std::set<int>::iterator seed_it = vertices.begin();
+  std::advance(seed_it, seed_index);
+  
+  // seed_it now points to a uniformly selected
+  std::vector<int> perc_front(1, *seed_it); // put seed_it
+  
+  std::map<int,bool> visited;
+  for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it) visited.insert(std::pair<int,bool>(*v_it, false));
+  visited.find(*seed_it)->second = true; // mark the seed as having been visited by our percolation process
+  
+  std::vector<int> next_front;
+  int r = 0;
+  bool keep_percolating = true;
+  
+  // this will eventually get wrapped by a while loop
+  //Rcpp::Rcout << "seed node = " << *seed_it << std::endl;
+  int rounds = 5; // need to tune after computing graph diameters
+  while( (r < rounds) && keep_percolating){
+    //Rcpp::Rcout << "  Round" << r << std::endl;
+    // loop over everything in perc_front
+    for(std::vector<int>::iterator v_it = perc_front.begin(); v_it != perc_front.end(); ++v_it){
+      // now loop over all edges incident to *v_it
+      //Rcpp::Rcout << "    Starting percolation from vertex " << *v_it << std::endl;
+      edge_map_it em_it = emap.find(*v_it); // em_it points to vector of edges with source == *v_it
+      if(em_it == emap.end()){
+        Rcpp::Rcout << "we done goofed with our emap" << std::endl;
+        Rcpp::stop("oops!");
+      } else{
+        for(std::vector<edge>::iterator e_it = em_it->second.begin(); e_it != em_it->second.end(); ++e_it){
+          //Rcpp::Rcout << "    Trying edge from " << e_it->source << " to " << e_it->sink;
+          if(visited.find(e_it->sink)->second) {
+            //Rcpp::Rcout << " already visited" << std::endl;
+          }
+          else{
+            visited.find(e_it->sink)->second = true; // mark the sink of edge *e_it as visited
+            next_front.push_back(e_it->sink);
+          }
+        } // closes loop over edges from *v_it
+      } // closes if/else making sure that *v_it is a key in our edge_map
+    } // closes loop over all elements of perc_front
+    
+    // now we update perc_front
+    if(next_front.size() == 0) keep_percolating = false;
+    else{
+      keep_percolating = true;
+      // update the value of perc_front: just copy over the values of next_front into it
+      perc_front.clear();
+      for(std::vector<int>::iterator v_it = next_front.begin(); v_it != next_front.end(); ++v_it) perc_front.push_back(*v_it);
+      next_front.clear();
+    }
+    
+    // should check until the size of visited is
+    r++;
+  } // closes main while loop
+  
+  l_vals.clear();
+  r_vals.clear();
+  
+  for(std::map<int, bool>::iterator visit_it = visited.begin(); visit_it != visited.end(); ++visit_it){
+    if(visit_it->second) l_vals.insert(visit_it->first);
+    else r_vals.insert(visit_it->first);
+  }
+  
+  if(l_vals.size() == 0 || r_vals.size() == 0){
+    Rcpp::Rcout << "[percolation]: somehow one of l_vals and r_vals has size 0" << std::endl;
+    Rcpp::Rcout << "  avail_levels has size " << vertices.size() << std::endl;
+    Rcpp::Rcout << "   seed = " << *seed_it << std::endl;
+    
+    Rcpp::Rcout << " printing visited" << std::endl;
+    for(std::map<int, bool>::iterator visit_it = visited.begin(); visit_it != visited.end(); ++visit_it){
+      Rcpp::Rcout << " node " << visit_it->first << " " << visit_it->second << std::endl;
+      //if(visit_it->second) l_vals.insert(visit_it->first);
+      //else r_vals.insert(visit_it->first);
+    }
+    
+  }
+  
+}
+
 void percolation(std::set<int> &l_vals, std::set<int> &r_vals, int rounds, double threshold, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen)
 {
   // first we need our edge map
@@ -1034,6 +1125,18 @@ void graph_partition(std::set<int> &avail_levels, std::set<int> &l_vals, std::se
     }
   } else{
     // induced subgraph is connected and we can form a partition
+    
+    /*
+     UPDATE:
+      cut_type = 0: randomly pick one of the processes
+      cut_type = 1: wilson + delete uniform edge
+      cut_type = 2: wilson + delete edge w.p. proportional to effective resistance?
+      cut_type = 3: wilson + partition based on weighted Laplacian
+      cut_type = 4: just do cut based on weighted Laplacian
+      cut_type = 5: hotspot and grow until it's size is close to some randomly drawn size
+     */
+    
+    
     if(cut_type <= 1){
       std::vector<edge> mst_edges;
       if(cut_type == 0) wilson(mst_edges, edges, avail_levels, gen);

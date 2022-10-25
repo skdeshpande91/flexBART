@@ -11,6 +11,7 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
                                Rcpp::Nullable<Rcpp::List> cat_levels_list,
                                Rcpp::Nullable<Rcpp::List> edge_mat_list,
                                Rcpp::LogicalVector graph_split, int graph_cut_type,
+                               double a_cat, double b_cat,
                                int perc_rounds, double perc_threshold,
                                bool rc_split, double prob_rc, double a_rc, double b_rc,
                                bool sparse, double a_u, double b_u,
@@ -121,6 +122,8 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
     tree_pi.cat_levels = &cat_levels;
     tree_pi.edges = &edges;
     tree_pi.K = &K;
+    tree_pi.a_cat = a_cat;
+    tree_pi.b_cat = b_cat;
     tree_pi.graph_split = graph_split.begin();
     tree_pi.graph_cut_type = graph_cut_type;
     tree_pi.perc_rounds = perc_rounds;
