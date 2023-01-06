@@ -13,8 +13,8 @@
     .Call('_flexBART_probit_flexBART_fit', PACKAGE = 'flexBART', Y_train, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, a_cat, b_cat, rc_split, prob_rc, a_rc, b_rc, sparse, a_u, b_u, mu0, tau, M, nd, burn, thin, save_samples, save_trees, verbose, print_every)
 }
 
-.drawEnsemble <- function(tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every) {
-    .Call('_flexBART_drawEnsemble', PACKAGE = 'flexBART', tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every)
+.drawEnsemble <- function(tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, a_cat, b_cat, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every) {
+    .Call('_flexBART_drawEnsemble', PACKAGE = 'flexBART', tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, a_cat, b_cat, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every)
 }
 
 summarize_post_pred <- function(fit_samples, sigma_samples) {

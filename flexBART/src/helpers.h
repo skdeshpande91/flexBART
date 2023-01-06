@@ -130,8 +130,8 @@ public:
     var_count = 0; // 0 pointer
     rule_count = 0; // 0 pointer
     
-    unif_cuts = 0.0; // 0 pointer
-    cutpoints = 0.0; // 0 pointer
+    unif_cuts = 0; // 0 pointer
+    cutpoints = 0; // 0 pointer
     
     cat_levels = 0; // 0 pointer
     edges = 0; // 0 pointer

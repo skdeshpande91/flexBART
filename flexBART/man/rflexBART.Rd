@@ -26,6 +26,7 @@ rflexBART(M,
   \item{cutpoints_list}{List of length \code{ncol(X_cont_train)} containing a vector of cutpoints for each continuous predictor. By default, this is set to \code{NULL} so that cutpoints are drawn uniformly from a continuous distribution.}
   \item{cat_levels_list}{List of length \code{ncol(X_cat_train)} containing a vector of levels for each categorical predictor. If the j-th categorical predictor contains L levels, \code{cat_levels_list[[j]]} should be the vector \code{0:(L-1)}. Default is \code{NULL}, which corresponds to the case that no categorical predictors are available.}
   \item{a_cat}{When splitting on an unstructured categorical predictor, prior sends individual levels to the left branch with probability drawn from a Beta(a_cat, b_cat) distribution}
+  \item{b_cat}{When splitting on an unstructured categorical predictor, prior sends individual levels to the left branch with probability drawn from a Beta(a_cat, b_cat) distribution}
   \item{alpha}{In the decision tree prior, the probability that a node at depth d is non-terminal is \code{alpha * (1 + d)^(-beta)}. Default is 0.95}
   \item{beta}{In the decision tree prior, the probability that node at depth d is non-terminal is \code{alpha * ( 1 + d)^(-beta). Default is 2}}
   \item{mu0}{Prior mean for the jumps (i.e. the leaf parameters) in each tree. Default is 0.}

@@ -110,8 +110,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // drawEnsemble
-Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont, Rcpp::IntegerMatrix tX_cat, Rcpp::LogicalVector unif_cuts, Rcpp::Nullable<Rcpp::List> cutpoints_list, Rcpp::Nullable<Rcpp::List> cat_levels_list, Rcpp::Nullable<Rcpp::List> edge_mat_list, Rcpp::LogicalVector graph_split, int graph_cut_type, bool rc_split, double prob_rc, double a_rc, double b_rc, double alpha, double beta, double mu0, double tau, int M, bool verbose, int print_every);
-RcppExport SEXP _flexBART_drawEnsemble(SEXP tX_contSEXP, SEXP tX_catSEXP, SEXP unif_cutsSEXP, SEXP cutpoints_listSEXP, SEXP cat_levels_listSEXP, SEXP edge_mat_listSEXP, SEXP graph_splitSEXP, SEXP graph_cut_typeSEXP, SEXP rc_splitSEXP, SEXP prob_rcSEXP, SEXP a_rcSEXP, SEXP b_rcSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP mu0SEXP, SEXP tauSEXP, SEXP MSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
+Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont, Rcpp::IntegerMatrix tX_cat, Rcpp::LogicalVector unif_cuts, Rcpp::Nullable<Rcpp::List> cutpoints_list, Rcpp::Nullable<Rcpp::List> cat_levels_list, Rcpp::Nullable<Rcpp::List> edge_mat_list, Rcpp::LogicalVector graph_split, int graph_cut_type, double a_cat, double b_cat, bool rc_split, double prob_rc, double a_rc, double b_rc, double alpha, double beta, double mu0, double tau, int M, bool verbose, int print_every);
+RcppExport SEXP _flexBART_drawEnsemble(SEXP tX_contSEXP, SEXP tX_catSEXP, SEXP unif_cutsSEXP, SEXP cutpoints_listSEXP, SEXP cat_levels_listSEXP, SEXP edge_mat_listSEXP, SEXP graph_splitSEXP, SEXP graph_cut_typeSEXP, SEXP a_catSEXP, SEXP b_catSEXP, SEXP rc_splitSEXP, SEXP prob_rcSEXP, SEXP a_rcSEXP, SEXP b_rcSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP mu0SEXP, SEXP tauSEXP, SEXP MSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -123,6 +123,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type edge_mat_list(edge_mat_listSEXP);
     Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type graph_split(graph_splitSEXP);
     Rcpp::traits::input_parameter< int >::type graph_cut_type(graph_cut_typeSEXP);
+    Rcpp::traits::input_parameter< double >::type a_cat(a_catSEXP);
+    Rcpp::traits::input_parameter< double >::type b_cat(b_catSEXP);
     Rcpp::traits::input_parameter< bool >::type rc_split(rc_splitSEXP);
     Rcpp::traits::input_parameter< double >::type prob_rc(prob_rcSEXP);
     Rcpp::traits::input_parameter< double >::type a_rc(a_rcSEXP);
@@ -134,7 +136,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type M(MSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
-    rcpp_result_gen = Rcpp::wrap(drawEnsemble(tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every));
+    rcpp_result_gen = Rcpp::wrap(drawEnsemble(tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, a_cat, b_cat, rc_split, prob_rc, a_rc, b_rc, alpha, beta, mu0, tau, M, verbose, print_every));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -155,7 +157,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_flexBART_flexBART_fit", (DL_FUNC) &_flexBART_flexBART_fit, 32},
     {"_flexBART_predict_flexBART", (DL_FUNC) &_flexBART_predict_flexBART, 6},
     {"_flexBART_probit_flexBART_fit", (DL_FUNC) &_flexBART_probit_flexBART_fit, 30},
-    {"_flexBART_drawEnsemble", (DL_FUNC) &_flexBART_drawEnsemble, 19},
+    {"_flexBART_drawEnsemble", (DL_FUNC) &_flexBART_drawEnsemble, 21},
     {"_flexBART_summarize_post_pred", (DL_FUNC) &_flexBART_summarize_post_pred, 2},
     {NULL, NULL, 0}
 };
