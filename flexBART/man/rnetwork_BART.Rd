@@ -40,7 +40,7 @@ The main utility of this function is to study how often certain observations are
 This is key to understanding how network_BART ``borrows strength'' across the vertices of a network.
 
 To split on the vertex label, we randomly draw a partition of the network into two connected subgraphs.
-When \code{graph_cut_type == 0}, the partition is drawn by first drawing a uniform random spanning tree using Wilson's algorithm and then deleting a uniformly selected edge from the tree. When \code{graph_cut_type == 1}, the partition is drawn by first drawing uniform weights for each edge, computing the minimum spanning tree with Boruvka's algorithm, and deleting an edge uniformly at random from the MST. In this way, each regression tree can partition the network in connected subgraphs.
+See the documentation for \code{network_BART} for further details about how the partition is drawn according to the value of \code{graph_cut_type}.
 }
 \value{
 A list containing the following elements
