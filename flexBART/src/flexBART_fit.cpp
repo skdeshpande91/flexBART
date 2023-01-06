@@ -12,7 +12,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
                         Rcpp::Nullable<Rcpp::List> edge_mat_list,
                         Rcpp::LogicalVector graph_split, int graph_cut_type,
                         double a_cat, double b_cat,
-                        int perc_rounds, double perc_threshold,
                         bool rc_split, double prob_rc, double a_rc, double b_rc,
                         bool sparse, double a_u, double b_u,
                         double mu0, double tau,
@@ -126,8 +125,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     tree_pi.b_cat = b_cat;
     tree_pi.graph_split = graph_split.begin();
     tree_pi.graph_cut_type = graph_cut_type;
-    tree_pi.perc_rounds = perc_rounds;
-    tree_pi.perc_threshold = perc_threshold;
   }
   tree_pi.rc_split = rc_split;
   tree_pi.prob_rc = &prob_rc;

@@ -20,10 +20,6 @@ void draw_tree(tree &t, data_info &di, tree_prior_info &tree_pi, RNG &gen)
   
   // stuff for decision rules
   rule_t rule;
-  // when we cut the edge from the MST, we can either pick an edge uniformly (reweight = false)
-  // or we can delete an edge with prob. proportional to the size of the smallest cluster that results (reweight = true)
-  
-  // stop growing after 100 attempts of growing the bottom nodes (this is a gross upper bound)
   while(grow && counter < 100){
     prev_max_depth = max_depth;
     bnv.clear();
