@@ -52,8 +52,8 @@ To split on the vertex label, we randomly draw a partition of the network into t
 
 When \code{graph_cut_type == 1}, the partition is formed by first drawing a uniform random spanning tree using Wilson's algorithm and then deleting a uniformly selected edge from the tree.
 When \code{graph_cut_type == 2}, the partition is formed by drawing a uniform random spanning tree using Wilson's algorithm, computing the eigenvectors of the unweighted graph Laplacian, and identifying the positive entries in the eigenvector corresponding to the second smallest eigenvalue.
-When \code{graph_cut_type == 3}, the partition is formed by randomly selecting a single vertex and taking all vertices within a randomly drawn graph distance of the selected vertex. This procedure can result in disconnected subgraphs.
-When \code{graph_cut_type == 4}, the partition is deterministic. It is formed by looking at the signs of entries in the second smallest eigenvector.
+When \code{graph_cut_type == 3}, the partition is deterministic. It is formed by looking at the signs of entries in the second smallest eigenvector.
+When \code{graph_cut_type == 4}, the partition is formed by randomly selecting a single vertex and taking all vertices within a randomly drawn graph distance of the selected vertex. This procedure can result in disconnected subgraphs.
 Finally, when \code{graph_cut_type == 0}, we uniformly select one of the above four partitioning procedures. 
 
 }

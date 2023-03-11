@@ -1045,9 +1045,11 @@ void hotspot(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &ed
         radius_probs[r] = pow(0.5,r+1);
         radius_probs[max_dist-2] -= pow(0.5, r+1);
       }
-      if(debug) Rcpp::Rcout << "  radius probabilities:";
-      for(int r = 0; r < max_dist-1; ++r) Rcpp::Rcout << " " << radius_probs[r];
-      Rcpp::Rcout << std::endl;
+      if(debug){
+        if(debug) Rcpp::Rcout << "  radius probabilities:";
+        for(int r = 0; r < max_dist-1; ++r) Rcpp::Rcout << " " << radius_probs[r];
+        Rcpp::Rcout << std::endl;
+      }
       radius = gen.categorical(radius_probs) + 1; // without +1, we will get radius of 0 sometimes...
     }
     if(debug) Rcpp::Rcout << "  radius = " << radius << std::endl;
