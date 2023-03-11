@@ -26,7 +26,7 @@ rnetwork_BART(M, vertex_id,
   \item{cutpoints_list}{List of length \code{ncol(X_cont_train)} containing a vector of cutpoints for each continuous predictor. By default, this is set to \code{NULL} so that cutpoints are drawn uniformly from a continuous distribution.}
     \item{A}{Binary adjacency matrix of the network. Assumed to be symmetric.}
   \item{graph_split}{Logical, indicating whether to constrain the regression tree prior to respect adjacency when splitting on vertex labels. Default is \code{TRUE}.}
-  \item{graph_cut_type}{An integer (0 or 1) that determines how partitions of the network are constructed. See Details.}
+  \item{graph_cut_type}{An integer (0,1,2,3,4) that determines how partitions of the network are constructed. See Details.}
   \item{alpha}{In the decision tree prior, the probability that a node at depth d is non-terminal is \code{alpha * (1 + d)^(-beta)}. Default is 0.95}
   \item{beta}{In the decision tree prior, the probability that node at depth d is non-terminal is \code{alpha * ( 1 + d)^(-beta). Default is 2}}
   \item{mu0}{Prior mean for the jumps (i.e. the leaf parameters) in each tree. Default is 0.}
@@ -39,8 +39,13 @@ This function is useful for drawing a M samples from the regression tree prior u
 The main utility of this function is to study how often certain observations are clustered together in individual trees. 
 This is key to understanding how network_BART ``borrows strength'' across the vertices of a network.
 
-To split on the vertex label, we randomly draw a partition of the network into two connected subgraphs.
-See the documentation for \code{network_BART} for further details about how the partition is drawn according to the value of \code{graph_cut_type}.
+To split on the vertex label, we randomly draw a partition of the network into two (possibly disconnected) subgraphs.
+When \code{graph_cut_type == 1}, the partition is formed by first drawing a uniform random spanning tree using Wilson's algorithm and then deleting a uniformly selected edge from the tree.
+When \code{graph_cut_type == 2}, the partition is formed by drawing a uniform random spanning tree using Wilson's algorithm, computing the eigenvectors of the unweighted graph Laplacian, and identifying the positive entries in the eigenvector corresponding to the second smallest eigenvalue.
+When \code{graph_cut_type == 3}, the partition is formed by randomly selecting a single vertex and taking all vertices within a randomly drawn graph distance of the selected vertex. This procedure can result in disconnected subgraphs.
+When \code{graph_cut_type == 4}, the partition is deterministic. It is formed by looking at the signs of entries in the second smallest eigenvector.
+Finally, when \code{graph_cut_type == 0}, we uniformly select one of the above four partitioning procedures. 
+
 }
 \value{
 A list containing the following elements

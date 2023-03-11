@@ -57,7 +57,7 @@ As such, for each x, the induced prior for P(Y = 1 | x) places 95\% probability 
 By default, we set \code{tau = 1/sqrt(M)} and \code{mu0 = qnorm(mean(Y_train))} to shrink towards the observed mean.
 
 The flexBART prior is modified to handle network-structured categorical predictors as follows.
-To split on the vertex label, we randomly draw a partition of the network into two connected subgraphs.
+To split on the vertex label, we randomly draw a partition of the network into two (possibly disconnected) subgraphs.
 See the documentation for \code{network_BART} for further details about how the partition is drawn according to the value of \code{graph_cut_type}.
 }
 \value{
