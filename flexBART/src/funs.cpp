@@ -97,53 +97,54 @@ void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat,
   //   nx_it->first is just the node id for nx (nx_nid)
   //   nx_it->second is a vector of integers containing the indicies of observations that land in nx
   // in helper.h we defined int_it as std::vector<int>::iterator
-  
-  for(int_it it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
-    i = *it;
-    if(di.x_cont != 0) xx_cont = di.x_cont + i * di.p_cont;
-    if(di.x_cat != 0) xx_cat = di.x_cat + i * di.p_cat;
-    
-    if(rule.is_aa && !rule.is_cat){
-      // axis-aligned rule
-      if(xx_cont[rule.v_aa] < rule.c) nxl_it->second.push_back(i);
-      else if(xx_cont[rule.v_aa] >= rule.c) nxr_it->second.push_back(i);
-      else{
-        Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont[rule.v_aa] << " cutpoint = " << rule.c << std::endl;
-        Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!");
+  if(nx_it->second.size() > 0){
+    for(int_it it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
+      i = *it;
+      if(di.x_cont != 0) xx_cont = di.x_cont + i * di.p_cont;
+      if(di.x_cat != 0) xx_cat = di.x_cat + i * di.p_cat;
+      
+      if(rule.is_aa && !rule.is_cat){
+        // axis-aligned rule
+        if(xx_cont[rule.v_aa] < rule.c) nxl_it->second.push_back(i);
+        else if(xx_cont[rule.v_aa] >= rule.c) nxr_it->second.push_back(i);
+        else{
+          Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont[rule.v_aa] << " cutpoint = " << rule.c << std::endl;
+          Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!");
+        }
+      } else if(!rule.is_aa && rule.is_cat){
+        // categorical rule
+        // we need to see whether i-th observation's value of the categorical pred goes to left or right
+        // std::set.count returns 1 if the value is in the set and 0 otherwise
+        l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
+        r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
+        if(l_count == 1 && r_count == 0) nxl_it->second.push_back(i);
+        else if(l_count == 0 && r_count == 1) nxr_it->second.push_back(i);
+        else if(l_count == 1 && r_count == 1) Rcpp::stop("[compute_ss_grow]: observation goes to both left & right child...");
+        else{
+          Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_aa] << std::endl;
+          Rcpp::Rcout << "left values:";
+          for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
+          Rcpp::Rcout << std::endl;
+          
+          Rcpp::Rcout << "right values:";
+          for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
+          Rcpp::Rcout << std::endl;
+          
+          Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
+        }
+      } else if(!rule.is_aa && !rule.is_cat){
+        // random combination rule
+        tmp_x = 0.0;
+        for(rc_it rcit = rule.rc_weight.begin(); rcit != rule.rc_weight.end(); ++rcit) tmp_x += (rcit->second) * xx_cont[rcit->first];
+        if(tmp_x < rule.c) nxl_it->second.push_back(i);
+        else if(tmp_x >= rule.c) nxr_it->second.push_back(i);
+        else Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child");
+      } else{
+        // we should never hit this error
+        Rcpp::stop("[compute_ss_grow]: cannot resolve the type of decision rule");
       }
-    } else if(!rule.is_aa && rule.is_cat){
-      // categorical rule
-      // we need to see whether i-th observation's value of the categorical pred goes to left or right
-      // std::set.count returns 1 if the value is in the set and 0 otherwise
-      l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
-      r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
-      if(l_count == 1 && r_count == 0) nxl_it->second.push_back(i);
-      else if(l_count == 0 && r_count == 1) nxr_it->second.push_back(i);
-      else if(l_count == 1 && r_count == 1) Rcpp::stop("[compute_ss_grow]: observation goes to both left & right child...");
-      else{
-        Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_aa] << std::endl;
-        Rcpp::Rcout << "left values:";
-        for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-        Rcpp::Rcout << std::endl;
-        
-        Rcpp::Rcout << "right values:";
-        for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-        Rcpp::Rcout << std::endl;
-        
-        Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
-      }
-    } else if(!rule.is_aa && !rule.is_cat){
-      // random combination rule
-      tmp_x = 0.0;
-      for(rc_it rcit = rule.rc_weight.begin(); rcit != rule.rc_weight.end(); ++rcit) tmp_x += (rcit->second) * xx_cont[rcit->first];
-      if(tmp_x < rule.c) nxl_it->second.push_back(i);
-      else if(tmp_x >= rule.c) nxr_it->second.push_back(i);
-      else Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child");
-    } else{
-      // we should never hit this error
-      Rcpp::stop("[compute_ss_grow]: cannot resolve the type of decision rule");
-    }
-  } // closes loop over all entries in nx
+    } // closes loop over all entries in nx
+  }
 }
 
 
@@ -185,7 +186,10 @@ double compute_lil(suff_stat &ss, int &nid, double &sigma, data_info &di, tree_p
   double P = 1.0/pow(tree_pi.tau, 2.0) + ( (double) ss_it->second.size())/pow(sigma, 2.0); // precision of jump mu
   double Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
   
-  for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma, 2.0);
+  if(ss_it->second.size() > 0){
+    for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma, 2.0);
+  }
+  
   return(-0.5 * log(P) + 0.5 * pow(Theta,2.0) / P);
   
 }
@@ -205,8 +209,10 @@ void draw_mu(tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_in
     else{
       P = 1.0/pow(tree_pi.tau, 2.0) + ( (double) ss_it->second.size())/pow(sigma, 2.0); // precision of jump mu
       Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
-      for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma,2.0);
-
+      
+      if(ss_it->second.size() > 0){
+        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma,2.0);
+      }
       post_sd = sqrt(1.0/P);
       post_mean = Theta/P;
       bn->set_mu(gen.normal(post_mean, post_sd));

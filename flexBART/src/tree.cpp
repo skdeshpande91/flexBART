@@ -371,6 +371,7 @@ void tree::get_rg_aa(int &v, double &c_lower, double &c_upper){
         if(p->rule.c > c_lower) c_lower = p->rule.c;
       } else Rcpp::stop("[get_rg_aa]: this was not equal to either left or right child of its parent..."); // we should *never* hit this spot
     }
+    p->get_rg_aa(v, c_lower, c_upper); // actually recurse up the tree
   }
 }
 

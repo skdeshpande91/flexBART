@@ -164,8 +164,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     // get the fit of each tree
     for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
       tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
-      for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-        allfit_train[*it] += tmp_mu;
+      if(ss_it->second.size() > 0){
+        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+          allfit_train[*it] += tmp_mu;
+        }
       }
     }
     if(n_test > 0){
@@ -237,10 +239,12 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
       // now we need to update the value of allfit
       for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
         tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
-        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-          // add fit of m-th tree back to allfit and subtract it from the value of the residual
-          allfit_train[*it] += tmp_mu;
-          residual[*it] -= tmp_mu;
+        if(ss_it->second.size() > 0){
+          for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+            // add fit of m-th tree back to allfit and subtract it from the value of the residual
+            allfit_train[*it] += tmp_mu;
+            residual[*it] -= tmp_mu;
+          }
         }
       } // this loop is also O(n)
     } // closes loop over all of the trees
@@ -298,7 +302,9 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         for(int m = 0; m < M; m++){
           for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
             tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the corresponding leaf
-            for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) allfit_test[*it] += tmp_mu;
+            if(ss_it->second.size() > 0){
+              for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) allfit_test[*it] += tmp_mu;
+            }
           } // loop over the keys in the m-th sufficient stat map
         } // closes loop over trees
         
