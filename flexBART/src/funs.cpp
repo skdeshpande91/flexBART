@@ -991,7 +991,7 @@ void wilson(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int
   }
 }
 
-
+/*
 void hotspot(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen, bool debug)
 {
   // first we need our edge map
@@ -1074,7 +1074,7 @@ void hotspot(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &ed
     ++attempt;
   }
 }
-
+*/
 void delete_unif_edge(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen){
   
   //std::vector<double> cut_probs(;
@@ -1156,7 +1156,7 @@ void signcheck_split(std::set<int> &l_vals, std::set<int> &r_vals,
  cut_type = 1: wilson + delete uniform edge
  cut_type = 2: wilson + partition based on sign of 2nd eigenvector of Laplacian
  cut_type = 3: just do cut based on sign of 2nd eigenvector Laplacian
- cut_type = 4: hotspot
+ cut_type = 4: hotspot (not supported yet)
  */
 void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges,std::set<int> &avail_levels, int &cut_type, RNG &gen)
 {
@@ -1195,7 +1195,7 @@ void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<e
     // induced subgraph is connected and we try to partition it
     int tmp_cut_type = cut_type;
     while(tmp_cut_type == 0){
-      tmp_cut_type = floor(gen.uniform() * 4.0) + 1; // uniform on the set 1, 2, 3, 4
+      tmp_cut_type = floor(gen.uniform() * 3.0) + 1; // uniform on the set 1, 2, 3
     }
     if(tmp_cut_type == 1 || tmp_cut_type == 2){
       std::vector<edge> ust_edges;
@@ -1204,12 +1204,10 @@ void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<e
       else signcheck_split(l_vals, r_vals, ust_edges, avail_levels);
     } else if(tmp_cut_type == 3){
       signcheck_split(l_vals, r_vals, edges, avail_levels);
-    } else if(tmp_cut_type == 4){
-      hotspot(l_vals, r_vals, edges, avail_levels, gen);
     } else{
       // should never hit this
       Rcpp::Rcout << "[graph_partition]: tmp_cut_type = " << tmp_cut_type << std::endl;
-      Rcpp::stop("tmp_cut_type should never exceed 4!");
+      Rcpp::stop("tmp_cut_type should never exceed 3!");
     } // closes if/else checking tmp_cut_type
     
     if(l_vals.size() == 0 || r_vals.size() == 0){
@@ -1280,65 +1278,4 @@ void update_theta_rc(double& theta_rc, int &rc_var_count, int &rc_rule_count, do
   if(gen.log_uniform() < log_alpha) theta_rc = theta_prop;
   else theta_rc = theta_orig;
 }
-
-/* eventually we will add this functionality back in.
-
-
-void update_theta_u_cat(std::vector<double> &theta_cat, std::vector<int> &cat_var_count, double &u_cat, double& a_cat, double& b_cat, int &p_cat, RNG &gen)
-{
-  // stuff for updating theta
-  double tmp_sum = 0.0;
-  int v_count = 0;
-  double tmp_concentration = 0.0;
-  std::vector<double> tmp_gamma(p_cat);
-  
-  // stuff for updating u
-  double u_prop = 0.0;
-  double u_orig = 0.0;
-  double sum_log_theta = 0.0;
-  double log_like_prop = 0.0;
-  double log_like_orig = 0.0;
-  double log_accept = 0.0;
-  
-  u_orig = u_cat;
-  for(int j = 0; j < p_cat; j++){
-    v_count = cat_var_count[j];
-    tmp_concentration = u_orig/(1.0 - u_orig) + (double) v_count;
-    tmp_gamma[j] = gen.gamma(tmp_concentration, 1.0);
-    tmp_sum += tmp_gamma[j];
-  }
-  for(int j = 0; j < p_cat; j++){
-    theta_cat[j] = tmp_gamma[j]/tmp_sum;
-    sum_log_theta += log(theta_cat[j]);
-  }
-  
-  u_prop = gen.beta(a_cat, b_cat);
-  log_like_prop = (u_prop)/(1.0 - u_prop) * sum_log_theta;
-  log_like_prop += lgamma( ((double) p_cat) * u_prop/(1.0 - u_prop)) - ((double) p_cat) * lgamma(u_prop/(1.0 - u_prop));
-  
-  log_like_orig = (u_orig)/(1.0 - u_orig) * sum_log_theta;
-  log_like_orig += lgamma( ((double) p_cat) * u_orig/(1.0 - u_orig)) - ( (double) p_cat) * lgamma(u_orig/(1.0 - u_orig));
-  
-  log_accept = log_like_prop - log_like_orig;
-  if(log_accept >= 0.0) log_accept = 0.0;
-  if(gen.log_uniform() <= log_accept) u_cat = u_prop;
-  else u_cat = u_orig;
-}
- 
- 
- 
- void update_theta_cont(std::vector<double> &theta_cont, std::vector<int> &cont_var_count, int &cont_rule_count, double &a_cont, double &b_cont, int &p_cont, RNG &gen)
- {
-   if(theta_cont.size() != p_cont) Rcpp::stop("[update_theta_cont]: theta_cont must have size p_cont");
-   double a_post = a_cont;
-   double b_post = b_cont;
-   for(int j = 0; j < p_cont; j++){
-     a_post = a_cont + (double) cont_var_count[j];
-     b_post = b_cont + (double)(cont_rule_count - cont_var_count[j]);
-     theta_cont[j] = gen.beta(a_post, b_post);
-   }
-   
- }
-*/
-
 
