@@ -16,7 +16,17 @@ probit_flexBART <- function(Y_train,
   if(!is.integer(Y_train)) stop("Y_train must be an integer vector")
   if(!all(Y_train %in% c(0,1))) stop("All elements of Y_train must be 0 or 1")
   
-  
+  if(length(X_cont_train) > 1){
+    cont_names <- colnames(X_cont_train)
+  } else{
+    cont_names <- c()
+  }
+  if(length(X_cat_train) > 1){
+    cat_names <- colnames(X_cat_train)
+  } else{
+    cat_names <- c()
+  }
+  pred_names <- c(cont_names, cat_names)
   
   fit <- .probit_flexBART_fit(Y_train = Y_train,
                               tX_cont_train = t(X_cont_train),
@@ -45,7 +55,9 @@ probit_flexBART <- function(Y_train,
     results[["prob.test.mean"]] <- fit$fit_test_mean
     if(save_samples) results[["prob.test"]] <- fit$fit_test
   }
-  results[["varcounts"]] <- fit$var_count
+  varcounts <- fit$var_count
+  colnames(varcounts) <- pred_names
+  results[["varcounts"]] <- varcounts
   if(save_trees) results[["trees"]] <- fit$trees
   results[["is.probit"]] <- TRUE
   return(results)

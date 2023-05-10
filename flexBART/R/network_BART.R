@@ -21,7 +21,7 @@ network_BART <- function(Y_train,
   if(nrow(A) == 1) stop("Adjacency matrix A must contain > 1 row (i.e. graph must have > 1 vertex)")
   n_vertex <- nrow(A)
   cat_levels_list <- list(0:(n_vertex-1)) # remember C++ is 0-indexed
-  X_cat_train <- matrix(as.integer(vertex_id_train - 1), ncol = 1)
+  X_cat_train <- matrix(as.integer(vertex_id_train - 1), ncol = 1, dimnames = list(c(), "vertex"))
   if(!is.null(vertex_id_test)){
     X_cat_test <- matrix(as.integer(vertex_id_test - 1), ncol = 1)
   }
@@ -40,6 +40,18 @@ network_BART <- function(Y_train,
   tau <- (max(std_Y_train) - min(std_Y_train))/(2 * 2 * sqrt(M)) # CGM10 prior sd on all leaf parameters
   nu <- 3
   lambda <- stats::qchisq(0.1, df = nu)/nu
+  
+  if(length(X_cont_train) > 1){
+    cont_names <- colnames(X_cont_train)
+  } else{
+    cont_names <- c()
+  }
+  if(length(X_cat_train) > 1){
+    cat_names <- colnames(X_cat_train)
+  } else{
+    cat_names <- c()
+  }
+  pred_names <- c(cont_names, cat_names)
   
   fit <- .flexBART_fit(Y_train = std_Y_train,
                        tX_cont_train = t(X_cont_train),
@@ -86,7 +98,11 @@ network_BART <- function(Y_train,
     if(save_samples) results[["yhat.test"]] <- yhat_test_samples
   }
   results[["sigma"]] <- y_sd * fit$sigma
-  results[["varcounts"]] <- fit$var_count
+  
+  varcounts <- fit$var_count
+  colnames(varcounts) <- pred_names
+  results[["varcounts"]] <- varcounts
+  
   if(save_trees) results[["trees"]] <- fit$trees
   return(results)
 }

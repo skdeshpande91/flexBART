@@ -2,10 +2,10 @@
 \alias{probit_networkBART}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Probit flexBART for binary outcomes
+Fit a BART model of a binary response with continuous predictors and network-indexed observations
 }
 \description{
-Implements flexBART with the Albert \& Chip (1993) data augmentation for probit regression.
+Fit a BART model of a binary response with continuous predictors and network-indexed observations using the the Albert \& Chib (1993) data augmentation for probit models.
 }
 \usage{
 probit_networkBART(Y_train,

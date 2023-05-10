@@ -21,7 +21,7 @@ flexBART(Y_train,
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{Y_train}{Vector of continous responses for training data}
+  \item{Y_train}{Vector of continuous responses for training data}
   \item{X_cont_train}{Matrix of continuous predictors for training data. Note, predictors must be re-scaled to lie in the interval [-1,1]. Default is a 1x1 matrix, which signals that there are no continuous predictors in the training data.}
   \item{X_cat_train}{Integer matrix of categorical predictors for training data. Note categorical levels should be 0-indexed. That is, if a categorical predictor has 10 levels, the values should run from 0 to 9. Default is a 1x1 matrix, which signals that there are no categorical predictors in the training data.}
   \item{X_cont_test}{Matrix of continuous predictors for testing data. Default is a 1x1 matrix, which signals that testing data is not provided.}
@@ -55,9 +55,14 @@ A list containing
 \item{yhat.test.mean}{Vector containing posterior mean of evaluations of regression function on testing data, if testing data is provided.}
 \item{yhat.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}. Only returned if testing data is passed and \code{save_samples == TRUE}.}
 \item{sigma}{Vector containing ALL samples of the residual standard deviation, including burn-in.}
-\item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{yhat_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors}
+\item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{yhat_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors, with continuous predictors listed first followed by categorical predictors}
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}
 }
+
+\seealso{
+\code{\link{probit_flexBART}} for binary outcomes and \code{\link{network_BART}} for regression with continuous outcomes on a network.
+}
+
 \examples{
 ## Friedman's function (from the MARS paper)
 # Slight modification: flexBART requires all X's to be in [-1,1]

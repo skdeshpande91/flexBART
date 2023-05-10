@@ -5,7 +5,7 @@
 Probit flexBART for binary outcomes
 }
 \description{
-Implements flexBART with the Albert \& Chip (1993) data augmentation for probit regression.
+Fit a BART model of a binary responses using the the Albert \& Chib (1993) data augmentation for probit models.
 }
 \usage{
 probit_flexBART(Y_train,
@@ -61,8 +61,11 @@ A list containing
 \item{prob.test.mean}{Vector containing posterior mean of P(y = 1 | x) on testing data, if testing data is provided.}
 \item{prob.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}. Only returned if testing data is passed and \code{save_samples == TRUE}.}
 \item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{prob_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors}
-\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}
-\item{is.probit}{Logical with value \code{TRUE}. Used by \code{predict_flexBART}.}
+\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict_flexBART}} to reconstruct the C++ representations of the sampled trees.}
+\item{is.probit}{Logical with value \code{TRUE}. Used by \code{\link{predict_flexBART}}.}
+}
+\seealso{
+\code{\link{probit_networkBART}} for network-indexed regression with binary outcomes.
 }
 \references{
 %% ~put references to the literature/web site here ~

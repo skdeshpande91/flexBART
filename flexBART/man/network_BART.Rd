@@ -1,6 +1,5 @@
 \name{network_BART}
 \alias{network_BART}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Fit a BART model of a continuous response with continuous predictors and network-indexed observations
 }
@@ -35,7 +34,7 @@ network_BART(Y_train,
   \item{cutpoints_list}{List of length \code{ncol(X_cont_train)} containing a vector of cutpoints for each continuous predictor. By default, this is set to \code{NULL} so that cutpoints are drawn uniformly from a continuous distribution.}
   \item{A}{Binary adjacency matrix of the network. Assumed to be symmetric.}
   \item{graph_split}{Logical, indicating whether to constrain the regression tree prior to respect adjacency when splitting on vertex labels. Default is \code{TRUE}.}
-  \item{graph_cut_type}{An integer (0,1,2,3,4) that determines how partitions of the network are constructed. See Details.}
+  \item{graph_cut_type}{An integer (0,1,2,3) that determines how partitions of the network are constructed. See Details.}
   \item{sparse}{Logical, indicating whether or not to perform variable selection based on a sparse Dirichlet prior rather than uniform prior; see Linero 2018. Default is \code{FALSE}}
   \item{M}{Number of trees in the ensemble. Default is 200.}
   \item{nd}{Number of posterior draws to return. Default is 1000.}
@@ -53,19 +52,21 @@ To split on the vertex label, we randomly draw a partition of the network into t
 When \code{graph_cut_type == 1}, the partition is formed by first drawing a uniform random spanning tree using Wilson's algorithm and then deleting a uniformly selected edge from the tree.
 When \code{graph_cut_type == 2}, the partition is formed by drawing a uniform random spanning tree using Wilson's algorithm, computing the eigenvectors of the unweighted graph Laplacian, and identifying the positive entries in the eigenvector corresponding to the second smallest eigenvalue.
 When \code{graph_cut_type == 3}, the partition is deterministic. It is formed by looking at the signs of entries in the second smallest eigenvector.
-When \code{graph_cut_type == 4}, the partition is formed by randomly selecting a single vertex and taking all vertices within a randomly drawn graph distance of the selected vertex. This procedure can result in disconnected subgraphs.
-Finally, when \code{graph_cut_type == 0}, we uniformly select one of the above four partitioning procedures. 
+Finally, when \code{graph_cut_type == 0}, we uniformly select one of the above three partitioning procedures. 
 
 }
 \value{
 A list containing
-\item{y_mean}{Mean of the training observations (needed by \code{predict_flexBART})}
-\item{y_sd}{Standard deviation of the training observations (needed by \code{predict_flexBART})}
+\item{y_mean}{Mean of the training observations (needed by \code{\link{predict_flexBART}})}
+\item{y_sd}{Standard deviation of the training observations (needed by \code{\link{predict_flexBART}})}
 item{yhat.train.mean}{Vector containing posterior mean of evaluations of regression function on training data.}
 \item{yhat.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if \code{save_samples == TRUE}.}
 \item{yhat.test.mean}{Vector containing posterior mean of evaluations of regression function on testing data, if testing data is provided.}
 \item{yhat.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}. Only returned if testing data is passed and \code{save_samples == TRUE}.}
 \item{sigma}{Vector containing ALL samples of the residual standard deviation, including burn-in.}
 \item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{yhat_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors}
-\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}
+\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict_flexBART}} to reconstruct the C++ representations of the sampled trees.}
+}
+\seealso{
+\code{\link{probit_networkBART}} for network-indexed regression with binary outcomes.
 }

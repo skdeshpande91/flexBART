@@ -20,6 +20,18 @@ flexBART <- function(Y_train,
   nu <- 3
   lambda <- stats::qchisq(0.1, df = nu)/nu
   
+  if(length(X_cont_train) > 1){
+    cont_names <- colnames(X_cont_train)
+  } else{
+    cont_names <- c()
+  }
+  if(length(X_cat_train) > 1){
+    cat_names <- colnames(X_cat_train)
+  } else{
+    cat_names <- c()
+  }
+  pred_names <- c(cont_names, cat_names)
+  
   fit <- .flexBART_fit(Y_train = std_Y_train,
                        tX_cont_train = t(X_cont_train),
                        tX_cat_train = t(X_cat_train),
@@ -63,7 +75,11 @@ flexBART <- function(Y_train,
     if(save_samples) results[["yhat.test"]] <- yhat_test_samples
   }
   results[["sigma"]] <- y_sd * fit$sigma
-  results[["varcounts"]] <- fit$var_count
+  
+  varcounts <- fit$var_count
+  colnames(varcounts) <- pred_names
+  results[["varcounts"]] <- varcounts
+  
   if(save_trees) results[["trees"]] <- fit$trees
   return(results)
 }
