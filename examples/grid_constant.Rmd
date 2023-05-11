@@ -1,7 +1,7 @@
 ---
 title: "Estimating a piecewise-constant signal on the 2d lattice"
 output: rmarkdown::github_document
-date: '2022-06-24'
+date: '2023-05-12'
 ---
 
 ```{r setup, include=FALSE}
@@ -24,7 +24,6 @@ Note that when we train our model, we will give it the full network. In this way
 We will start by creating our network, separating the vertices into five clusters, and setting the value of $\mu_{i}$ in each cluster.
 ```{r data_generation}
 library(igraph)
-library(RColorBrewer)
 n_side <- 10
 n <- 100
 
@@ -53,7 +52,9 @@ mu[cluster5] <- cluster_means[5]
 Here is a plot of the $\mu_{i}$'s.
 
 ```{r plot_mu, fig.align='center', fig.height=5, fig.width=5}
-col_list <- rev(brewer.pal(n = 11, name = "RdYlBu")) # color scale
+col_list <- colorBlindness::Blue2DarkRed18Steps
+my_colors <- c("#999999", "#E69F00", "#56B4E9", "#009E73", 
+               "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 g_true <- g
 scaled_mu <- scales::rescale(mu, to = c(0,1), from = c(-8,8))
 V(g_true)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
@@ -69,6 +70,8 @@ rect(par("usr")[1] - 0.08, -1 * 0.5, par("usr")[1]-0.02, 1 * 0.5)
 text(x = par("usr")[1]-0.2, y = 0.5* c(-1, -0.5, 0, 0.5, 1), labels = c(-8, -4, 0, 4, 8), xpd = TRUE)
 text(x = par("usr")[1]-0.05, y = par("usr")[4] * 0.5, labels =expression(mu))
 ```
+
+
 ## Experimental Setup
 Now that we have $\mu_{i}$, we will generate $T = 10$ observations from each vertex.
 ```{r generate_data}
@@ -155,8 +158,8 @@ V(g)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
 V(g_flex)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_flex)/255)
 V(g_bart)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_bart)/255)
 
-V(g_heldout)$color <- rep("lightgray", times = n)
-V(g_heldout)$color[test_vertices] <- "cyan"
+V(g_heldout)$color <- rep(my_colors[1], times = n)
+V(g_heldout)$color[test_vertices] <- my_colors[5]
 
 par(mar = c(1,1,1,1), mgp = c(1.8, 0.5, 0), mfrow = c(2,2))
 plot(g, layout= layout_on_grid, vertex.label = NA, main = "True signal")
@@ -171,4 +174,4 @@ We see that on the training vertices, BART can get pretty accurate estimates of 
 However, because BART does not know how to leverage the adjacency information, it is forced to make the same prediction at each of the heldout vertices.
 Specifically, at the heldout vertices, BART predicts $\mu_{i}$ to be about equal to the grand mean of the data $\overline{y}.$
 
-In contrast, **flexBART** is able to leverage the adajency information and make much more accurate predictions at the heldout vertices.
+In contrast, **flexBART** is able to leverage the adjacency information and make much more accurate predictions at the heldout vertices.
