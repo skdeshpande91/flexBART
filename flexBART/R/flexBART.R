@@ -20,16 +20,33 @@ flexBART <- function(Y_train,
   nu <- 3
   lambda <- stats::qchisq(0.1, df = nu)/nu
   
+  p_cont <- 0
+  p_cat <- 0
+  cont_names <- c()
+  cat_names <- c()
+  
   if(length(X_cont_train) > 1){
-    cont_names <- colnames(X_cont_train)
+    p_cont <- ncol(X_cont_train)
+    if(is.null(colnames(X_cont_train)){
+      cont_names <- paste0("X", 1:p_cont)
+    } else{
+      cont_names <- colnames(X_cont_train)
+    }
   } else{
     cont_names <- c()
   }
+  
   if(length(X_cat_train) > 1){
-    cat_names <- colnames(X_cat_train)
+    p_cat <- ncol(X_cat_train)
+    if(is.null(colnames(X_cat_train))){
+      cat_names <- paste0("X", (p_cont + 1):(p_cont + p_cat))
+    } else{
+      cat_names <- colnames(X_cat_train)
+    }
   } else{
     cat_names <- c()
   }
+  
   pred_names <- c(cont_names, cat_names)
   
   fit <- .flexBART_fit(Y_train = std_Y_train,
@@ -77,7 +94,11 @@ flexBART <- function(Y_train,
   results[["sigma"]] <- y_sd * fit$sigma
   
   varcounts <- fit$var_count
-  colnames(varcounts) <- pred_names
+  if(length(pred_names) != ncol(varcounts)){
+    warning("There was an issue tracking variable names. Not naming columns of varcounts object")
+  } else{
+    colnames(varcounts) <- pred_names
+  }
   results[["varcounts"]] <- varcounts
   
   if(save_trees) results[["trees"]] <- fit$trees

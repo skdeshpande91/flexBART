@@ -16,13 +16,29 @@ probit_flexBART <- function(Y_train,
   if(!is.integer(Y_train)) stop("Y_train must be an integer vector")
   if(!all(Y_train %in% c(0,1))) stop("All elements of Y_train must be 0 or 1")
   
+  p_cont <- 0
+  p_cat <- 0
+  cont_names <- c()
+  cat_names <- c()
+  
   if(length(X_cont_train) > 1){
-    cont_names <- colnames(X_cont_train)
+    p_cont <- ncol(X_cont_train)
+    if(is.null(colnames(X_cont_train)){
+      cont_names <- paste0("X", 1:p_cont)
+    } else{
+      cont_names <- colnames(X_cont_train)
+    }
   } else{
     cont_names <- c()
   }
+  
   if(length(X_cat_train) > 1){
-    cat_names <- colnames(X_cat_train)
+    p_cat <- ncol(X_cat_train)
+    if(is.null(colnames(X_cat_train))){
+      cat_names <- paste0("X", (p_cont + 1):(p_cont + p_cat))
+    } else{
+      cat_names <- colnames(X_cat_train)
+    }
   } else{
     cat_names <- c()
   }
@@ -56,8 +72,11 @@ probit_flexBART <- function(Y_train,
     if(save_samples) results[["prob.test"]] <- fit$fit_test
   }
   varcounts <- fit$var_count
-  colnames(varcounts) <- pred_names
-  results[["varcounts"]] <- varcounts
+  if(length(pred_names) != ncol(varcounts)){
+    warning("There was an issue tracking variable names. Not naming columns of varcounts object")
+  } else{
+    colnames(varcounts) <- pred_names
+  }  results[["varcounts"]] <- varcounts
   if(save_trees) results[["trees"]] <- fit$trees
   results[["is.probit"]] <- TRUE
   return(results)
