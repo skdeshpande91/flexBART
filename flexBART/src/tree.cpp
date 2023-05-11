@@ -50,9 +50,6 @@ void tree::to_null()
 void tree::print(bool pc) const // pc is flag to print children
 {
   size_t id = get_nid();
-  size_t pid; // id of the parent node
-  if(!p) pid = 0; // parent of this is the top node, which we'll assign a pid of 0
-  else pid = p->get_nid();
   
   if(pc && (get_ntype() == 't')) Rcpp::Rcout << "tree size:" << get_treesize() << std::endl;
   Rcpp::Rcout << "id." << id;

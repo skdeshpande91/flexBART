@@ -50,7 +50,7 @@ network_BART <- function(Y_train,
   
   if(length(X_cont_train) > 1){
     p_cont <- ncol(X_cont_train)
-    if(is.null(colnames(X_cont_train)){
+    if(is.null(colnames(X_cont_train))){
       cont_names <- paste0("X", 1:p_cont)
     } else{
       cont_names <- colnames(X_cont_train)

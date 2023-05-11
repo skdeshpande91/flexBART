@@ -45,7 +45,7 @@ probit_networkBART <- function(Y_train,
   
   if(length(X_cont_train) > 1){
     p_cont <- ncol(X_cont_train)
-    if(is.null(colnames(X_cont_train)){
+    if(is.null(colnames(X_cont_train))){
       cont_names <- paste0("X", 1:p_cont)
     } else{
       cont_names <- colnames(X_cont_train)
@@ -97,7 +97,8 @@ probit_networkBART <- function(Y_train,
     warning("There was an issue tracking variable names. Not naming columns of varcounts object")
   } else{
     colnames(varcounts) <- pred_names
-  }  results[["varcounts"]] <- varcounts
+  }
+  results[["varcounts"]] <- varcounts
   if(save_trees) results[["trees"]] <- fit$trees
   results[["is.probit"]] <- TRUE
   return(results)
