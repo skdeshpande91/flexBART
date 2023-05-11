@@ -209,11 +209,15 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   // main MCMC loop starts here
   for(int iter = 0; iter < total_draws; iter++){
     if(verbose){
+    // remember that R is 1-indexed
       if( (iter < burn) && (iter % print_every == 0)){
         Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
         Rcpp::checkUserInterrupt();
-      } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
+      } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn) ){
         Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
+        Rcpp::checkUserInterrupt();
+      } else if( iter == total_draws-1){
+        Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
         Rcpp::checkUserInterrupt();
       }
     }

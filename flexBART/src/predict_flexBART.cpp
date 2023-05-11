@@ -34,7 +34,9 @@ Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
   }
 
   std::vector<double> allfit(n);
-  Rcpp::NumericMatrix pred_out(n,nd);
+  //Rcpp::NumericMatrix pred_out(n,nd);
+  Rcpp::NumericMatrix pred_out(nd,n);
+
   
   for(int iter = 0; iter < nd; iter++){
     if(verbose && (iter%print_every == 0)){
@@ -59,9 +61,9 @@ Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
       }
       fit_ensemble(allfit, t_vec, di);
       if(probit){
-        for(int i = 0; i < n; i++) pred_out(i,iter) = R::pnorm(allfit[i], 0.0, 1.0, true, false);
+        for(int i = 0; i < n; i++) pred_out(iter,i) = R::pnorm(allfit[i], 0.0, 1.0, true, false);
       } else{
-        for(int i = 0; i < n; i++) pred_out(i,iter) = allfit[i];
+        for(int i = 0; i < n; i++) pred_out(iter,i) = allfit[i];
       } 
     } // closes if/else checking that we have M strings for the draw of the ensemble
   } // closes loop over all draws of the ensemble
