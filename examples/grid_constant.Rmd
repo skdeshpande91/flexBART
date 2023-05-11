@@ -110,7 +110,7 @@ flex_time <- system.time(
     flexBART::network_BART(Y_train= Y_train,
                            vertex_id_train = vertex_id_train,
                            vertex_id_test = vertex_id_test,
-                           A = A, verbose = TRUE, print_every = 100))
+                           A = A, graph_cut_type = 1, verbose = TRUE))
 
 rmse_train["flexBART"] <- sqrt(mean( (mu[train_vertices] - flex_fit$yhat.test.mean[train_vertices])^2 ))
 rmse_test["flexBART"] <- sqrt(mean( (mu[test_vertices] - flex_fit$yhat.test.mean[test_vertices])^2 ))

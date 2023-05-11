@@ -50,9 +50,9 @@ cluster2 <-
 
 cluster3 <- rownames(A_tract)[!rownames(A_tract) %in% c(cluster1, cluster2)]
 
-dist_to_cl1 <- apply(igraph::distances(graph = g_tract, to = cluster1),
+dist_to_cl1 <- apply(igraph::distances(graph = g, to = cluster1),
                      FUN = min, MARGIN = 1)
-dist_to_cl2 <- apply(igraph::distances(graph = g_tract, to = cluster2),
+dist_to_cl2 <- apply(igraph::distances(graph = g, to = cluster2),
                      FUN = min, MARGIN = 1)
 total_dist <- dist_to_cl1 + dist_to_cl2
 
@@ -64,10 +64,10 @@ Here is a plot of the $\mu_{i}$'s.
 ```{r plot_mu, fig.height = 4, fit.width = 4}
 scaled_mu <- scales::rescale(mu, to = c(0,1), from = c(-5,5))
 col_list <- rev(brewer.pal(n = 11, name = "RdYlBu")) # color scale
-V(g_tract)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
+V(g)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
 
 par(mar = c(1,3,3,1), mgp = c(1.8, 0.5, 0))
-plot(g_tract, layout = tract_layout, vertex.label = NA,
+plot(g, layout = tract_layout, vertex.label = NA,
      vertex.size = 4)
 
 
