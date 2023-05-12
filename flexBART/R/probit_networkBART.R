@@ -7,7 +7,7 @@ probit_networkBART <- function(Y_train,
                                cutpoints_list = NULL,
                                A = matrix(0, nrow = 1, ncol = 1),
                                graph_split = TRUE,
-                               graph_cut_type = 0,
+                               graph_cut_type = 1,
                                sparse = FALSE,
                                M = 200,
                                mu0 = stats::qnorm(mean(Y_train)), tau = 1/sqrt(M),
@@ -19,7 +19,7 @@ probit_networkBART <- function(Y_train,
   if(!is.integer(Y_train)) stop("Y_train must be an integer vector")
   if(!all(Y_train %in% c(0,1))) stop("All elements of Y_train must be 0 or 1")
   
-  if(!graph_cut_type %in% c(0,1)) stop("graph_cut_type must be 0 or 1.")
+  if(!graph_cut_type %in% c(0,1, 2, 3)) stop("graph_cut_type must be 0,1,2, or 3.")
   
   # pre-processing specific for network stuff
   

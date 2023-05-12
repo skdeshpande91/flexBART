@@ -17,7 +17,7 @@ probit_networkBART(Y_train,
                    cutpoints_list = NULL,
                    A = matrix(0, nrow = 1, ncol = 1),
                    graph_split = TRUE,
-                   graph_cut_type = 0,
+                   graph_cut_type = 1,
                    sparse = FALSE,
                    M = 200,
                    mu0 = stats::qnorm(mean(Y_train)), tau = 1/sqrt(M),
@@ -37,7 +37,7 @@ probit_networkBART(Y_train,
   \item{cutpoints_list}{List of length \code{ncol(X_cont_train)} containing a vector of cutpoints for each continuous predictor. By default, this is set to \code{NULL} so that cutpoints are drawn uniformly from a continuous distribution.}
   \item{A}{Binary adjacency matrix of the network. Assumed to be symmetric.}
   \item{graph_split}{Logical, indicating whether to constrain the regression tree prior to respect adjacency when splitting on vertex labels. Default is \code{TRUE}.}
-  \item{graph_cut_type}{An integer (0, 1, 2, 3, or 4) that determines how partitions of the network are constructed. See Details.}
+  \item{graph_cut_type}{An integer (0, 1, 2, or 3) that determines how partitions of the network are constructed. Default is 1. See Details of \code{\link{network_BART}}.}
   \item{sparse}{Logical, indicating whether or not to perform variable selection based on a sparse Dirichlet prior rather than uniform prior; see Linero 2018. Default is \code{FALSE}}
   \item{M}{Number of trees in the ensemble. Default is 200.}
   \item{mu0}{Prior mean on the jumps/leaf parameters. See Details. Default is \code{qnorm(mean(Y_train))} so that the prior on the regression function is shrunk toward the empirical probability that Y = 1.}
