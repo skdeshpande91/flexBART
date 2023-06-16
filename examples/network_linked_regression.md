@@ -223,7 +223,7 @@ g_train <- g
 training_cols <- rep(my_colors[1], times = n)
 training_cols[test_vertices] <- my_colors[5]
 V(g_train)$color <- training_cols
-plot(g, layout = my_layout, vertex.size = 3.5, vertex.label = NA)
+plot(g_train, layout = my_layout, vertex.size = 3.5, vertex.label = NA)
 ```
 
 ![](network_linked_regression_files/figure-gfm/plot-training-testing-1.png)<!-- -->
@@ -307,4 +307,4 @@ print(round(c(flexBART = flexBART_timing["elapsed"], BART = BART_timing["elapsed
     ## flexBART 0.842 0.829 0.825
     ## BART     0.594 0.574 0.194
     ## flexBART.elapsed     BART.elapsed 
-    ##           85.402          139.472
+    ##           87.229          138.498

@@ -176,7 +176,7 @@ g_train <- g
 training_cols <- rep(my_colors[1], times = n)
 training_cols[test_vertices] <- my_colors[5]
 V(g_train)$color <- training_cols
-plot(g, layout = my_layout, vertex.size = 3.5, vertex.label = NA)
+plot(g_train, layout = my_layout, vertex.size = 3.5, vertex.label = NA)
 ```
                                            
                                            
