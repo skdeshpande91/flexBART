@@ -1,0 +1,239 @@
+pitch_framing
+================
+2023-05-12
+
+pitch framing!
+
+``` r
+library(tidyverse)
+load("called_strikes_2019.RData")
+col_list <- colorBlindness::Blue2DarkRed18Steps
+```
+
+We need to pre-process the data a bit first. Namely, we need to:
+
+1.  Convert the batter, catcher, pitcher, and umpire IDs to factors. I
+    like to add a prefix (e.g. “b.” for batter or “u.” for umpire) so
+    that I don’t accidentally treat these as numeric values downstream.
+2.  Re-scale the continuous predictors (`plate_x` and `plate_z`, which
+    give the horizontal and vertical coordinates of the pitch as it
+    crosses home-plate) to the interval $[-1,1].$
+3.  Re-code the categorical predictors (i.e. batter, catcher, pitcher,
+    and umpire IDs) to non-negative integers since this is how
+    `flexBART` represents categorical levels internally.
+
+``` r
+full_data <- called_strikes_2019 %>%
+    filter(game_type == "R") %>%
+    select(description, batter, pitcher, catcher, umpire, plate_x, plate_z) %>%
+    mutate(batter = factor(paste0("b.", batter)), catcher = factor(paste0("c.", catcher)),
+        pitcher = factor(paste0("p.", pitcher)), umpire = factor(paste0("u.", umpire))) %>%
+    mutate(batter_int = as.integer(batter) - 1L, catcher_int = as.integer(catcher) -
+        1L, pitcher_int = as.integer(pitcher) - 1L, umpire_int = as.integer(umpire) -
+        1L) %>%
+    mutate(plate_x = scales::rescale(plate_x, to = c(-1, 1)), plate_z = scales::rescale(plate_z,
+        to = c(-1, 1)))
+```
+
+Running the full data will close to half an hour (or maybe an hour,
+depending on the computer). For this demonstration, we’ll train our
+model using 10,000 pitches.
+
+``` r
+set.seed(512)
+n_train <- 10000
+n_test <- 1000
+demo <- full_data %>%
+    sample_n(size = n_train + n_test) %>%
+    mutate(train = sample(c(rep(1, times = n_train), rep(0, times = n_test))))
+
+training_tbl <- demo %>%
+    filter(train == 1)
+testing_tbl <- demo %>%
+    filter(train == 0)
+```
+
+Currently `flexBART` requires you pass the continuous predictors and
+categorical predictors as separate matrices. We construct those here
+
+``` r
+Y_train <- 1L * (training_tbl$description == "called_strike")
+Y_test <- 1L * (testing_tbl$description == "called_strike")
+
+# pitch location is continuous
+X_cont_train <- matrix(NA, nrow = n_train, ncol = 2, dimnames = list(c(), c("plate_x",
+    "plate_z")))
+X_cont_train[, "plate_x"] <- training_tbl$plate_x
+X_cont_train[, "plate_z"] <- training_tbl$plate_z
+
+# batter, catcher, pitcher, and umpire are categorical
+X_cat_train <- matrix(NA, nrow = n_train, ncol = 4, dimnames = list(c(), c("batter",
+    "catcher", "pitcher", "umpire")))
+X_cat_train[, "batter"] <- training_tbl$batter_int
+X_cat_train[, "catcher"] <- training_tbl$catcher_int
+X_cat_train[, "pitcher"] <- training_tbl$pitcher_int
+X_cat_train[, "umpire"] <- training_tbl$umpire_int
+```
+
+We can set up the design matrices for the test set similarly.
+
+``` r
+X_cont_test <- matrix(NA, nrow = n_test, ncol = 2, dimnames = list(c(), c("plate_x",
+    "plate_z")))
+X_cont_test[, "plate_x"] <- testing_tbl$plate_x
+X_cont_test[, "plate_z"] <- testing_tbl$plate_z
+
+X_cat_test <- matrix(NA, nrow = n_test, ncol = 4, dimnames = list(c(), c("batter",
+    "catcher", "pitcher", "umpire")))
+X_cat_test[, "batter"] <- testing_tbl$batter_int
+X_cat_test[, "catcher"] <- testing_tbl$catcher_int
+X_cat_test[, "pitcher"] <- testing_tbl$pitcher_int
+X_cat_test[, "umpire"] <- testing_tbl$umpire_int
+```
+
+Before we can run `flexBART`, however, we need to tell it what the valid
+levels of the categorical predictors are. We do this with the
+`cat_levels_list` argument. Per the documentation, this is a list of
+length `ncol(X_cat_train)` where the elements correspond to the
+categorical predictors. If the j-th categorical predictor contains L
+levels, `cat_levels_list[[j]]` should be the vector `0:(L-1)`. These
+elements need to be in exactly the same order as they appear in
+`X_cat_train.`
+
+``` r
+n_batters <- length(unique(full_data$batter))
+n_catchers <- length(unique(full_data$catcher))
+n_pitchers <- length(unique(full_data$pitcher))
+n_umpires <- length(unique(full_data$umpire))
+cat_levels_list <- list(batter = 0:(n_batters - 1), catcher = 0:(n_catchers - 1),
+    pitcher = 0:(n_pitchers - 1), umpire = 0:(n_umpires - 1))
+```
+
+## Fitting the model
+
+``` r
+flexBART_timing <- system.time(fit <- flexBART::probit_flexBART(Y_train = Y_train,
+    X_cont_train = X_cont_train, X_cat_train = X_cat_train, X_cont_test = X_cont_test,
+    X_cat_test = X_cat_test, cat_levels_list = cat_levels_list))
+```
+
+That ran relatively quickly (2000 iteration ins
+`{r} round(flexBART_timing["elapsed"], digits = 2)` seconds!). Let’s
+assess how good our predictions are, in terms of Brier score (i.e. mean
+squared error), log-loss (a.k.a. cross-entropy loss), and
+misclassification rate.
+
+``` r
+mse <- matrix(NA, nrow = 2, ncol = 2, dimnames = list(c("flexBART", "empirical"),
+    c("train", "test")))
+
+logloss <- mse
+misclass <- mse
+
+mse["flexBART", "train"] <- mean((Y_train - fit$prob.train.mean)^2)
+mse["flexBART", "test"] <- mean((Y_test - fit$prob.test.mean)^2)
+mse["empirical", "train"] <- mean((Y_train - mean(Y_train))^2)
+mse["empirical", "test"] <- mean((Y_test - mean(Y_train))^2)
+
+logloss["flexBART", "train"] <- -1 * mean(Y_train * log(fit$prob.train.mean) + (1 -
+    Y_train) * log(1 - fit$prob.train.mean))
+logloss["flexBART", "test"] <- -1 * mean(Y_test * log(fit$prob.test.mean) + (1 -
+    Y_test) * log(1 - fit$prob.test.mean))
+logloss["empirical", "train"] <- -1 * mean(Y_train * log(mean(Y_train)) + (1 - Y_train) *
+    log(1 - mean(Y_train)))
+logloss["empirical", "test"] <- -1 * mean(Y_test * log(mean(Y_train)) + (1 - Y_test) *
+    log(1 - mean(Y_train)))
+
+misclass["flexBART", "train"] <- mean((Y_train != 1L * (fit$prob.train.mean >= 0.5)))
+misclass["flexBART", "test"] <- mean((Y_test != 1L * (fit$prob.test.mean >= 0.5)))
+misclass["empirical", "train"] <- mean((Y_train != 1L * (mean(Y_train) >= 0.5)))
+misclass["empirical", "test"] <- mean((Y_train != 1L * (mean(Y_train) >= 0.5)))
+```
+
+And here are the results
+
+``` r
+round(mse, digits = 3)
+round(logloss, digits = 3)
+round(misclass, digits = 3)
+```
+
+    ##           train  test
+    ## flexBART  0.055 0.060
+    ## empirical 0.225 0.234
+    ##           train  test
+    ## flexBART  0.179 0.195
+    ## empirical 0.642 0.661
+    ##           train  test
+    ## flexBART  0.080 0.083
+    ## empirical 0.341 0.341
+
+## Making predictions
+
+We can use the `flexBART::predict_flexBART` function to make predictions
+about the called strike probability surface for any
+batter-catcher-pitcher-umpire matchup. To this end, we will create a
+grid of locations and use our fitted model to make predictions at each
+location.
+
+``` r
+viz_batter <- 4L
+viz_catcher <- 30L
+viz_pitcher <- 162L
+viz_umpire <- 55L
+
+delta <- 0.05
+x_seq <- seq(-2, 2, by = delta)
+z_seq <- seq(0, 6, by = delta)
+viz_grid <- expand.grid(x = x_seq, z = z_seq)
+```
+
+Like `flexBART::flexBART` we need to supply `flexBART::predict_flexBART`
+with matrices of the continuous and categorical predictors for the new
+observations we wish to predict.
+
+``` r
+n_viz <- nrow(viz_grid)
+X_cont_viz <- matrix(NA, nrow = n_viz, ncol = 2, dimnames = list(c(), c("plate_x",
+    "plate_z")))
+X_cont_viz[, "plate_x"] <- scales::rescale(viz_grid$x, to = c(-1, 1))
+X_cont_viz[, "plate_z"] <- scales::rescale(viz_grid$z, to = c(-1, 1))
+
+X_cat_viz <- matrix(NA, nrow = n_viz, ncol = 4, dimnames = list(c(), c("batter",
+    "catcher", "pitcher", "umpire")))
+X_cat_viz[, "batter"] <- rep(viz_batter, times = n_viz)
+X_cat_viz[, "catcher"] <- rep(viz_catcher, times = n_viz)
+X_cat_viz[, "pitcher"] <- rep(viz_pitcher, times = n_viz)
+X_cat_viz[, "umpire"] <- rep(viz_umpire, times = n_viz)
+```
+
+We’re now ready to make the actual predictions.
+
+``` r
+viz_fit <- flexBART::predict_flexBART(fit = fit, X_cont = X_cont_viz, X_cat = X_cat_viz,
+    verbose = TRUE, print_every = 100)
+```
+
+The object `viz_fit` is a matrix with rows indexing MCMC iterations and
+columns indexing observations in the new data. The following code makes
+a heatmap of the posterior mean called strike probabilities.
+
+``` r
+viz_phat <- colMeans(viz_fit)
+
+
+col_list <- colorBlindness::Blue2DarkRed18Steps
+
+plot(1, type = "n", xlim = c(-2, 2), ylim = c(0, 6), xlab = "plate_x", ylab = "plate_z",
+    main = "Posterior mean of fitted strike probability")
+for (i in 1:n_viz) {
+    # points(viz_x[i], viz_z[i], pch = 16, col =
+    # rgb(colorRamp(col_list,)(viz_phat[i])/255))
+    rect(viz_grid[i, "x"] - delta/2, viz_grid[i, "z"] - delta/2, viz_grid[i, "x"] +
+        delta/2, viz_grid[i, "z"] + delta/2, border = NA, col = rgb(colorRamp(col_list,
+        )(viz_phat[i])/255))
+
+}
+```
+
+<img src="pitch_framing_files/figure-gfm/make-heatmap-1.png" style="display: block; margin: auto;" />
