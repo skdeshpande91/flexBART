@@ -25,16 +25,25 @@ void read_tree(tree &t, std::string &tree_string, set_str_conversion &set_str);
 void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen);
 
 
+
 void build_symmetric_edge_map(edge_map &emap, std::vector<edge> &edges, std::set<int> &vertices);
 std::vector<edge> get_induced_edges(std::vector<edge> &edges, std::set<int> &vertex_subset);
 void dfs(int v, std::map<int, bool> &visited, std::vector<int> &comp, edge_map &emap);
 void find_components(std::vector<std::vector<int> > &components, std::vector<edge> &edges, std::set<int> &vertices);
 void get_unique_edges(std::vector<edge> &edges);
 
+arma::mat get_adjacency_matrix(edge_map emap);
+
+arma::mat floydwarshall(std::vector<edge> &edges, std::set<int> &vertices);
+
 void boruvka(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int> &vertices);
 void wilson(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen);
-void percolation(std::set<int> &l_vals, std::set<int> &r_vals, int rounds, double threshold, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen);
-void graph_partition(std::set<int> &avail_levels, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges, int &K, int &cut_type, int &perc_rounds, double &perc_threshold, RNG &gen);
+//void hotspot(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen, bool debug = false);
+
+void delete_unif_edge(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen);
+void signcheck_split(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices);
+
+void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges, std::set<int> &avail_levels, int &cut_type, RNG &gen);
 
 void update_theta_u(std::vector<double> &theta, double &u, std::vector<int> &var_count, int &p, double &a_u, double &b_u, RNG &gen);
 void update_theta_rc(double& theta_rc, int &rc_var_count, int &rc_rule_count, double &a_rc, double &b_rc, int &p_cont, RNG &gen);

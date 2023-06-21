@@ -5,7 +5,7 @@
 Probit flexBART for binary outcomes
 }
 \description{
-Implements flexBART with the Albert \& Chip (1993) data augmentation for probit regression.
+Fit a BART model of a binary responses using the the Albert \& Chib (1993) data augmentation for probit models.
 }
 \usage{
 probit_flexBART(Y_train,
@@ -16,6 +16,7 @@ probit_flexBART(Y_train,
                 unif_cuts = rep(TRUE, times = ncol(X_cont_train)),
                 cutpoints_list = NULL,
                 cat_levels_list,
+                a_cat = 0, b_cat = 0,
                 sparse = FALSE,
                 M = 200,
                 mu0 = stats::qnorm(mean(Y_train)), tau = 1/sqrt(M),
@@ -33,6 +34,8 @@ probit_flexBART(Y_train,
   \item{unif_cuts}{Vector of logical values indicating whether cutpoints for each continuous predictor should be drawn from a continuous uniform distribution (\code{TRUE}) or a discrete set (\code{FALSE}) specified in \code{cutpoints_list}. Default is \code{TRUE} for each variable in \code{X_cont_train}}
   \item{cutpoints_list}{List of length \code{ncol(X_cont_train)} containing a vector of cutpoints for each continuous predictor. By default, this is set to \code{NULL} so that cutpoints are drawn uniformly from a continuous distribution.}
   \item{cat_levels_list}{List of length \code{ncol(X_cat_train)} containing a vector of levels for each categorical predictor. If the j-th categorical predictor contains L levels, \code{cat_levels_list[[j]]} should be the vector \code{0:(L-1)}. Default is \code{NULL}, which corresponds to the case that no categorical predictors are available.}
+  \item{a_cat}{When splitting on an unstructured categorical predictor, prior sends individual levels to the left branch with probability drawn from a Beta(a_cat, b_cat) distribution}
+  \item{b_cat}{When splitting on an unstructured categorical predictor, prior sends individual levels to the left branch with probability drawn from a Beta(a_cat, b_cat) distribution}
   \item{sparse}{Logical, indicating whether or not to perform variable selection based on a sparse Dirichlet prior rather than uniform prior; see Linero 2018. Default is \code{FALSE}}
   \item{M}{Number of trees in the ensemble. Default is 200.}
   \item{mu0}{Prior mean on the jumps/leaf parameters. See Details. Default is \code{qnorm(mean(Y_train))} so that the prior on the regression function is shrunk toward the empirical probability that Y = 1.}
@@ -58,8 +61,11 @@ A list containing
 \item{prob.test.mean}{Vector containing posterior mean of P(y = 1 | x) on testing data, if testing data is provided.}
 \item{prob.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}. Only returned if testing data is passed and \code{save_samples == TRUE}.}
 \item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{prob_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors}
-\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}
-\item{is.probit}{Logical with value \code{TRUE}. Used by \code{predict_flexBART}.}
+\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict_flexBART}} to reconstruct the C++ representations of the sampled trees.}
+\item{is.probit}{Logical with value \code{TRUE}. Used by \code{\link{predict_flexBART}}.}
+}
+\seealso{
+\code{\link{probit_networkBART}} for network-indexed regression with binary outcomes.
 }
 \references{
 %% ~put references to the literature/web site here ~

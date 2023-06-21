@@ -11,7 +11,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
                         Rcpp::Nullable<Rcpp::List> cat_levels_list,
                         Rcpp::Nullable<Rcpp::List> edge_mat_list,
                         Rcpp::LogicalVector graph_split, int graph_cut_type,
-                        int perc_rounds, double perc_threshold,
+                        double a_cat, double b_cat,
                         bool rc_split, double prob_rc, double a_rc, double b_rc,
                         bool sparse, double a_u, double b_u,
                         double mu0, double tau,
@@ -121,10 +121,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     tree_pi.cat_levels = &cat_levels;
     tree_pi.edges = &edges;
     tree_pi.K = &K;
+    tree_pi.a_cat = a_cat;
+    tree_pi.b_cat = b_cat;
     tree_pi.graph_split = graph_split.begin();
     tree_pi.graph_cut_type = graph_cut_type;
-    tree_pi.perc_rounds = perc_rounds;
-    tree_pi.perc_threshold = perc_threshold;
   }
   tree_pi.rc_split = rc_split;
   tree_pi.prob_rc = &prob_rc;
@@ -164,8 +164,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     // get the fit of each tree
     for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
       tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
-      for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-        allfit_train[*it] += tmp_mu;
+      if(ss_it->second.size() > 0){
+        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+          allfit_train[*it] += tmp_mu;
+        }
       }
     }
     if(n_test > 0){
@@ -207,11 +209,15 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   // main MCMC loop starts here
   for(int iter = 0; iter < total_draws; iter++){
     if(verbose){
+    // remember that R is 1-indexed
       if( (iter < burn) && (iter % print_every == 0)){
         Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
         Rcpp::checkUserInterrupt();
-      } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn)){
+      } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn) ){
         Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
+        Rcpp::checkUserInterrupt();
+      } else if( iter == total_draws-1){
+        Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
         Rcpp::checkUserInterrupt();
       }
     }
@@ -237,10 +243,12 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
       // now we need to update the value of allfit
       for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
         tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
-        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-          // add fit of m-th tree back to allfit and subtract it from the value of the residual
-          allfit_train[*it] += tmp_mu;
-          residual[*it] -= tmp_mu;
+        if(ss_it->second.size() > 0){
+          for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+            // add fit of m-th tree back to allfit and subtract it from the value of the residual
+            allfit_train[*it] += tmp_mu;
+            residual[*it] -= tmp_mu;
+          }
         }
       } // this loop is also O(n)
     } // closes loop over all of the trees
@@ -298,7 +306,9 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         for(int m = 0; m < M; m++){
           for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
             tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the corresponding leaf
-            for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) allfit_test[*it] += tmp_mu;
+            if(ss_it->second.size() > 0){
+              for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) allfit_test[*it] += tmp_mu;
+            }
           } // loop over the keys in the m-th sufficient stat map
         } // closes loop over trees
         

@@ -8,7 +8,7 @@ rnetwork_BART <- function(M, vertex_id,
                           alpha = 0.95, beta = 2, mu0 = 0, tau = 1/sqrt(M),
                           verbose = TRUE, print_every = floor(M/10))
 {
-  if(!graph_cut_type %in% c(0,1)) stop("graph_cut_type must be 0 or 1.")
+  if(!graph_cut_type %in% c(0,1, 2, 3, 4)) stop("graph_cut_type must be 0, 1, 2, 3, or 4.")
   
   if(nrow(A) == 1) stop("Adjacency matrix A must contain > 1 row (i.e. graph must have > 1 vertex)")
   n_vertex <- nrow(A)
@@ -30,8 +30,8 @@ rnetwork_BART <- function(M, vertex_id,
                               cat_levels_list = cat_levels_list,
                               edge_mat_list = edge_mat_list,
                               graph_split = graph_split,
-                              graph_cut_type = 0,
-                              perc_rounds = 0, perc_threshold = 0.5,
+                              graph_cut_type = graph_cut_type,
+                              a_cat = 0, b_cat = 0,
                               rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
                               alpha = alpha, beta = beta,
                               mu0 = mu0, tau = tau, M = M,

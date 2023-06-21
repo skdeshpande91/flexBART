@@ -1,6 +1,6 @@
 Estimating a piecewise-constant signal on the 2d lattice
 ================
-2022-06-24
+2023-05-12
 
 ## Overview
 
@@ -12,16 +12,16 @@ example we will not have any covariates. That is, at vertex
 in the network, we will observe
 ![T](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;T "T")
 noisy realizations of a constant
-![\\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}"):
-![y\_{it} \\sim \\mathcal{N}(\\mu\_{i}, 1)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;y_%7Bit%7D%20%5Csim%20%5Cmathcal%7BN%7D%28%5Cmu_%7Bi%7D%2C%201%29 "y_{it} \sim \mathcal{N}(\mu_{i}, 1)")
+![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}"):
+![y\_{it} \sim \mathcal{N}(\mu\_{i}, 1)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;y_%7Bit%7D%20%5Csim%20%5Cmathcal%7BN%7D%28%5Cmu_%7Bi%7D%2C%201%29 "y_{it} \sim \mathcal{N}(\mu_{i}, 1)")
 for
-![t = 1, \\ldots, T.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;t%20%3D%201%2C%20%5Cldots%2C%20T. "t = 1, \ldots, T.")
+![t = 1, \ldots, T.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;t%20%3D%201%2C%20%5Cldots%2C%20T. "t = 1, \ldots, T.")
 Our goal will be to recover the vector
-![(\\mu\_{1}, \\ldots, \\mu\_{n}).](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%28%5Cmu_%7B1%7D%2C%20%5Cldots%2C%20%5Cmu_%7Bn%7D%29. "(\mu_{1}, \ldots, \mu_{n}).")
+![(\mu\_{1}, \ldots, \mu\_{n}).](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%28%5Cmu_%7B1%7D%2C%20%5Cldots%2C%20%5Cmu_%7Bn%7D%29. "(\mu_{1}, \ldots, \mu_{n}).")
 
 In this experiment, we will hold out all data from 10% of the vertices.
 The idea is to see how well `flexBART::networkBART` is able to predict
-![\\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")
+![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")
 at these vertices. Note that when we train our model, we will give it
 the full network. In this way, our prediction task can be viewed as
 \`\`in-fill’’ rather predicting at a previously unobserved vertex in the
@@ -31,7 +31,7 @@ network.
 
 We will start by creating our network, separating the vertices into five
 clusters, and setting the value of
-![\\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")
+![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")
 in each cluster.
 
 ``` r
@@ -50,7 +50,6 @@ library(igraph)
     ##     union
 
 ``` r
-library(RColorBrewer)
 n_side <- 10
 n <- 100
 
@@ -77,10 +76,12 @@ mu[cluster5] <- cluster_means[5]
 ```
 
 Here is a plot of the
-![\\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")’s.
+![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")’s.
 
 ``` r
-col_list <- rev(brewer.pal(n = 11, name = "RdYlBu")) # color scale
+col_list <- colorBlindness::Blue2DarkRed18Steps
+my_colors <- c("#999999", "#E69F00", "#56B4E9", "#009E73", 
+               "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 g_true <- g
 scaled_mu <- scales::rescale(mu, to = c(0,1), from = c(-8,8))
 V(g_true)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
@@ -98,8 +99,11 @@ text(x = par("usr")[1]-0.05, y = par("usr")[4] * 0.5, labels =expression(mu))
 ```
 
 <img src="grid_constant_files/figure-gfm/plot_mu-1.png" style="display: block; margin: auto;" />
-\## Experimental Setup Now that we have
-![\\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}"),
+
+## Experimental Setup
+
+Now that we have
+![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}"),
 we will generate
 ![T = 10](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;T%20%3D%2010 "T = 10")
 observations from each vertex.
@@ -145,7 +149,7 @@ flex_time <- system.time(
     flexBART::network_BART(Y_train= Y_train,
                            vertex_id_train = vertex_id_train,
                            vertex_id_test = vertex_id_test,
-                           A = A, verbose = TRUE, print_every = 100))
+                           A = A, graph_cut_type = 1, verbose = TRUE))
 
 rmse_train["flexBART"] <- sqrt(mean( (mu[train_vertices] - flex_fit$yhat.test.mean[train_vertices])^2 ))
 rmse_test["flexBART"] <- sqrt(mean( (mu[test_vertices] - flex_fit$yhat.test.mean[test_vertices])^2 ))
@@ -183,7 +187,7 @@ print(round(rmse_test, digits = 3))
     ##    1.399    4.753
 
 To get a better idea of the differences, we can plot the estimated
-![\\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")’s
+![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")’s
 from both implementation.
 
 ``` r
@@ -200,8 +204,8 @@ V(g)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
 V(g_flex)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_flex)/255)
 V(g_bart)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_bart)/255)
 
-V(g_heldout)$color <- rep("lightgray", times = n)
-V(g_heldout)$color[test_vertices] <- "cyan"
+V(g_heldout)$color <- rep(my_colors[1], times = n)
+V(g_heldout)$color[test_vertices] <- my_colors[5]
 
 par(mar = c(1,1,1,1), mgp = c(1.8, 0.5, 0), mfrow = c(2,2))
 plot(g, layout= layout_on_grid, vertex.label = NA, main = "True signal")
@@ -215,13 +219,13 @@ plot(g_bart, layout = layout_on_grid, vertex.label = NA,main = "BART")
 
 We see that on the training vertices, BART can get pretty accurate
 estimates of
-![\\mu.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu. "\mu.")
+![\mu.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu. "\mu.")
 However, because BART does not know how to leverage the adjacency
 information, it is forced to make the same prediction at each of the
 heldout vertices. Specifically, at the heldout vertices, BART predicts
-![\\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")
+![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")
 to be about equal to the grand mean of the data
-![\\overline{y}.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Coverline%7By%7D. "\overline{y}.")
+![\overline{y}.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Coverline%7By%7D. "\overline{y}.")
 
-In contrast, **flexBART** is able to leverage the adajency information
+In contrast, **flexBART** is able to leverage the adjacency information
 and make much more accurate predictions at the heldout vertices.

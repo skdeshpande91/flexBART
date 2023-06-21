@@ -1,8 +1,6 @@
 timing_comparison
 ================
-2022-06-24
-
-## R Markdown
+2023-05-12
 
 **flexBART** is often much faster than **BART** because it avoids a lot
 of redundant computations. The speedup really manifests when you have
@@ -89,10 +87,10 @@ print(round(timing, digits = 3))
 
     ## [1] "Training RMSE"
     ## flexBART     BART 
-    ##    0.303    0.303 
+    ##    0.305    0.303 
     ## [1] "Testing RMSE"
     ## flexBART     BART 
-    ##    0.336    0.389 
+    ##    0.343    0.338 
     ## [1] "Timing (seconds):"
     ## flexBART     BART 
-    ##   35.128  105.890
+    ##   35.251  111.539

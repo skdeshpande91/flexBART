@@ -50,9 +50,6 @@ void tree::to_null()
 void tree::print(bool pc) const // pc is flag to print children
 {
   size_t id = get_nid();
-  size_t pid; // id of the parent node
-  if(!p) pid = 0; // parent of this is the top node, which we'll assign a pid of 0
-  else pid = p->get_nid();
   
   if(pc && (get_ntype() == 't')) Rcpp::Rcout << "tree size:" << get_treesize() << std::endl;
   Rcpp::Rcout << "id." << id;
@@ -371,6 +368,7 @@ void tree::get_rg_aa(int &v, double &c_lower, double &c_upper){
         if(p->rule.c > c_lower) c_lower = p->rule.c;
       } else Rcpp::stop("[get_rg_aa]: this was not equal to either left or right child of its parent..."); // we should *never* hit this spot
     }
+    p->get_rg_aa(v, c_lower, c_upper); // actually recurse up the tree
   }
 }
 

@@ -2,10 +2,10 @@
 \alias{probit_networkBART}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Probit flexBART for binary outcomes
+Fit a BART model of a binary response with continuous predictors and network-indexed observations
 }
 \description{
-Implements flexBART with the Albert \& Chip (1993) data augmentation for probit regression.
+Fit a BART model of a binary response with continuous predictors and network-indexed observations using the the Albert \& Chib (1993) data augmentation for probit models.
 }
 \usage{
 probit_networkBART(Y_train,
@@ -17,7 +17,7 @@ probit_networkBART(Y_train,
                    cutpoints_list = NULL,
                    A = matrix(0, nrow = 1, ncol = 1),
                    graph_split = TRUE,
-                   graph_cut_type = 0,
+                   graph_cut_type = 1,
                    sparse = FALSE,
                    M = 200,
                    mu0 = stats::qnorm(mean(Y_train)), tau = 1/sqrt(M),
@@ -37,7 +37,7 @@ probit_networkBART(Y_train,
   \item{cutpoints_list}{List of length \code{ncol(X_cont_train)} containing a vector of cutpoints for each continuous predictor. By default, this is set to \code{NULL} so that cutpoints are drawn uniformly from a continuous distribution.}
   \item{A}{Binary adjacency matrix of the network. Assumed to be symmetric.}
   \item{graph_split}{Logical, indicating whether to constrain the regression tree prior to respect adjacency when splitting on vertex labels. Default is \code{TRUE}.}
-  \item{graph_cut_type}{An integer (0 or 1) that determines how partitions of the network are constructed. See Details.}
+  \item{graph_cut_type}{An integer (0, 1, 2, or 3) that determines how partitions of the network are constructed. Default is 1. See Details of \code{\link{network_BART}}.}
   \item{sparse}{Logical, indicating whether or not to perform variable selection based on a sparse Dirichlet prior rather than uniform prior; see Linero 2018. Default is \code{FALSE}}
   \item{M}{Number of trees in the ensemble. Default is 200.}
   \item{mu0}{Prior mean on the jumps/leaf parameters. See Details. Default is \code{qnorm(mean(Y_train))} so that the prior on the regression function is shrunk toward the empirical probability that Y = 1.}
@@ -57,9 +57,8 @@ As such, for each x, the induced prior for P(Y = 1 | x) places 95\% probability 
 By default, we set \code{tau = 1/sqrt(M)} and \code{mu0 = qnorm(mean(Y_train))} to shrink towards the observed mean.
 
 The flexBART prior is modified to handle network-structured categorical predictors as follows.
-To split on the vertex label, we randomly draw a partition of the network into two connected subgraphs.
-When \code{graph_cut_type == 0}, the partition is drawn by first drawing a uniform random spanning tree using Wilson's algorithm and then deleting a uniformly selected edge from the tree. When \code{graph_cut_type == 1}, the partition is drawn by first drawing uniform weights for each edge, computing the minimum spanning tree with Boruvka's algorithm, and deleting an edge uniformly at random from the MST. In this way, each regression tree can partition the network in connected subgraphs.
-
+To split on the vertex label, we randomly draw a partition of the network into two (possibly disconnected) subgraphs.
+See the documentation for \code{network_BART} for further details about how the partition is drawn according to the value of \code{graph_cut_type}.
 }
 \value{
 A list containing

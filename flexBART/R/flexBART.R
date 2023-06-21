@@ -5,7 +5,8 @@ flexBART <- function(Y_train,
                      X_cat_test = matrix(0L, nrow = 1, ncol = 1),
                      unif_cuts = rep(TRUE, times = ncol(X_cont_train)),
                      cutpoints_list = NULL,
-                     cat_levels_list = NULL,                   
+                     cat_levels_list = NULL,
+                     a_cat = 0, b_cat = 0,
                      sparse = FALSE,
                      M = 200,
                      nd = 1000, burn = 1000, thin = 1,
@@ -19,6 +20,35 @@ flexBART <- function(Y_train,
   nu <- 3
   lambda <- stats::qchisq(0.1, df = nu)/nu
   
+  p_cont <- 0
+  p_cat <- 0
+  cont_names <- c()
+  cat_names <- c()
+  
+  if(length(X_cont_train) > 1){
+    p_cont <- ncol(X_cont_train)
+    if(is.null(colnames(X_cont_train))){
+      cont_names <- paste0("X", 1:p_cont)
+    } else{
+      cont_names <- colnames(X_cont_train)
+    }
+  } else{
+    cont_names <- c()
+  }
+  
+  if(length(X_cat_train) > 1){
+    p_cat <- ncol(X_cat_train)
+    if(is.null(colnames(X_cat_train))){
+      cat_names <- paste0("X", (p_cont + 1):(p_cont + p_cat))
+    } else{
+      cat_names <- colnames(X_cat_train)
+    }
+  } else{
+    cat_names <- c()
+  }
+  
+  pred_names <- c(cont_names, cat_names)
+  
   fit <- .flexBART_fit(Y_train = std_Y_train,
                        tX_cont_train = t(X_cont_train),
                        tX_cat_train = t(X_cat_train),
@@ -30,7 +60,7 @@ flexBART <- function(Y_train,
                        edge_mat_list = NULL,
                        graph_split = rep(FALSE, times = ncol(X_cat_train)),
                        graph_cut_type = 0,
-                       perc_rounds = 0, perc_threshold = 0,
+                       a_cat = a_cat, b_cat = b_cat,
                        rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
                        sparse = sparse, a_u = 0.5, b_u = 1,
                        mu0 = 0, tau = tau, 
@@ -62,7 +92,15 @@ flexBART <- function(Y_train,
     if(save_samples) results[["yhat.test"]] <- yhat_test_samples
   }
   results[["sigma"]] <- y_sd * fit$sigma
-  results[["varcounts"]] <- fit$var_count
+  
+  varcounts <- fit$var_count
+  if(length(pred_names) != ncol(varcounts)){
+    warning("There was an issue tracking variable names. Not naming columns of varcounts object")
+  } else{
+    colnames(varcounts) <- pred_names
+  }
+  results[["varcounts"]] <- varcounts
+  
   if(save_trees) results[["trees"]] <- fit$trees
   return(results)
 }

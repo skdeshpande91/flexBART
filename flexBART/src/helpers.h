@@ -105,11 +105,11 @@ public:
   std::vector<std::set<int>> *cat_levels; // holds the levels of the categorical variables
   std::vector<std::vector<edge>> *edges; // vector of edges for the graph-structured categorical levels
   std::vector<int> *K; // number of levels per categorical variable
+  double a_cat;
+  double b_cat;
   int* graph_split; // do we split categorical variables using the supplied graphs?
   int graph_cut_type; // determines how we generate the partition
-  int perc_rounds; // number of rounds to try the percolation process (graph_cut_type == 2)
-  double perc_threshold; // prob. of percolating over an edge (graph_cut_type == 2)
-
+  
   bool rc_split;
   double* prob_rc; // prob. of proposing a random combination split. almost always set to 0
   double* theta_rc;
@@ -136,11 +136,11 @@ public:
     cat_levels = 0; // 0 pointer
     edges = 0; // 0 pointer
     K = 0; // 0 pointer
+    a_cat = 0; // 0 pointer
+    b_cat = 0; // 0 pointer
   
     graph_split = 0; // 0 pointer
     graph_cut_type = 0;
-    perc_rounds = 2; // default to percolate for 2 rounds
-    perc_threshold = 0.5;
     
     rc_split = false;
     prob_rc = 0; // 0 pointer

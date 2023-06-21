@@ -97,53 +97,54 @@ void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat,
   //   nx_it->first is just the node id for nx (nx_nid)
   //   nx_it->second is a vector of integers containing the indicies of observations that land in nx
   // in helper.h we defined int_it as std::vector<int>::iterator
-  
-  for(int_it it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
-    i = *it;
-    if(di.x_cont != 0) xx_cont = di.x_cont + i * di.p_cont;
-    if(di.x_cat != 0) xx_cat = di.x_cat + i * di.p_cat;
-    
-    if(rule.is_aa && !rule.is_cat){
-      // axis-aligned rule
-      if(xx_cont[rule.v_aa] < rule.c) nxl_it->second.push_back(i);
-      else if(xx_cont[rule.v_aa] >= rule.c) nxr_it->second.push_back(i);
-      else{
-        Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont[rule.v_aa] << " cutpoint = " << rule.c << std::endl;
-        Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!");
+  if(nx_it->second.size() > 0){
+    for(int_it it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
+      i = *it;
+      if(di.x_cont != 0) xx_cont = di.x_cont + i * di.p_cont;
+      if(di.x_cat != 0) xx_cat = di.x_cat + i * di.p_cat;
+      
+      if(rule.is_aa && !rule.is_cat){
+        // axis-aligned rule
+        if(xx_cont[rule.v_aa] < rule.c) nxl_it->second.push_back(i);
+        else if(xx_cont[rule.v_aa] >= rule.c) nxr_it->second.push_back(i);
+        else{
+          Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont[rule.v_aa] << " cutpoint = " << rule.c << std::endl;
+          Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!");
+        }
+      } else if(!rule.is_aa && rule.is_cat){
+        // categorical rule
+        // we need to see whether i-th observation's value of the categorical pred goes to left or right
+        // std::set.count returns 1 if the value is in the set and 0 otherwise
+        l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
+        r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
+        if(l_count == 1 && r_count == 0) nxl_it->second.push_back(i);
+        else if(l_count == 0 && r_count == 1) nxr_it->second.push_back(i);
+        else if(l_count == 1 && r_count == 1) Rcpp::stop("[compute_ss_grow]: observation goes to both left & right child...");
+        else{
+          Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_aa] << std::endl;
+          Rcpp::Rcout << "left values:";
+          for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
+          Rcpp::Rcout << std::endl;
+          
+          Rcpp::Rcout << "right values:";
+          for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
+          Rcpp::Rcout << std::endl;
+          
+          Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
+        }
+      } else if(!rule.is_aa && !rule.is_cat){
+        // random combination rule
+        tmp_x = 0.0;
+        for(rc_it rcit = rule.rc_weight.begin(); rcit != rule.rc_weight.end(); ++rcit) tmp_x += (rcit->second) * xx_cont[rcit->first];
+        if(tmp_x < rule.c) nxl_it->second.push_back(i);
+        else if(tmp_x >= rule.c) nxr_it->second.push_back(i);
+        else Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child");
+      } else{
+        // we should never hit this error
+        Rcpp::stop("[compute_ss_grow]: cannot resolve the type of decision rule");
       }
-    } else if(!rule.is_aa && rule.is_cat){
-      // categorical rule
-      // we need to see whether i-th observation's value of the categorical pred goes to left or right
-      // std::set.count returns 1 if the value is in the set and 0 otherwise
-      l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
-      r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
-      if(l_count == 1 && r_count == 0) nxl_it->second.push_back(i);
-      else if(l_count == 0 && r_count == 1) nxr_it->second.push_back(i);
-      else if(l_count == 1 && r_count == 1) Rcpp::stop("[compute_ss_grow]: observation goes to both left & right child...");
-      else{
-        Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_aa] << std::endl;
-        Rcpp::Rcout << "left values:";
-        for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-        Rcpp::Rcout << std::endl;
-        
-        Rcpp::Rcout << "right values:";
-        for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-        Rcpp::Rcout << std::endl;
-        
-        Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
-      }
-    } else if(!rule.is_aa && !rule.is_cat){
-      // random combination rule
-      tmp_x = 0.0;
-      for(rc_it rcit = rule.rc_weight.begin(); rcit != rule.rc_weight.end(); ++rcit) tmp_x += (rcit->second) * xx_cont[rcit->first];
-      if(tmp_x < rule.c) nxl_it->second.push_back(i);
-      else if(tmp_x >= rule.c) nxr_it->second.push_back(i);
-      else Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child");
-    } else{
-      // we should never hit this error
-      Rcpp::stop("[compute_ss_grow]: cannot resolve the type of decision rule");
-    }
-  } // closes loop over all entries in nx
+    } // closes loop over all entries in nx
+  }
 }
 
 
@@ -185,7 +186,10 @@ double compute_lil(suff_stat &ss, int &nid, double &sigma, data_info &di, tree_p
   double P = 1.0/pow(tree_pi.tau, 2.0) + ( (double) ss_it->second.size())/pow(sigma, 2.0); // precision of jump mu
   double Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
   
-  for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma, 2.0);
+  if(ss_it->second.size() > 0){
+    for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma, 2.0);
+  }
+  
   return(-0.5 * log(P) + 0.5 * pow(Theta,2.0) / P);
   
 }
@@ -205,8 +209,10 @@ void draw_mu(tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_in
     else{
       P = 1.0/pow(tree_pi.tau, 2.0) + ( (double) ss_it->second.size())/pow(sigma, 2.0); // precision of jump mu
       Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
-      for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma,2.0);
-
+      
+      if(ss_it->second.size() > 0){
+        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma,2.0);
+      }
       post_sd = sqrt(1.0/P);
       post_mean = Theta/P;
       bn->set_mu(gen.normal(post_mean, post_sd));
@@ -405,7 +411,7 @@ void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &
         std::vector<double> valid_cutpoints;
         if(tree_pi.cutpoints->at(rule.v_aa).count(c_lower) != 1 || tree_pi.cutpoints->at(rule.v_aa).count(c_upper) != 1){
           // c_lower and c_upper were not found in the set of available cutpoints
-          Rcpp::Rcout << "[grow tree]: attempting to select a cutpoint from given set" << std::endl;
+          Rcpp::Rcout << "[draw_rule]: attempting to select a cutpoint from given set" << std::endl;
           Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << tree_pi.cutpoints->at(rule.v_aa).count(c_lower) << std::endl;
           Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << tree_pi.cutpoints->at(rule.v_aa).count(c_upper) << std::endl;
           //Rcpp::Rcout << "  cutpoints are:";
@@ -462,16 +468,21 @@ void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &
       
       if(tree_pi.graph_split[rule.v_cat] == 1 && tree_pi.edges->at(rule.v_cat).size() > 0){
         // if we explicitly say to use the graph to split the variables
-        //graph_partition(avail_levels, rule.l_vals, rule.r_vals, di.adj_support->at(rule.v_cat), di.K->at(rule.v_cat), tree_pi.graph_cut_type, gen);
-        graph_partition(avail_levels, rule.l_vals, rule.r_vals, tree_pi.edges->at(rule.v_cat), tree_pi.K->at(rule.v_cat), tree_pi.graph_cut_type, tree_pi.perc_rounds, tree_pi.perc_threshold, gen);
+        //graph_partition(avail_levels, rule.l_vals, rule.r_vals, tree_pi.edges->at(rule.v_cat), tree_pi.K->at(rule.v_cat), tree_pi.graph_cut_type, gen);
+        graph_partition(rule.l_vals, rule.r_vals, tree_pi.edges->at(rule.v_cat), avail_levels, tree_pi.graph_cut_type, gen);
       } else{
         // otherwise we default to splitting the available levels uniformly at random: prob 0.5 to go to each child
         rule_counter = 0;
+        double tmp_prob = 0.5;
+        if(tree_pi.a_cat > 0  && tree_pi.b_cat > 0) tmp_prob = gen.beta(tree_pi.a_cat, tree_pi.b_cat);
+        else tmp_prob = 0.5;
+        
         while( ((rule.l_vals.size() == 0) || (rule.r_vals.size() == 0)) && rule_counter < 1000 ){
           rule.l_vals.clear();
           rule.r_vals.clear();
           for(set_it it = avail_levels.begin(); it != avail_levels.end(); ++it){
-            if(gen.uniform() <= 0.5) rule.l_vals.insert(*it);
+            //if(gen.uniform() <= 0.5) rule.l_vals.insert(*it);
+            if(gen.uniform() <= tmp_prob) rule.l_vals.insert(*it);
             else rule.r_vals.insert(*it);
           }
           ++(rule_counter);
@@ -648,6 +659,81 @@ void get_unique_edges(std::vector<edge> &edges)
   }
   edges.clear();
   for(std::vector<edge>::iterator it = unik_edges.begin(); it != unik_edges.end(); ++it) edges.push_back(edge(it->source, it->sink, it->weight));
+}
+
+arma::mat get_adjacency_matrix(edge_map emap){
+  // adjacency matrix uses the indices 0 --> n_vertex-1
+  // we need a mapping from our actual vertices (given by the keys of emap)
+  // to the indices of the adjacency matrix
+  
+  int n_vertex = emap.size();
+  std::map<int, int> vertex_index_map;
+  int v_counter = 0;
+  for(std::map<int, std::vector<edge>>::iterator v_it = emap.begin(); v_it != emap.end(); ++v_it){
+    vertex_index_map.insert(std::pair<int,int>(v_it->first, v_counter));
+    ++v_counter;
+  }
+  arma::mat A = arma::zeros<arma::mat>(n_vertex, n_vertex);
+  
+  int source_index;
+  int sink_index;
+  
+  for(std::map<int, std::vector<edge>>::iterator v_it = emap.begin(); v_it != emap.end(); ++v_it){
+    source_index = vertex_index_map.find(v_it->first)->second;
+    for(std::vector<edge>::iterator e_it = v_it->second.begin(); e_it != v_it->second.end(); ++e_it){
+      if(source_index != vertex_index_map.find(e_it->source)->second){
+        Rcpp::stop("Something wrong with edge indexing!");
+      }
+      sink_index = vertex_index_map.find(e_it->sink)->second;
+      A(source_index, sink_index) = e_it->weight;
+    }
+  }
+  return(A);
+}
+
+arma::mat floydwarshall(std::vector<edge> &edges, std::set<int> &vertices)
+{
+  // get symmetric edge map
+  edge_map emap;
+  build_symmetric_edge_map(emap, edges, vertices);
+  
+  // at this point indices run from 0 to (n_vertex-1)
+  // we need lookup tables
+  std::map<int,int> vertex_index_map;
+  std::map<int,int> index_vertex_map;
+  int v_counter = 0;
+  for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it){
+    vertex_index_map.insert(std::pair<int,int>(*v_it, v_counter));
+    index_vertex_map.insert(std::pair<int,int>(v_counter, *v_it));
+    ++v_counter;
+  }
+  
+  int n_vertex = vertices.size(); // number of vertices
+  //arma::mat A = get_adjacency_matrix(emap);
+  
+  
+  
+  arma::mat D = get_adjacency_matrix(emap);
+  D.elem(arma::find(D == 0)).fill(pow(n_vertex, 2.0));
+  D.diag().zeros();
+  
+  for(int k = 0; k < n_vertex; ++k){
+    //Rcpp::Rcout << "Starting k = " << k << std::endl;
+    for(int i = 0; i < n_vertex; ++i){
+      for(int j = 0; j < n_vertex; ++j){
+        //Rcpp::Rcout << "i = " << i << "j = " << j << "D(i,j) = " << D(i,j);
+        //Rcpp::Rcout << " val = " << D(i,k) + D(k,j) << std::endl;
+        if(D(i,j) > D(i,k) + D(k,j)){
+          //Rcpp::Rcout << "Found shorter path!" << std::endl;
+          D(i,j) = D(i,k) + D(k,j);
+        }
+        
+      }
+      //Rcpp::Rcout << std::endl;
+    }
+  }
+  return(D);
+  
 }
 
 void boruvka(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int> &vertices)
@@ -905,104 +991,177 @@ void wilson(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int
   }
 }
 
-void percolation(std::set<int> &l_vals, std::set<int> &r_vals, int rounds, double threshold, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen)
+/*
+void hotspot(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen, bool debug)
 {
   // first we need our edge map
   edge_map emap;
   build_symmetric_edge_map(emap, edges, vertices);
   
-  // pick a seed for the percolation
-  int seed_index = floor(vertices.size() * gen.uniform());
-  std::set<int>::iterator seed_it = vertices.begin();
-  std::advance(seed_it, seed_index);
   
-  //Rcpp::Rcout << vertex_subset(seed_index) << " " << *seed_it << std::endl;
-  
-  std::vector<int> perc_front(1, *seed_it); // put seed_it
-  
-  std::map<int,bool> visited;
-  for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it) visited.insert(std::pair<int,bool>(*v_it, false));
-  visited.find(*seed_it)->second = true; // mark the seed as having been visited by our percolation process
-  
-  std::vector<int> next_front;
-  int r = 0;
-  bool keep_percolating = true;
-  
-  // this will eventually get wrapped by a while loop
-  //Rcpp::Rcout << "seed node = " << *seed_it << std::endl;
-  
-  while( (r < rounds) && keep_percolating){
-    //Rcpp::Rcout << "  Round" << r << std::endl;
-    // loop over everything in perc_front
-    for(std::vector<int>::iterator v_it = perc_front.begin(); v_it != perc_front.end(); ++v_it){
-      // now loop over all edges incident to *v_it
-      //Rcpp::Rcout << "    Starting percolation from vertex " << *v_it << std::endl;
-      edge_map_it em_it = emap.find(*v_it); // em_it points to vector of edges with source == *v_it
-      if(em_it == emap.end()){
-        Rcpp::Rcout << "we done goofed with our emap" << std::endl;
-        Rcpp::stop("oops!");
-      } else{
-        for(std::vector<edge>::iterator e_it = em_it->second.begin(); e_it != em_it->second.end(); ++e_it){
-          //Rcpp::Rcout << "    Trying edge from " << e_it->source << " to " << e_it->sink;
-          if(visited.find(e_it->sink)->second) {
-            //Rcpp::Rcout << " already visited" << std::endl;
-          }
-          else{
-            if(gen.uniform() < threshold){
-              // percolation successful!
-              //Rcpp::Rcout << "    success!" << std::endl;
-              visited.find(e_it->sink)->second = true; // mark the sink of edge *e_it as visited!
-              next_front.push_back(e_it->sink);
-            } else{
-              //Rcpp::Rcout << "    failed!" << std::endl;
-            }
-          }
-        } // closes loop over edges from *v_it
-      } // closes if/else making sure that *v_it is a key in our edge_map
-    } // closes loop over all elements of perc_front
-    
-    // now we update perc_front
-    if(next_front.size() == 0) keep_percolating = false;
-    else{
-      keep_percolating = true;
-      // update the value of perc_front: just copy over the values of next_front into it
-      perc_front.clear();
-      for(std::vector<int>::iterator v_it = next_front.begin(); v_it != next_front.end(); ++v_it) perc_front.push_back(*v_it);
-      next_front.clear();
-    }
-    r++;
-  } // closes main while loop
-  
-  l_vals.clear();
-  r_vals.clear();
-  
-  for(std::map<int, bool>::iterator visit_it = visited.begin(); visit_it != visited.end(); ++visit_it){
-    if(visit_it->second) l_vals.insert(visit_it->first);
-    else r_vals.insert(visit_it->first);
+  //std::map<int,int> vertex_index_map;
+  std::map<int,int> index_vertex_map;
+  int v_counter = 0;
+  for(std::map<int,std::vector<edge>>::iterator v_it = emap.begin(); v_it != emap.end(); ++v_it){
+    //vertex_index_map.insert(std::pair<int,int>(v_it->first, v_counter));
+    index_vertex_map.insert(std::pair<int,int>(v_counter, v_it->first));
+    ++v_counter;
   }
   
-  if(l_vals.size() == 0 || r_vals.size() == 0){
-    Rcpp::Rcout << "[percolation]: somehow one of l_vals and r_vals has size 0" << std::endl;
-    Rcpp::Rcout << "  avail_levels has size " << vertices.size() << std::endl;
-    Rcpp::Rcout << "   seed = " << *seed_it << std::endl;
+  int n_vertex = vertices.size();
+  arma::mat D = floydwarshall(edges, vertices);
+  
+  int seed_index = floor(gen.uniform() * n_vertex);
+  int max_dist = pow(n_vertex, 2);
+  int radius = 1;
+  std::vector<double> radius_probs;
+  
+  int attempt = 0;
+  int max_attempt = 10;
+  bool trivial_split = true;
+  
+  while( (attempt < max_attempt) && trivial_split){
+    if(debug) Rcpp::Rcout << "[hotspot]: Starting attempt = " << attempt << std::endl;
+    seed_index = floor(gen.uniform() * n_vertex); // seed of the hotspot
+    if(debug) Rcpp::Rcout << "  seed = " << seed_index << std::endl;
+    max_dist = D.col(seed_index).max(); // maximum distance in graph from hotspot seed
     
-    Rcpp::Rcout << " printing visited" << std::endl;
-    for(std::map<int, bool>::iterator visit_it = visited.begin(); visit_it != visited.end(); ++visit_it){
-      Rcpp::Rcout << " node " << visit_it->first << " " << visit_it->second << std::endl;
-      //if(visit_it->second) l_vals.insert(visit_it->first);
-      //else r_vals.insert(visit_it->first);
+    if(max_dist == 1){
+      // everything is at distance 1 from hotspot seed
+      // we set radius = 1 so that l_vals contains all vertices & r_vals contains none
+      // note: this is a trivial split.
+      trivial_split = true;
+      radius = 1;
+    } else if(max_dist == 2){
+      // there is a vertex at distance 2 from hotspot seed
+      // we will set radius = 1 so that
+      //   l_vals contains seed + its neighbors
+      //   r_vals contains at least one other vertex
+      // this results in a non-trivial splitting rule so we can set trivial_split = false
+      trivial_split = false;
+      radius = 1;
+    } else{
+      // we have options for the radius.
+      // P(radius = r) = 0.5^r for r = 1, 2, ..., max_dist - 2; residual prob for r = max_dist - 1
+      trivial_split = false;
+      radius_probs.clear();
+      radius_probs.resize(max_dist-1);
+      radius_probs[max_dist-2] = 1.0;
+      for(int r = 0; r < max_dist-2; ++r){
+        radius_probs[r] = pow(0.5,r+1);
+        radius_probs[max_dist-2] -= pow(0.5, r+1);
+      }
+      if(debug){
+        if(debug) Rcpp::Rcout << "  radius probabilities:";
+        for(int r = 0; r < max_dist-1; ++r) Rcpp::Rcout << " " << radius_probs[r];
+        Rcpp::Rcout << std::endl;
+      }
+      radius = gen.categorical(radius_probs) + 1; // without +1, we will get radius of 0 sometimes...
+    }
+    if(debug) Rcpp::Rcout << "  radius = " << radius << std::endl;
+    
+    l_vals.clear();
+    r_vals.clear();
+    
+    arma::uvec l_index = arma::find(D.col(seed_index) <= radius);
+    for(int ix = 0; ix < l_index.size(); ++ix){
+      l_vals.insert(index_vertex_map.find(l_index(ix))->second);
+    }
+    for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it){
+      if(l_vals.count(*v_it) == 0) r_vals.insert(*v_it);
     }
     
+    ++attempt;
+  }
+}
+*/
+void delete_unif_edge(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen){
+  
+  //std::vector<double> cut_probs(;
+  //for(std::vector<edge>::iterator e_it = edges.begin(); e_it != edges.end(); ++e_it){
+  //  cut_probs.push_back(e_it->weight);
+  //}
+  //int cut_index = gen.categorical(cut_probs);
+  int cut_index = floor(gen.uniform() * edges.size()); // pick index of edge to be deleted uniformly
+  
+  std::vector<edge> cut_edges;
+  for(int e = 0; e < edges.size(); e++){
+    if(e != cut_index) cut_edges.push_back(edges[e]);
+  }
+  std::vector<std::vector<int> > cut_components;
+  find_components(cut_components, cut_edges, vertices);
+  if(cut_components.size() != 2){
+    Rcpp::Rcout << "[delete_unif_edge]: Attempted to partition connected subgraph by deleting an edge" << std::endl;
+    Rcpp::Rcout << "   Resulting graph does not have 2 components. supplied graph might not have been a tree" << std::endl;
+    Rcpp::Rcout << "  Returning empty l_vals and r_vals!" << std::endl;
+    //Rcpp::stop("error in cutting edge from spanning tree");
+    // return empty l_vals and r_vals and handle this exception in a higher function
+    l_vals.clear();
+    r_vals.clear();
+  } else{
+    l_vals.clear();
+    r_vals.clear();
+    for(std::vector<int>::iterator it = cut_components[0].begin(); it != cut_components[0].end(); ++it) l_vals.insert(*it);
+    for(std::vector<int>::iterator it = cut_components[1].begin(); it != cut_components[1].end(); ++it) r_vals.insert(*it);
+  } // closes if/else checking that we have 2 connected components after deleting edge from spanning tree
+}
+
+void signcheck_split(std::set<int> &l_vals, std::set<int> &r_vals,
+                std::vector<edge> &edges, std::set<int> &vertices)
+{
+  // first we need our edge map
+  edge_map emap;
+  build_symmetric_edge_map(emap, edges, vertices);
+  
+  std::map<int,int> vertex_index_map;
+  std::map<int,int> index_vertex_map;
+  int v_counter = 0;
+  for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it){
+    vertex_index_map.insert(std::pair<int,int>(*v_it, v_counter));
+    index_vertex_map.insert(std::pair<int,int>(v_counter, *v_it));
+    ++v_counter;
+  }
+  
+  int n_vertex = vertices.size();
+  
+  // get adjacency matrix
+  arma::mat A = get_adjacency_matrix(emap);
+  arma::mat D = arma::zeros<arma::mat>(n_vertex, n_vertex);
+  for(int i = 0; i < n_vertex; ++i) D(i,i) = arma::accu(A.row(i));
+  arma::mat L = D - A;
+  
+  arma::vec eigval;
+  arma::mat eigvec;
+  bool eigen = arma::eig_sym(eigval, eigvec, L);
+    
+  if(eigen){
+    arma::uvec lval_index = arma::find(eigvec.col(1) < 0);
+    l_vals.clear();
+    for(int ix = 0; ix < lval_index.size(); ++ix){
+      l_vals.insert(index_vertex_map.find(lval_index(ix))->second);
+    }
+    for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it){
+      if(l_vals.count(*v_it) == 0) r_vals.insert(*v_it);
+    }
+   
+  } else{
+    Rcpp::Rcout << "[signcheck_split]: Eigendecomposition failed. Returning empty l_vals and r_vals" << std::endl;
+    l_vals.clear();
+    r_vals.clear();
   }
   
 }
-
-void graph_partition(std::set<int> &avail_levels, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges, int &K, int &cut_type, int &perc_rounds, double &perc_threshold, RNG &gen)
+/*
+ cut_type = 0: randomly pick one of the processes
+ cut_type = 1: wilson + delete uniform edge
+ cut_type = 2: wilson + partition based on sign of 2nd eigenvector of Laplacian
+ cut_type = 3: just do cut based on sign of 2nd eigenvector Laplacian
+ cut_type = 4: hotspot (not supported yet)
+ */
+void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges,std::set<int> &avail_levels, int &cut_type, RNG &gen)
 {
   // get the edges for the induced subgraph
   std::vector<edge> edges = get_induced_edges(orig_edges, avail_levels);
-  
-
   
   // check if the induced subgraph is connected
   std::vector<std::vector<int> > components;
@@ -1033,51 +1192,29 @@ void graph_partition(std::set<int> &avail_levels, std::set<int> &l_vals, std::se
       Rcpp::stop("[graph partition]: graph disconnected. failed to generate a non-trivial partiton of components in 1000 attempts!");
     }
   } else{
-    // induced subgraph is connected and we can form a partition
-    if(cut_type <= 1){
-      std::vector<edge> mst_edges;
-      if(cut_type == 0) wilson(mst_edges, edges, avail_levels, gen);
-      else{
-        // need to assign random weights to each edge
-        for(std::vector<edge>::iterator e_it = edges.begin(); e_it != edges.end(); ++e_it) e_it->weight = gen.uniform();
-        boruvka(mst_edges, edges, avail_levels);
-      }
-      
-      if(mst_edges.size() == 0){
-        // something failed in Wilson or Boruvka algorithm, we should stop
-        Rcpp::stop("[graph_partition]: unable to compute the random spanning tree. Quitting now!");
-      } else{
-        int cut_index = 0;
-        std::vector<double> cut_probs;
-        for(std::vector<edge>::iterator e_it = mst_edges.begin(); e_it != mst_edges.end(); ++e_it){
-          cut_probs.push_back(e_it->weight);
-        }
-        cut_index = gen.categorical(cut_probs);
-        std::vector<edge> cut_mst_edges;
-        for(int e = 0; e < mst_edges.size(); e++){
-          if(e != cut_index) cut_mst_edges.push_back(mst_edges[e]);
-        }
-        std::vector<std::vector<int> > cut_components;
-        find_components(cut_components, cut_mst_edges, avail_levels);
-        
-        if(cut_components.size() != 2){
-          Rcpp::Rcout << "[graph_partition]: Attempted to partition connected subgraph by cutting a random spanning tree" << std::endl;
-          Rcpp::Rcout << "   but after deleting edge from the spanning tree, resulting graph does not have 2 components. something is wrong" << std::endl;
-          Rcpp::stop("error in cutting edge from spanning tree");
-        } else{
-          l_vals.clear();
-          r_vals.clear();
-          for(std::vector<int>::iterator it = cut_components[0].begin(); it != cut_components[0].end(); ++it) l_vals.insert(*it);
-          for(std::vector<int>::iterator it = cut_components[1].begin(); it != cut_components[1].end(); ++it) r_vals.insert(*it);
-        } // closes if/else checking that we have 2 connected components after deleting edge from spanning tree
-      } // closes if/else checking that our spanning tree search was successful
-    } else if(cut_type == 2){
-      // do a percolative split
-      percolation(l_vals, r_vals, perc_rounds, perc_threshold, edges, avail_levels, gen);
+    // induced subgraph is connected and we try to partition it
+    int tmp_cut_type = cut_type;
+    while(tmp_cut_type == 0){
+      tmp_cut_type = floor(gen.uniform() * 3.0) + 1; // uniform on the set 1, 2, 3
+    }
+    if(tmp_cut_type == 1 || tmp_cut_type == 2){
+      std::vector<edge> ust_edges;
+      wilson(ust_edges, edges, avail_levels, gen);
+      if(tmp_cut_type == 1) delete_unif_edge(l_vals, r_vals, ust_edges, avail_levels, gen);
+      else signcheck_split(l_vals, r_vals, ust_edges, avail_levels);
+    } else if(tmp_cut_type == 3){
+      signcheck_split(l_vals, r_vals, edges, avail_levels);
     } else{
-      Rcpp::Rcout << "[graph_partition]: cut_type argument is " << cut_type << std::endl;
-      Rcpp::stop("cut_type argument must be 0, 1, or 2");
-    } // cloeses if/else checking the cut type
+      // should never hit this
+      Rcpp::Rcout << "[graph_partition]: tmp_cut_type = " << tmp_cut_type << std::endl;
+      Rcpp::stop("tmp_cut_type should never exceed 3!");
+    } // closes if/else checking tmp_cut_type
+    
+    if(l_vals.size() == 0 || r_vals.size() == 0){
+      Rcpp::Rcout << "[graph_partition]: one of l_vals or r_vals contains no elements. something is wrong" << std::endl;
+      Rcpp::stop("could not generate nontrivial graph partition!");
+    }
+    
   } // closes if/else checking whether the graph induced by avail_levels is connected or not
 }
 
@@ -1141,65 +1278,4 @@ void update_theta_rc(double& theta_rc, int &rc_var_count, int &rc_rule_count, do
   if(gen.log_uniform() < log_alpha) theta_rc = theta_prop;
   else theta_rc = theta_orig;
 }
-
-/* eventually we will add this functionality back in.
-
-
-void update_theta_u_cat(std::vector<double> &theta_cat, std::vector<int> &cat_var_count, double &u_cat, double& a_cat, double& b_cat, int &p_cat, RNG &gen)
-{
-  // stuff for updating theta
-  double tmp_sum = 0.0;
-  int v_count = 0;
-  double tmp_concentration = 0.0;
-  std::vector<double> tmp_gamma(p_cat);
-  
-  // stuff for updating u
-  double u_prop = 0.0;
-  double u_orig = 0.0;
-  double sum_log_theta = 0.0;
-  double log_like_prop = 0.0;
-  double log_like_orig = 0.0;
-  double log_accept = 0.0;
-  
-  u_orig = u_cat;
-  for(int j = 0; j < p_cat; j++){
-    v_count = cat_var_count[j];
-    tmp_concentration = u_orig/(1.0 - u_orig) + (double) v_count;
-    tmp_gamma[j] = gen.gamma(tmp_concentration, 1.0);
-    tmp_sum += tmp_gamma[j];
-  }
-  for(int j = 0; j < p_cat; j++){
-    theta_cat[j] = tmp_gamma[j]/tmp_sum;
-    sum_log_theta += log(theta_cat[j]);
-  }
-  
-  u_prop = gen.beta(a_cat, b_cat);
-  log_like_prop = (u_prop)/(1.0 - u_prop) * sum_log_theta;
-  log_like_prop += lgamma( ((double) p_cat) * u_prop/(1.0 - u_prop)) - ((double) p_cat) * lgamma(u_prop/(1.0 - u_prop));
-  
-  log_like_orig = (u_orig)/(1.0 - u_orig) * sum_log_theta;
-  log_like_orig += lgamma( ((double) p_cat) * u_orig/(1.0 - u_orig)) - ( (double) p_cat) * lgamma(u_orig/(1.0 - u_orig));
-  
-  log_accept = log_like_prop - log_like_orig;
-  if(log_accept >= 0.0) log_accept = 0.0;
-  if(gen.log_uniform() <= log_accept) u_cat = u_prop;
-  else u_cat = u_orig;
-}
- 
- 
- 
- void update_theta_cont(std::vector<double> &theta_cont, std::vector<int> &cont_var_count, int &cont_rule_count, double &a_cont, double &b_cont, int &p_cont, RNG &gen)
- {
-   if(theta_cont.size() != p_cont) Rcpp::stop("[update_theta_cont]: theta_cont must have size p_cont");
-   double a_post = a_cont;
-   double b_post = b_cont;
-   for(int j = 0; j < p_cont; j++){
-     a_post = a_cont + (double) cont_var_count[j];
-     b_post = b_cont + (double)(cont_rule_count - cont_var_count[j]);
-     theta_cont[j] = gen.beta(a_post, b_post);
-   }
-   
- }
-*/
-
 

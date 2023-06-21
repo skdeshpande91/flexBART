@@ -1,7 +1,7 @@
 ---
 title: "timing_comparison"
 output: rmarkdown::github_document
-date: '2022-06-24'
+date: '2023-05-12'
 ---
 
 ```{r setup, include=FALSE}
@@ -52,17 +52,6 @@ timing <- c("flexBART" = NA, "BART" = NA)
 
 We're now ready to run both `BART::wbart` and `flexBART::flexBART`. Note that we have hidden the printed output.
 
-```{r flex_fit, results = 'hide'}
-flex_time <-
-  system.time(
-    flex_fit <- 
-      flexBART::flexBART(Y_train = y, 
-                         X_cont_train = X, X_cont_test = X_test))
-rmse_train["flexBART"] <- sqrt(mean( (mu - flex_fit$yhat.train.mean)^2 ))
-rmse_test["flexBART"] <- sqrt(mean( (mu_test - flex_fit$yhat.test.mean)^2 ))
-timing["flexBART"] <- flex_time["elapsed"]
-```
-
 ```{r bart_fit, results = 'hide'}
 bart_time <-
   system.time(
@@ -74,6 +63,20 @@ rmse_test["BART"] <- sqrt(mean( (mu_test - bart_fit$yhat.test.mean)^2 ))
 timing["BART"] <- bart_time["elapsed"]
 
 ```
+
+
+```{r flex_fit, results = 'hide'}
+flex_time <-
+  system.time(
+    flex_fit <- 
+      flexBART::flexBART(Y_train = y, 
+                         X_cont_train = X, X_cont_test = X_test))
+rmse_train["flexBART"] <- sqrt(mean( (mu - flex_fit$yhat.train.mean)^2 ))
+rmse_test["flexBART"] <- sqrt(mean( (mu_test - flex_fit$yhat.test.mean)^2 ))
+timing["flexBART"] <- flex_time["elapsed"]
+```
+
+
 
 
 ```{r performance, results = 'hold'}
