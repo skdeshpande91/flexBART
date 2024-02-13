@@ -22,6 +22,7 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
   if(nxp == 0){
     // nx is the root node so transition always propose growing it
     q_grow_old = 1.0; //
+    nnog_new = 1; // nx has no grandchildren in new tree
   } else if(nxp->is_nog()){
     // parent of nx has no grandchildren in old tree
     // in new tree nxp has grandchildren but nx does not
