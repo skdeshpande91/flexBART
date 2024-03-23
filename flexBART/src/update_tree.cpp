@@ -151,7 +151,7 @@ void draw_mu(tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_in
 
 
 
-void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   
   std::vector<int> bn_nid_vec; // vector to hold the id's of all of the bottom nodes in the tree
@@ -235,9 +235,11 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
     ++(*tree_pi.rule_count); // increment running count of total number of splitting rules
     if(!rule.is_cat){
       ++(tree_pi.var_count->at(rule.v_aa)); // in our bookkeeping, continuous variables come first
+      ++(rule_diag.aa_prop);
     } else {
       int v_raw = rule.v_cat + di_train.p_cont;
       ++(tree_pi.var_count->at(v_raw));
+      ++(rule_diag.cat_prop);
     }
    
     // we need to update ss, the sufficient statistic object
@@ -279,6 +281,13 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
     accept = 1;
   } else{
     accept = 0;
+    if(!rule.is_cat){
+      ++rule_diag.aa_prop;
+      ++rule_diag.aa_rej;
+    } else{
+      ++rule_diag.cat_prop;
+      ++rule_diag.cat_rej;
+    }
     // don't do anything with rule counters or variable splitting counters etc.
   }
 }
@@ -390,13 +399,13 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, d
   }
 }
 
-void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   accept = 0; // initialize indicator of MH acceptance to 0 (reject)
   double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
   if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
   
-  if(gen.uniform() < PBx) grow_tree(t, ss_train, ss_test, accept, sigma, di_train, di_test,tree_pi, gen);
+  if(gen.uniform() < PBx) grow_tree(t, ss_train, ss_test, accept, rule_diag, sigma, di_train, di_test,tree_pi, gen);
   else prune_tree(t, ss_train, ss_test, accept, sigma, di_train, di_test, tree_pi, gen);
 
   // by this point, the decision tree has been updated so we can draw new jumps.

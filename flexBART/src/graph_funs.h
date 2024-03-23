@@ -37,4 +37,4 @@ void signcheck_split(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<e
 void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges, std::set<int> &avail_levels, int &cut_type, RNG &gen);
 
 
-#endif /* funs_h */
+#endif /* graph_funs_h */

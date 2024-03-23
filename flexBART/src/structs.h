@@ -65,6 +65,18 @@ public:
   }
 };
 
+// structure for diagnostics tracking how often we propose/reject certain types of rules
+struct rule_diag_t{
+  int aa_prop;
+  int aa_rej;
+  int cat_prop;
+  int cat_rej;
+  int obl_prop;
+  int obl_rej;
+  rule_diag_t(){aa_prop = 0; aa_rej = 0; cat_prop = 0; cat_rej = 0; obl_prop = 0; obl_rej = 0;}
+  void reset(){aa_prop = 0; aa_rej = 0; cat_prop = 0; cat_rej = 0; obl_prop = 0; obl_rej = 0;}
+};
+
 // class holding data dimensions and pointers to the covariate data
 class data_info{
 public:
