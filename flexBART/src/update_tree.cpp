@@ -6,7 +6,6 @@ void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat,
   double* xx_cont;
   int* xx_cat;
   int i;
-  double tmp_x;
   int l_count;
   int r_count;
   

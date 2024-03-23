@@ -112,10 +112,7 @@ void read_tree(tree &t, std::string &tree_string, set_str_conversion &set_str)
   //char aa; // '0' or '1' for rule.is_aa
   char cat; // '0' or '1' for rule.is_cat
   rule_t tmp_rule; // temporary rule that gets populated as we read the tree's string/stream
-  
-  int tmp_v; // for reading in rc weights
-  double tmp_phi; // for reading in rc weights
-  
+    
   int K; // tells us how many levels there were to the categorical variable
   std::string l_hex; // string representation of the l_vals in a categorical rule
   std::string r_hex; // string representation of the r_vals in a categorical rule

@@ -31,8 +31,6 @@ rnetwork_BART <- function(M, vertex_id,
                               edge_mat_list = edge_mat_list,
                               graph_split = graph_split,
                               graph_cut_type = graph_cut_type,
-                              a_cat = 0, b_cat = 0,
-                              rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
                               alpha = alpha, beta = beta,
                               mu0 = mu0, tau = tau, M = M,
                               verbose = verbose, print_every = print_every)

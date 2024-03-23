@@ -1,5 +1,6 @@
 #include "draw_tree.h"
-
+#include "data_parsing_funs.h"
+#include "funs.h"
 
 Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
                     Rcpp::IntegerMatrix tX_cat,

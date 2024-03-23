@@ -1,6 +1,6 @@
 Estimating a piecewise-constant signal on the 2d lattice
 ================
-2023-05-12
+2024-03-31
 
 ## Overview
 
@@ -181,10 +181,10 @@ print(round(rmse_test, digits = 3))
 
     ## [1] "RMSE over training vertices:"
     ## flexBART     BART 
-    ##    0.331    0.436 
+    ##    0.322    0.435 
     ## [1] "RMSE over held-out vertices:"
     ## flexBART     BART 
-    ##    1.399    4.753
+    ##    1.772    4.753
 
 To get a better idea of the differences, we can plot the estimated
 ![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")’s

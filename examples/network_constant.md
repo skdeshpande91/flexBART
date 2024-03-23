@@ -1,6 +1,6 @@
 network_constant
 ================
-2022-06-24
+2024-03-31
 
 ## Overview
 
@@ -222,13 +222,13 @@ print(round(timing, digits = 3))
 
     ## [1] "RMSE over training vertices:"
     ## flexBART     BART 
-    ##    0.246    0.490 
+    ##    0.244    0.499 
     ## [1] "RMSE over held-out vertices:"
     ## flexBART     BART 
-    ##    0.234    2.425 
+    ##    0.342    2.433 
     ## [1] "Timing:"
     ## flexBART     BART 
-    ## 1594.514   28.445
+    ## 1111.737   27.930
 
 To get a better idea of the differences, we can plot the estimated
 ![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")’s

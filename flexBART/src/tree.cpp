@@ -206,7 +206,6 @@ tree::tree_p tree::get_ptr(int nid)
 tree::tree_cp tree::get_bn(double* x_cont, int* x_cat)
 {
   if(!l) return this; // node has no left child, so it must be a leaf
-  double tmp_x = 0.0;
   int l_count = 0;
   int r_count = 0;
   
