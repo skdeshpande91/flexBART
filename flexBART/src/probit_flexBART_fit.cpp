@@ -98,6 +98,7 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
   std::vector<double> theta(p, 1.0/ (double) p);
   double u = 1.0/(1.0 + (double) p);
   std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
+  int rule_count = 0; // how many total decision rules are there in the ensemble
 
   tree_prior_info tree_pi;
   tree_pi.theta = &theta;
@@ -224,6 +225,7 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
     
     // loop over trees
     total_accept = 0;
+    rule_diag.reset();
     for(int m = 0; m < M; m++){
       for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
         // loop over the bottom nodes in m-th tree
@@ -239,7 +241,7 @@ Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train,
         }
       } // this whole loop is O(n)
       
-      update_tree(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
+      update_tree(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, rule_diag, sigma, di_train, di_test, tree_pi, gen); // update the tree
       total_accept += accept;
     
       // now we need to update the value of allfit

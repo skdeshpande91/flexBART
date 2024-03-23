@@ -211,6 +211,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     
     // loop over trees
     total_accept = 0;
+    rule_diag.reset();
     for(int m = 0; m < M; m++){
       for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
         // loop over the bottom nodes in m-th tree

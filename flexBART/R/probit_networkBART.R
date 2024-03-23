@@ -76,8 +76,6 @@ probit_networkBART <- function(Y_train,
                               edge_mat_list = edge_mat_list,
                               graph_split = graph_split,
                               graph_cut_type = graph_cut_type,
-                              a_cat = 0, b_cat = 0,
-                              rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
                               sparse = sparse, a_u = 0.5, b_u = 1,
                               mu0 = mu0, tau = tau, 
                               M = M, nd = nd, burn = burn, thin = thin,
@@ -99,6 +97,13 @@ probit_networkBART <- function(Y_train,
     colnames(varcounts) <- pred_names
   }
   results[["varcounts"]] <- varcounts
+  results[["diag"]] <- 
+    list(total_accept = fit$total_accept,
+         aa_proposed = fit$aa_proposed,
+         aa_rejected = fit$aa_rejected,
+         cat_proposed = fit$cat_proposed,
+         cat_rejected = fit$cat_rejected)
+  
   if(save_trees) results[["trees"]] <- fit$trees
   results[["is.probit"]] <- TRUE
   return(results)

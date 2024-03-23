@@ -60,8 +60,11 @@ void draw_cat_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_in
   }
 }
 
-draw_aa_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen)
+void draw_aa_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen)
 {
+  double c_upper = 1.0;
+  double c_lower = -1.0;
+  tree::tree_p nx = t.get_ptr(nid); // at what node are we proposing this rule.
   if(tree_pi.unif_cuts[rule.v_aa] == 0){
     // draw the cutpoint from the supplied cutpoints
     c_lower = *(tree_pi.cutpoints->at(rule.v_aa).begin()); // returns smallest element in set
@@ -106,8 +109,6 @@ draw_aa_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tr
     
   } else{
     // draw cutpoints uniformly
-    c_upper = 1.0;
-    c_lower = -1.0;
     nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
     if(c_lower >= c_upper){
       c_lower = -1.0;

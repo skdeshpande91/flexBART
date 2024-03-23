@@ -1,10 +1,3 @@
-//
-//  rflexbart.cpp
-//  
-//
-//  Created by Sameer Deshpande on 1/20/22.
-//
-
 #include "draw_tree.h"
 
 
@@ -15,8 +8,6 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
                     Rcpp::Nullable<Rcpp::List> cat_levels_list,
                     Rcpp::Nullable<Rcpp::List> edge_mat_list,
                     Rcpp::LogicalVector graph_split, int graph_cut_type,
-                    double a_cat, double b_cat,
-                    bool rc_split, double prob_rc, double a_rc, double b_rc,
                     double alpha, double beta,
                     double mu0, double tau)
 {
@@ -68,12 +59,6 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   // double u = 1.0/(1.0 + (double) p); unused. consider adding back in if we turn on sparse
   std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
   int rule_count = 0; // how many total decision rules are there in the ensemble
-  int rc_rule_count = 0; // how many random combination rules are there in the ensemble
-  int rc_var_count = 0; // only when we are using random combination rules
-  double theta_rc = 0.0; // prob of including a variable in a random combination rule
-  if(p_cont >= 2 && rc_split){
-    theta_rc = 2.0/( (double) p_cont);
-  }
   
   tree_prior_info tree_pi;
   tree_pi.alpha = alpha;
@@ -94,11 +79,6 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
     tree_pi.graph_split = graph_split.begin();
     tree_pi.graph_cut_type = graph_cut_type;
   }
-  tree_pi.rc_split = rc_split;
-  tree_pi.prob_rc = &prob_rc;
-  tree_pi.theta_rc = &theta_rc;
-  tree_pi.rc_var_count = &rc_var_count;
-  tree_pi.rc_rule_count = &rc_rule_count;
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;
   
@@ -140,8 +120,6 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
                         Rcpp::Nullable<Rcpp::List> cat_levels_list,
                         Rcpp::Nullable<Rcpp::List> edge_mat_list,
                         Rcpp::LogicalVector graph_split, int graph_cut_type,
-                        double a_cat, double b_cat,
-                        bool rc_split, double prob_rc, double a_rc, double b_rc,
                         double alpha, double beta,
                         double mu0, double tau, int M,
                         bool verbose, int print_every)
@@ -194,12 +172,6 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   //double u = 1.0/(1.0 + (double) p); // unused; consider adding it back in if we turn on sparse
   std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
   int rule_count = 0; // how many total decision rules are there in the ensemble
-  int rc_rule_count = 0; // how many random combination rules are there in the ensemble
-  int rc_var_count = 0; // only when we are using random combination rules
-  double theta_rc = 0.0; // prob of including a variable in a random combination rule
-  if(p_cont >= 2 && rc_split){
-    theta_rc = 2.0/( (double) p_cont);
-  }
   
   tree_prior_info tree_pi;
   tree_pi.alpha = alpha;
@@ -219,14 +191,7 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
     tree_pi.K = &K;
     tree_pi.graph_split = graph_split.begin();
     tree_pi.graph_cut_type = graph_cut_type;
-    tree_pi.a_cat = a_cat;
-    tree_pi.b_cat = b_cat;
   }
-  tree_pi.rc_split = rc_split;
-  tree_pi.prob_rc = &prob_rc;
-  tree_pi.theta_rc = &theta_rc;
-  tree_pi.rc_var_count = &rc_var_count;
-  tree_pi.rc_rule_count = &rc_rule_count;
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;
   

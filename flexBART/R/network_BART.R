@@ -123,6 +123,13 @@ network_BART <- function(Y_train,
     colnames(varcounts) <- pred_names
   }
   results[["varcounts"]] <- varcounts
+  results[["diag"]] <- 
+    list(total_accept = fit$total_accept,
+         aa_proposed = fit$aa_proposed,
+         aa_rejected = fit$aa_rejected,
+         cat_proposed = fit$cat_proposed,
+         cat_rejected = fit$cat_rejected)
+  
   
   if(save_trees) results[["trees"]] <- fit$trees
   return(results)
