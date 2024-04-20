@@ -1,11 +1,8 @@
-
-
 #ifndef GUARD_graph_funs_h
 #define GUARD_graph_funs_h
 
 #include "structs.h"
 #include "rng.h"
-#include "tree.h"
 
 
 // we will pass a list of Rcpp::NumericMatrices, which are computed using igraph::get_data_frame
@@ -31,10 +28,19 @@ void boruvka(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<in
 void wilson(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen);
 void hotspot(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen, bool debug = false);
 
+void delete_edge(int &cut_index, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices);
+// [SKD]: deprecate delete_unif_edge
 void delete_unif_edge(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen);
-void signcheck_split(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices);
+
+std::vector<double> get_csize_weights(std::vector<edge> &edges, std::set<int> &vertices);
+
+void fiedler_split(std::set<int> &l_vals, std::set<int> &r_vals,
+                   std::vector<edge> &edges, std::set<int> &vertices,
+                   bool &random, RNG &gen);
+
 
 void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges, std::set<int> &avail_levels, int &cut_type, RNG &gen);
 
 
 #endif /* graph_funs_h */
+

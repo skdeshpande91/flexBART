@@ -511,15 +511,9 @@ void wilson(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int
   }
 }
 
-void delete_unif_edge(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen){
-  
-  //std::vector<double> cut_probs(;
-  //for(std::vector<edge>::iterator e_it = edges.begin(); e_it != edges.end(); ++e_it){
-  //  cut_probs.push_back(e_it->weight);
-  //}
-  //int cut_index = gen.categorical(cut_probs);
-  int cut_index = floor(gen.uniform() * edges.size()); // pick index of edge to be deleted uniformly
-  
+
+void delete_edge(int &cut_index, std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices)
+{
   std::vector<edge> cut_edges;
   for(int e = 0; e < edges.size(); e++){
     if(e != cut_index) cut_edges.push_back(edges[e]);
@@ -527,7 +521,7 @@ void delete_unif_edge(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<
   std::vector<std::vector<int> > cut_components;
   find_components(cut_components, cut_edges, vertices);
   if(cut_components.size() != 2){
-    Rcpp::Rcout << "[delete_unif_edge]: Attempted to partition connected subgraph by deleting an edge" << std::endl;
+    Rcpp::Rcout << "[delete_edge]: Attempted to partition connected subgraph by deleting an edge" << std::endl;
     Rcpp::Rcout << "   Resulting graph does not have 2 components. supplied graph might not have been a tree" << std::endl;
     Rcpp::Rcout << "  Returning empty l_vals and r_vals!" << std::endl;
     //Rcpp::stop("error in cutting edge from spanning tree");
@@ -540,11 +534,51 @@ void delete_unif_edge(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<
     for(std::vector<int>::iterator it = cut_components[0].begin(); it != cut_components[0].end(); ++it) l_vals.insert(*it);
     for(std::vector<int>::iterator it = cut_components[1].begin(); it != cut_components[1].end(); ++it) r_vals.insert(*it);
   } // closes if/else checking that we have 2 connected components after deleting edge from spanning tree
+
 }
 
-void signcheck_split(std::set<int> &l_vals, std::set<int> &r_vals,
-                std::vector<edge> &edges, std::set<int> &vertices)
+
+std::vector<double> get_csize_weights(std::vector<edge> &edges, std::set<int> &vertices)
 {
+  int n_edges = edges.size(); // number of edges
+  std::vector<double> csize(n_edges, 0.0);
+  double tmp_sum = 0.0;
+
+  for(int cut_ix = 0; cut_ix < n_edges; ++cut_ix){
+    std::vector<edge> cut_edges;
+    for(int e_ix = 0; e_ix < n_edges; ++e_ix){
+      if(e_ix != cut_ix) cut_edges.push_back(edges[e_ix]);
+    }
+    std::vector<std::vector<int> > cut_components;
+    find_components(cut_components, cut_edges, vertices);
+    if(cut_components.size() != 2){
+      Rcpp::stop("Graph wasn't a spanning tree");
+    } else{
+      csize[cut_ix] = std::min(cut_components[0].size(), cut_components[1].size());
+      tmp_sum += csize[cut_ix];
+    }
+  }
+  
+  for(std::vector<double>::iterator it = csize.begin(); it != csize.end(); ++it) (*it)/= tmp_sum;
+  return csize;
+}
+
+
+/*
+ If A is sparse then we can compute the Fiedler vector quickly
+ using arma::eig_sym(eigval, eigvec, L, 2, "sm")
+ to construct L we need to grind through some sparse matrix construction
+ we can temporarily get
+*/
+
+void fiedler_split(std::set<int> &l_vals, std::set<int> &r_vals,
+                   std::vector<edge> &edges, std::set<int> &vertices,
+                   bool &random, RNG &gen)
+{
+  if(random){
+    // add random uniform weight to each edge
+    for(std::vector<edge>::iterator e_it = edges.begin(); e_it != edges.end(); ++e_it) e_it->weight = gen.uniform();
+  }
   // first we need our edge map
   edge_map emap;
   build_symmetric_edge_map(emap, edges, vertices);
@@ -559,7 +593,6 @@ void signcheck_split(std::set<int> &l_vals, std::set<int> &r_vals,
   }
   
   int n_vertex = vertices.size();
-  
   // get adjacency matrix
   arma::mat A = get_adjacency_matrix(emap);
   arma::mat D = arma::zeros<arma::mat>(n_vertex, n_vertex);
@@ -571,7 +604,7 @@ void signcheck_split(std::set<int> &l_vals, std::set<int> &r_vals,
   bool eigen = arma::eig_sym(eigval, eigvec, L);
     
   if(eigen){
-    arma::uvec lval_index = arma::find(eigvec.col(1) < 0);
+    arma::uvec lval_index = arma::find(eigvec.col(1) < 0.0);
     l_vals.clear();
     for(int ix = 0; ix < lval_index.size(); ++ix){
       l_vals.insert(index_vertex_map.find(lval_index(ix))->second);
@@ -581,19 +614,24 @@ void signcheck_split(std::set<int> &l_vals, std::set<int> &r_vals,
     }
    
   } else{
-    Rcpp::Rcout << "[signcheck_split]: Eigendecomposition failed. Returning empty l_vals and r_vals" << std::endl;
+    Rcpp::Rcout << "[fiedler_split]: Eigendecomposition failed. Returning empty l_vals and r_vals" << std::endl;
     l_vals.clear();
     r_vals.clear();
   }
-  
 }
+
+
+
 /*
  cut_type = 0: randomly pick one of the processes
- cut_type = 1: wilson + delete uniform edge
- cut_type = 2: wilson + partition based on sign of 2nd eigenvector of Laplacian
- cut_type = 3: just do cut based on sign of 2nd eigenvector Laplacian
- cut_type = 4: hotspot
- */
+ cut_type = 1: fiedler on full graph (deterministic)
+ cut_type = 2: fielder on re-weighted graph (random uniform weights)
+ cut_type = 3: wilson + delete uniform edge
+ cut_type = 4: wilson + delete based on largest csize weights
+ cut_type = 5: wilson + delete based on randomly selected edge (csize weight)
+ cut_type = 6: wilson + partition based on sign of Fiedler split of UST
+ cut_type = 7: wilson + partition based on sign of Fiedler split of re-weighted UST
+*/
 void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges,std::set<int> &avail_levels, int &cut_type, RNG &gen)
 {
   // get the edges for the induced subgraph
@@ -631,22 +669,44 @@ void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<e
     // induced subgraph is connected and we try to partition it
     int tmp_cut_type = cut_type;
     while(tmp_cut_type == 0){
-      tmp_cut_type = floor(gen.uniform() * 4.0) + 1; // uniform on the set 1, 2, 3, 4
+      tmp_cut_type = floor(gen.uniform() * 7.0) + 1;
     }
-    if(tmp_cut_type == 1 || tmp_cut_type == 2){
+    if(tmp_cut_type < 3){
+      // compute deterministic Fiedler split (tmp_cut_type == 1) or random (tmp_cut_type == 2)
+      bool reweight = (tmp_cut_type == 2);
+      fiedler_split(l_vals, r_vals, edges, avail_levels, reweight, gen);
+    } else if(tmp_cut_type < 8){
+      // run wilson first and then partition spanning tree
       std::vector<edge> ust_edges;
       wilson(ust_edges, edges, avail_levels, gen);
-      if(tmp_cut_type == 1) delete_unif_edge(l_vals, r_vals, ust_edges, avail_levels, gen);
-      else signcheck_split(l_vals, r_vals, ust_edges, avail_levels);
-    } else if(tmp_cut_type == 3){
-      signcheck_split(l_vals, r_vals, edges, avail_levels);
-    } else if(tmp_cut_type == 4){
-      hotspot(l_vals, r_vals, edges, avail_levels, gen);
+      if(tmp_cut_type <= 5){
+        int cut_index = 0;
+        if(tmp_cut_type == 3) cut_index = floor(gen.uniform() * ust_edges.size());
+        else{
+          std::vector<double> csize_weights = get_csize_weights(ust_edges, avail_levels);
+          if(tmp_cut_type == 4){
+            double max_size = 0.0;
+            for(int ix = 0; ix < csize_weights.size(); ++ix){
+              if(csize_weights[ix] > max_size){
+                max_size = csize_weights[ix];
+                cut_index = ix;
+              }
+            } // closes loop trying to get max csize weight
+          } else{
+            cut_index = gen.categorical(csize_weights);
+          }
+        } // close if/else determining which edge to cut
+        // actually cut edge from the UST
+        delete_edge(cut_index, l_vals, r_vals, ust_edges, avail_levels);
+      } else{
+        bool reweight = (tmp_cut_type == 7);
+        fiedler_split(l_vals, r_vals, ust_edges, avail_levels, reweight, gen);
+      }
     } else{
-      // should never hit this
+      // invalid
       Rcpp::Rcout << "[graph_partition]: tmp_cut_type = " << tmp_cut_type << std::endl;
-      Rcpp::stop("tmp_cut_type should never exceed 4!");
-    } // closes if/else checking tmp_cut_type
+      Rcpp::stop("tmp_cut_type should never exceed 7!");
+    }
     
     if(l_vals.size() == 0 || r_vals.size() == 0){
       Rcpp::Rcout << "[graph_partition]: one of l_vals or r_vals contains no elements. something is wrong" << std::endl;
@@ -654,88 +714,5 @@ void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<e
     }
     
   } // closes if/else checking whether the graph induced by avail_levels is connected or not
-}
-
-void hotspot(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen, bool debug)
-{
-  // first we need our edge map
-  edge_map emap;
-  build_symmetric_edge_map(emap, edges, vertices);
-  
-  
-  //std::map<int,int> vertex_index_map;
-  std::map<int,int> index_vertex_map;
-  int v_counter = 0;
-  for(std::map<int,std::vector<edge>>::iterator v_it = emap.begin(); v_it != emap.end(); ++v_it){
-    //vertex_index_map.insert(std::pair<int,int>(v_it->first, v_counter));
-    index_vertex_map.insert(std::pair<int,int>(v_counter, v_it->first));
-    ++v_counter;
-  }
-  
-  int n_vertex = vertices.size();
-  arma::mat D = floydwarshall(edges, vertices);
-  
-  int seed_index = floor(gen.uniform() * n_vertex);
-  int max_dist = pow(n_vertex, 2);
-  int radius = 1;
-  std::vector<double> radius_probs;
-  
-  int attempt = 0;
-  int max_attempt = 10;
-  bool trivial_split = true;
-  
-  while( (attempt < max_attempt) && trivial_split){
-    if(debug) Rcpp::Rcout << "[hotspot]: Starting attempt = " << attempt << std::endl;
-    seed_index = floor(gen.uniform() * n_vertex); // seed of the hotspot
-    if(debug) Rcpp::Rcout << "  seed = " << seed_index << std::endl;
-    max_dist = D.col(seed_index).max(); // maximum distance in graph from hotspot seed
-    
-    if(max_dist == 1){
-      // everything is at distance 1 from hotspot seed
-      // we set radius = 1 so that l_vals contains all vertices & r_vals contains none
-      // note: this is a trivial split.
-      trivial_split = true;
-      radius = 1;
-    } else if(max_dist == 2){
-      // there is a vertex at distance 2 from hotspot seed
-      // we will set radius = 1 so that
-      //   l_vals contains seed + its neighbors
-      //   r_vals contains at least one other vertex
-      // this results in a non-trivial splitting rule so we can set trivial_split = false
-      trivial_split = false;
-      radius = 1;
-    } else{
-      // we have options for the radius.
-      // P(radius = r) = 0.5^r for r = 1, 2, ..., max_dist - 2; residual prob for r = max_dist - 1
-      trivial_split = false;
-      radius_probs.clear();
-      radius_probs.resize(max_dist-1);
-      radius_probs[max_dist-2] = 1.0;
-      for(int r = 0; r < max_dist-2; ++r){
-        radius_probs[r] = pow(0.5,r+1);
-        radius_probs[max_dist-2] -= pow(0.5, r+1);
-      }
-      if(debug){
-        if(debug) Rcpp::Rcout << "  radius probabilities:";
-        for(int r = 0; r < max_dist-1; ++r) Rcpp::Rcout << " " << radius_probs[r];
-        Rcpp::Rcout << std::endl;
-      }
-      radius = gen.categorical(radius_probs) + 1; // without +1, we will get radius of 0 sometimes...
-    }
-    if(debug) Rcpp::Rcout << "  radius = " << radius << std::endl;
-    
-    l_vals.clear();
-    r_vals.clear();
-    
-    arma::uvec l_index = arma::find(D.col(seed_index) <= radius);
-    for(int ix = 0; ix < l_index.size(); ++ix){
-      l_vals.insert(index_vertex_map.find(l_index(ix))->second);
-    }
-    for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it){
-      if(l_vals.count(*v_it) == 0) r_vals.insert(*v_it);
-    }
-    
-    ++attempt;
-  }
 }
 
