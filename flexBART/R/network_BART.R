@@ -14,7 +14,7 @@ network_BART <- function(Y_train,
                          save_samples = TRUE,
                          save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
 {
-  if(!graph_cut_type %in% c(0,1,2,3)) stop("graph_cut_type must be 0,1,2, or 3.")
+  if(!graph_cut_type %in% 0:7) stop("graph_cut_type must be in {0, 1, ..., 7}.")
   
   # pre-processing specific for network stuff
   
