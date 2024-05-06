@@ -39,12 +39,17 @@ This function is useful for drawing a M samples from the regression tree prior u
 The main utility of this function is to study how often certain observations are clustered together in individual trees. 
 This is key to understanding how network_BART ``borrows strength'' across the vertices of a network.
 
-To split on the vertex label, we randomly draw a partition of the network into two (possibly disconnected) subgraphs.
-When \code{graph_cut_type == 1}, the partition is formed by first drawing a uniform random spanning tree using Wilson's algorithm and then deleting a uniformly selected edge from the tree.
-When \code{graph_cut_type == 2}, the partition is formed by drawing a uniform random spanning tree using Wilson's algorithm, computing the eigenvectors of the unweighted graph Laplacian, and identifying the positive entries in the eigenvector corresponding to the second smallest eigenvalue.
-When \code{graph_cut_type == 3}, the partition is deterministic. It is formed by looking at the signs of entries in the second smallest eigenvector.
-When \code{graph_cut_type == 4}, the partition is formed by randomly selecting a single vertex and taking all vertices within a randomly drawn graph distance of the selected vertex. This procedure can result in disconnected subgraphs.
-Finally, when \code{graph_cut_type == 0}, we uniformly select one of the above four partitioning procedures. 
+To split on the vertex label, we randomly draw a partition of the network into two (possibly disconnected) subgraphs based on the value of \code{graph_cut_type}:
+\itemize{
+  \item{\code{graph_cut_type == 1}}{Partition the network of available vertices using the signs of Fiedler vector of the network}
+  \item{\code{graph_cut_type == 2}}{Randomly weight the network of available vertices and then partition based on the Fiedler vector of the re-weighted network.}
+  \item{\code{graph_cut_type == 3}}{Draw a uniform random spanning tree using Wilson's algorithm and delete a uniformly selected edge from the tree}
+  \item{\code{graph_cut_type == 4}}{Draw a uniform random spanning tree using Wilson's algorithm and delete the edge that yields the largest smaller cluster}
+  \item{\code{graph_cut_type == 5}}{Draw a uniform random spanning tree using Wilson's algorithm and delete the edge selected with probability proportion to the size of the smallest cluster formed when that edge is deleted.}
+  \item{\code{graph_cut_type == 6}}{Draw a uniform random spanning tree using Wilson's algorithm and partition the tree based on its Fiedler vector.}
+  \item{\code{graph_cut_type == 7}}{Draw a uniform random spanning tree using Wilson's algorithm, re-weight the edges uniformly at random, and partition the re-weighted tree based on its Fiedler vector}
+}
+Finally, when \code{graph_cut_type == 0}, we uniformly select one of the above seven partitioning procedures. 
 
 }
 \value{
@@ -52,6 +57,10 @@ A list containing the following elements
 \item{fit}{A vector containing the value of sampled regression function evaluated at all of the supplied inputs}
 \item{trees}{A character vector (of length \code{M}) containing text representations of the sampled trees. Currently this vector cannot be passed immediately to \code{predict_flexBART}}
 \item{tree_fits}{A matrix with \code{M} columns containing the evaluations of each sampled regression trees. Note that \code{rowSums(tree_fits)} will be identical to \code{fit}.}
-\item{leaf}{An integer matrix with recording the ID number of the leaf to which each observation is assigned. Nodes in a regression tree can be numbered as follows: the root is labelled with 1 and the left and right children of a node labelled x are labelled 2x and 2x+1. The rows of this matrix correspond to the rows of \code{X_cont} and \code{X_cat} and columns correspond to the individual tree.}
-\item{kernel}{An n x n matrix whose (i,j) entry is the proportion of tree draws in which observations i and j land in the same leaf of the tree}
+\item{num_clusters}{An integer vector of length \code{M} recording the number of leaf nodes in each tree of the ensemble.}
+\item{num_singletons}{An integer vector of length \code{M} recording the number of leaf nodes in each tree that contain only one observation.}
+\item{num_empty}{An integer vector of length \code{M} recording the number of leaf nodes in each tree that contain no observations.}
+\item{max_leaf_size}{An integer vector of length \code{M} recording the maximum number of observation contained in a leaf in each tree of the ensemble.}
+\item{min_leaf_size}{An integer vector of length \code{M} recording the minimum number of observation contained in a leaf in each tree of the ensemble.}
+\item{kernel}{An n x n matrix whose (i,j) entry is the proportion of tree draws in which observations i and j land in the same leaf of the tree.}
 }

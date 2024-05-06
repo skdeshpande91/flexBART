@@ -196,14 +196,26 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;
   
+  Rcpp::IntegerVector num_clusters(M);
+  Rcpp::IntegerVector num_singletons(M);
+  Rcpp::IntegerVector num_empty(M);
+  Rcpp::IntegerVector max_cluster_size(M);
+  Rcpp::IntegerVector min_cluster_size(M);
   Rcpp::NumericMatrix tree_fits(n,M);
-  Rcpp::IntegerMatrix leaf_id(n,M);
+  //Rcpp::IntegerMatrix leaf_id(n,M);
   Rcpp::NumericVector fit(n);
   arma::mat kernel = arma::zeros<arma::mat>(n,n); // kernel(i,ii) counts #times obs i & j in same leaf
   
   for(int i = 0; i < n; i++) fit[i] = 0.0;
   Rcpp::CharacterVector tree_strings(M);
   
+  for(int m = 0; m < M; ++m){
+    num_clusters[m] = 0;
+    num_singletons[m] = 0;
+    num_empty[m] = 0;
+    max_cluster_size[m] = 0;
+    min_cluster_size[m] = 0;
+  }
   
   tree t;
   suff_stat ss;
@@ -215,23 +227,40 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
     draw_tree(t, di, tree_pi, gen);
     ss.clear();
     tree_traversal(ss,t,di);
+    num_clusters[m] = ss.size();
+    int singleton = 0;
+    int empty = 0;
+    int max_size = 0;
+    int min_size = n;
+    
     for(suff_stat_it ss_it = ss.begin(); ss_it != ss.end(); ++ss_it){
-      tmp_mu = t.get_ptr(ss_it->first)->get_mu();
-      for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-        tree_fits(*it,m) = tmp_mu;
-        fit[*it] += tmp_mu;
-        leaf_id(*it,m) = ss_it->first; // id of the leaf
-        
-        for(int_it iit = it; iit != ss_it->second.end(); ++iit){
-          if(*it != *iit){
-            kernel(*it, *iit) += 1.0;
-            kernel(*iit, *it) += 1.0;
-          } else{
-            kernel(*it, *iit) += 1.0;
-          }
-        }
+      
+      int cluster_size = ss_it->second.size();
+      if(cluster_size == 1) ++singleton;
+      if(cluster_size == 0) ++empty;
+      if(cluster_size > max_size) max_size = cluster_size;
+      if(cluster_size < min_size) min_size = cluster_size;
+      tmp_mu = t.get_ptr(ss_it->first)->get_mu(); // get the jump in this leaf
+      
+      if(cluster_size > 1){
+        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+          tree_fits(*it,m) = tmp_mu;
+          fit[*it] += tmp_mu;
+          for(int_it iit = it; iit != ss_it->second.end(); ++iit){
+            if(*it != *iit){
+              kernel(*it, *iit) += 1.0;
+              kernel(*iit, *it) += 1.0;
+            } else{
+              kernel(*it, *iit) += 1.0;
+            }
+          } // closes second loop over obs in leaf
+        } // closes loop over obs in leaf
       }
-    }
+      num_singletons[m] = singleton;
+      num_empty[m] = empty;
+      max_cluster_size[m] = max_size;
+      min_cluster_size[m] = min_size;
+    } // closes loop over leafs
     tree_strings[m] = write_tree(t, tree_pi, set_str);
   }
   kernel /= (double) M;
@@ -239,7 +268,12 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   results["fit"] = fit;
   results["trees"] = tree_strings;
   results["tree_fits"] = tree_fits;
-  results["leaf"] = leaf_id;
+  //results["leaf"] = leaf_id;
+  results["num_leafs"] = num_clusters;
+  results["num_singletons"] = num_singletons;
+  results["num_empty"] = num_empty;
+  results["max_leaf_size"] = max_cluster_size;
+  results["min_leaf_size"] = min_cluster_size;
   results["kernel"] = kernel;
   return results;
 }

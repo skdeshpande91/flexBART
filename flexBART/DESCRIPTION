@@ -2,7 +2,7 @@ Package: flexBART
 Type: Package
 Title: A More Flexible BART Model
 Version: 1.2.0
-Date: 2024-03-31
+Date: 2024-05-15
 Author: Sameer K. Deshpande
 Maintainer: Questions and comments to <sameer.deshpande@wisc.edu>
 Description: A more flexible implementation of BART that accomodates structured categorical variables.

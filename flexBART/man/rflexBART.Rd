@@ -41,6 +41,10 @@ A list containing the following elements
 \item{fit}{A vector containing the value of sampled regression function evaluated at all of the supplied inputs}
 \item{trees}{A character vector (of length \code{M}) containing text representations of the sampled trees. Currently this vector cannot be passed immediately to \code{predict_flexBART}}
 \item{tree_fits}{A matrix with \code{M} columns containing the evaluations of each sampled regression trees. Note that \code{rowSums(tree_fits)} will be identical to \code{fit}.}
-\item{leaf}{An integer matrix with recording the ID number of the leaf to which each observation is assigned. Nodes in a regression tree can be numbered as follows: the root is labelled with 1 and the left and right children of a node labelled x are labelled 2x and 2x+1. The rows of this matrix correspond to the rows of \code{X_cont} and \code{X_cat} and columns correspond to the individual tree.}
+\item{num_clusters}{An integer vector of length \code{M} recording the number of leaf nodes in each tree of the ensemble.}
+\item{num_singletons}{An integer vector of length \code{M} recording the number of leaf nodes in each tree that contain only one observation.}
+\item{num_empty}{An integer vector of length \code{M} recording the number of leaf nodes in each tree that contain no observations.}
+\item{max_leaf_size}{An integer vector of length \code{M} recording the maximum number of observation contained in a leaf in each tree of the ensemble.}
+\item{min_leaf_size}{An integer vector of length \code{M} recording the minimum number of observation contained in a leaf in each tree of the ensemble.}
 \item{kernel}{An n x n matrix whose (i,j) entry is the proportion of tree draws in which observations i and j land in the same leaf of the tree.}
 }
