@@ -3,8 +3,8 @@ Type: Package
 Title: A More Flexible BART Model
 Version: 1.2.0
 Date: 2024-05-15
-Author: Sameer K. Deshpande
-Maintainer: Questions and comments to <sameer.deshpande@wisc.edu>
+Authors@R: c(
+  person(given = "Sameer K.", family = "Deshpande", role = c("aut", "cre"), email = "sameer.deshpande@wisc.edu"))
 Description: A more flexible implementation of BART that accomodates structured categorical variables.
 License: GPL (>= 3)
 LinkingTo: Rcpp, RcppArmadillo
