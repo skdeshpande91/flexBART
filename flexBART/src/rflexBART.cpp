@@ -202,11 +202,11 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   Rcpp::IntegerVector max_cluster_size(M);
   Rcpp::IntegerVector min_cluster_size(M);
   Rcpp::NumericMatrix tree_fits(n,M);
-  //Rcpp::IntegerMatrix leaf_id(n,M);
+  Rcpp::IntegerMatrix leaf_id(n,M);
   Rcpp::NumericVector fit(n);
   arma::mat kernel = arma::zeros<arma::mat>(n,n); // kernel(i,ii) counts #times obs i & j in same leaf
   
-  for(int i = 0; i < n; i++) fit[i] = 0.0;
+  for(int i = 0; i < n; ++i) fit[i] = 0.0;
   Rcpp::CharacterVector tree_strings(M);
   
   for(int m = 0; m < M; ++m){
@@ -215,6 +215,12 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
     num_empty[m] = 0;
     max_cluster_size[m] = 0;
     min_cluster_size[m] = 0;
+  }
+  
+  for(int i = 0; i < n; ++i){
+    for(int m = 0; m < M; ++m){
+      leaf_id(i,m) = 0;
+    }
   }
   
   tree t;
@@ -246,6 +252,7 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
         for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
           tree_fits(*it,m) = tmp_mu;
           fit[*it] += tmp_mu;
+          leaf_id(*it, m) = ss_it->first; // save the id of the leaf
           for(int_it iit = it; iit != ss_it->second.end(); ++iit){
             if(*it != *iit){
               kernel(*it, *iit) += 1.0;
@@ -268,7 +275,7 @@ Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont,
   results["fit"] = fit;
   results["trees"] = tree_strings;
   results["tree_fits"] = tree_fits;
-  //results["leaf"] = leaf_id;
+  results["leaf"] = leaf_id;
   results["num_leafs"] = num_clusters;
   results["num_singletons"] = num_singletons;
   results["num_empty"] = num_empty;
