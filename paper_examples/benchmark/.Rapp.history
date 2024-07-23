@@ -1,0 +1,2 @@
+load("/Users/sameer/Documents/Research/flexBART/paper_examples/benchmark/sim_settings.RData")
+sim_settings[1:10,]
