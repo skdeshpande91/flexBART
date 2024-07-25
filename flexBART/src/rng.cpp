@@ -54,6 +54,24 @@ int RNG::categorical(std::vector<double> &probs){
   return output;
 }
 
+int RNG::categorical(std::vector<double>* probs){
+  int n = probs->size();
+  int output = 0;
+  double tmp = 0.0;
+  if(n > 1){
+    double max_quantity = log(probs->at(0)) + gumbel();
+    for(int i = 1; i < n; i++){
+      tmp = log(probs->at(i)) + gumbel();
+      if(tmp > max_quantity){
+        max_quantity = tmp;
+        output = i;
+      }
+    }
+  } else{
+    output = 0;
+  }
+  return output;
+}
 
 void RNG::dirichlet(std::vector<double> &theta, std::vector<double> &concentration)
 {

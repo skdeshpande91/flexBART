@@ -1,7 +1,7 @@
 #ifndef GUARD_tree_h
 #define GUARD_tree_h
 
-
+#include "structs.h"
 #include "rng.h"
 
 
@@ -12,9 +12,9 @@ public:
   friend std::string write_tree(tree &t, tree_prior_info &tree_pi, set_str_conversion &set_str);
   friend void read_tree(tree &t, std::string &tree_string, set_str_conversion &set_str);
   
-  friend void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
+  friend void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
   friend void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
-  friend void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
+  friend void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
   
   //------------------------------
   //typedefs
@@ -45,10 +45,9 @@ public:
   double get_mu() const {return mu;}
   
   rule_t get_rule() const{return rule;} // pull out the entire decision rule
-  bool get_is_aa() const{return rule.is_aa;} // are we doing an axis-aligned rule?
+
   bool get_is_cat() const{return rule.is_cat;} // are we doing a categorical split?
   int get_v_aa() const{return rule.v_aa;} // if we do axis-aligned split, on which variable are we splitting?
-  std::map<int,double> get_rc_weight() const{return rule.rc_weight;} // if we do random combination split, what are the weights?
   double get_cutpoint() const{return rule.c;} // if we have continuous rule, what is the cutpoint?
   
   int get_v_cat() const{return rule.v_cat;} // if we do categorical split, on which variable are we splitting?

@@ -14,7 +14,7 @@ network_BART <- function(Y_train,
                          save_samples = TRUE,
                          save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
 {
-  if(!graph_cut_type %in% c(0,1,2,3)) stop("graph_cut_type must be 0,1,2, or 3.")
+  if(!graph_cut_type %in% 0:7) stop("graph_cut_type must be in {0, 1, ..., 7}.")
   
   # pre-processing specific for network stuff
   
@@ -81,8 +81,6 @@ network_BART <- function(Y_train,
                        edge_mat_list = edge_mat_list,
                        graph_split = graph_split,
                        graph_cut_type = graph_cut_type,
-                       a_cat = 0, b_cat = 0,
-                       rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
                        sparse = sparse, a_u = 0.5, b_u = 1,
                        mu0 = 0, tau = tau, 
                        lambda = lambda, nu = nu,
@@ -123,6 +121,13 @@ network_BART <- function(Y_train,
     colnames(varcounts) <- pred_names
   }
   results[["varcounts"]] <- varcounts
+  results[["diag"]] <- 
+    list(total_accept = fit$total_accept,
+         aa_proposed = fit$aa_proposed,
+         aa_rejected = fit$aa_rejected,
+         cat_proposed = fit$cat_proposed,
+         cat_rejected = fit$cat_rejected)
+  
   
   if(save_trees) results[["trees"]] <- fit$trees
   return(results)

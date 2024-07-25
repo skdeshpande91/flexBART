@@ -1,6 +1,12 @@
 #ifndef RNG_H
 #define RNG_H
-#include "helpers.h"
+
+#include <RcppArmadillo.h>
+// [[Rcpp::depends(RcppArmadillo)]]
+
+#include <cstddef>
+#include <cmath>
+#include <vector>
 
 using std::vector;
 
@@ -18,7 +24,8 @@ public:
   
   double beta(double a1, double a2);
   int categorical(std::vector<double> &probs);
-  
+  int categorical(std::vector<double>* probs);
+
   void dirichlet(std::vector<double> &theta, std::vector<double> &concentration);
   
   

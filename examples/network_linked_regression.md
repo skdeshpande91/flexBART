@@ -1,6 +1,6 @@
 network_linked_regression
 ================
-2023-05-12
+2024-03-31
 
 ## Overview
 
@@ -301,10 +301,10 @@ print(round(c(flexBART = flexBART_timing["elapsed"], BART = BART_timing["elapsed
 ```
 
     ##          Train Test1 Test2
-    ## flexBART 0.333 0.346 0.471
-    ## BART     0.512 0.543 1.354
+    ## flexBART 0.339 0.361 0.487
+    ## BART     0.529 0.555 1.351
     ##          Train Test1 Test2
-    ## flexBART 0.842 0.829 0.825
-    ## BART     0.594 0.574 0.194
+    ## flexBART 0.820 0.807 0.808
+    ## BART     0.571 0.570 0.164
     ## flexBART.elapsed     BART.elapsed 
-    ##           87.229          138.498
+    ##           88.742          136.536

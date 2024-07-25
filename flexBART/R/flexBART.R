@@ -6,7 +6,6 @@ flexBART <- function(Y_train,
                      unif_cuts = rep(TRUE, times = ncol(X_cont_train)),
                      cutpoints_list = NULL,
                      cat_levels_list = NULL,
-                     a_cat = 0, b_cat = 0,
                      sparse = FALSE,
                      M = 200,
                      nd = 1000, burn = 1000, thin = 1,
@@ -60,8 +59,6 @@ flexBART <- function(Y_train,
                        edge_mat_list = NULL,
                        graph_split = rep(FALSE, times = ncol(X_cat_train)),
                        graph_cut_type = 0,
-                       a_cat = a_cat, b_cat = b_cat,
-                       rc_split = FALSE, prob_rc = 0, a_rc = 1, b_rc = 1,
                        sparse = sparse, a_u = 0.5, b_u = 1,
                        mu0 = 0, tau = tau, 
                        lambda = lambda, nu = nu,
@@ -100,6 +97,12 @@ flexBART <- function(Y_train,
     colnames(varcounts) <- pred_names
   }
   results[["varcounts"]] <- varcounts
+  results[["diag"]] <- 
+    list(total_accept = fit$total_accept,
+         aa_proposed = fit$aa_proposed,
+         aa_rejected = fit$aa_rejected,
+         cat_proposed = fit$cat_proposed,
+         cat_rejected = fit$cat_rejected)
   
   if(save_trees) results[["trees"]] <- fit$trees
   return(results)

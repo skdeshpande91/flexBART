@@ -15,7 +15,7 @@ flexBART(Y_train,
          X_cat_test = matrix(0L, nrow = 1, ncol = 1),
          unif_cuts = rep(TRUE, times = ncol(X_cont_train)),
          cutpoints_list = NULL, cat_levels_list = NULL, 
-         a_cat = 0, b_cat = 0, sparse = FALSE,
+         sparse = FALSE,
          M = 200,nd = 1000, burn = 1000, thin = 1, save_samples = TRUE,
          save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
 }
@@ -29,8 +29,6 @@ flexBART(Y_train,
   \item{unif_cuts}{Vector of logical values indicating whether cutpoints for each continuous predictor should be drawn from a continuous uniform distribution (\code{TRUE}) or a discrete set (\code{FALSE}) specified in \code{cutpoints_list}. Default is \code{TRUE} for each variable in \code{X_cont_train}}
   \item{cutpoints_list}{List of length \code{ncol(X_cont_train)} containing a vector of cutpoints for each continuous predictor. By default, this is set to \code{NULL} so that cutpoints are drawn uniformly from a continuous distribution.}
   \item{cat_levels_list}{List of length \code{ncol(X_cat_train)} containing a vector of levels for each categorical predictor. If the j-th categorical predictor contains L levels, \code{cat_levels_list[[j]]} should be the vector \code{0:(L-1)}. Default is \code{NULL}, which corresponds to the case that no categorical predictors are available.}
-  \item{a_cat}{When splitting on an unstructured categorical predictor, prior sends individual levels to the left branch with probability drawn from a Beta(a_cat, b_cat) distribution}
-  \item{b_cat}{When splitting on an unstructured categorical predictor, prior sends individual levels to the left branch with probability drawn from a Beta(a_cat, b_cat) distribution}
   \item{sparse}{Logical, indicating whether or not to perform variable selection based on a sparse Dirichlet prior rather than uniform prior; see Linero 2018. Default is \code{FALSE}}
   \item{M}{Number of trees in the ensemble. Default is 200.}
   \item{nd}{Number of posterior draws to return. Default is 1000.}
@@ -56,6 +54,7 @@ A list containing
 \item{yhat.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}. Only returned if testing data is passed and \code{save_samples == TRUE}.}
 \item{sigma}{Vector containing ALL samples of the residual standard deviation, including burn-in.}
 \item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{yhat_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors, with continuous predictors listed first followed by categorical predictors}
+\item{diag}{A list containing diagnostic information about the Metropolis-Hastings step. Separate elements for numbers of tree proposals accepted and the number of axis-aligned and categorical rules proposed and rejected in each MCMC iteration.}
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}
 }
 

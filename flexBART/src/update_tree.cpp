@@ -1,6 +1,156 @@
 #include "update_tree.h"
 
-void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+
+void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat, int &nx_nid, rule_t &rule, tree &t, data_info &di)
+{
+  double* xx_cont;
+  int* xx_cat;
+  int i;
+  int l_count;
+  int r_count;
+  
+  // we are growing tree from node nx, which has id of nx_nid
+  
+  int nxl_nid = 2*nx_nid; // id of proposed left child of nx
+  int nxr_nid = 2*nx_nid+1; // id of proposed right child of nx
+  
+  suff_stat_it nx_it = orig_suff_stat.find(nx_nid); // iterator at element for nx in original sufficient statistic map
+  new_suff_stat.clear();
+  
+  // copy orig_suff_stat into new_suff_stat
+  for(suff_stat_it it = orig_suff_stat.begin(); it != orig_suff_stat.end(); ++it){
+    new_suff_stat.insert(std::pair<int,std::vector<int>>(it->first, it->second));
+  }
+  
+  // now we manipulate new_suff_stat to drop nx and add nxl and nxr
+  new_suff_stat.insert(std::pair<int,std::vector<int>>(nxl_nid, std::vector<int>())); // create map element for left child of nx
+  new_suff_stat.insert(std::pair<int,std::vector<int>>(nxr_nid, std::vector<int>())); // create map element for right child of nx
+  new_suff_stat.erase(nx_nid); // remove map element for nx as it is not a bottom leaf node in new tree
+  
+  suff_stat_it nxl_it = new_suff_stat.find(nxl_nid); // iterator at element for nxl in new sufficient stat map
+  suff_stat_it nxr_it = new_suff_stat.find(nxr_nid); // iterator at element for nxr in new sufficient stat map
+  
+  // loop over all observation that were assigned to nx in original tree
+  // note:
+  //   nx_it->first is just the node id for nx (nx_nid)
+  //   nx_it->second is a vector of integers containing the indicies of observations that land in nx
+  // in helper.h we defined int_it as std::vector<int>::iterator
+  if(nx_it->second.size() > 0){
+    for(int_it it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
+      i = *it;
+      if(di.x_cont != 0) xx_cont = di.x_cont + i * di.p_cont;
+      if(di.x_cat != 0) xx_cat = di.x_cat + i * di.p_cat;
+      
+      if(!rule.is_cat){
+        // axis-aligned rule
+        if(xx_cont[rule.v_aa] < rule.c) nxl_it->second.push_back(i);
+        else if(xx_cont[rule.v_aa] >= rule.c) nxr_it->second.push_back(i);
+        else{
+          Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont[rule.v_aa] << " cutpoint = " << rule.c << std::endl;
+          Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!");
+        }
+      } else{
+        // categorical rule
+        // we need to see whether i-th observation's value of the categorical pred goes to left or right
+        // std::set.count returns 1 if the value is in the set and 0 otherwise
+        l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
+        r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
+        if(l_count == 1 && r_count == 0) nxl_it->second.push_back(i);
+        else if(l_count == 0 && r_count == 1) nxr_it->second.push_back(i);
+        else if(l_count == 1 && r_count == 1) Rcpp::stop("[compute_ss_grow]: observation goes to both left & right child...");
+        else{
+          Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_aa] << std::endl;
+          Rcpp::Rcout << "left values:";
+          for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
+          Rcpp::Rcout << std::endl;
+          
+          Rcpp::Rcout << "right values:";
+          for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
+          Rcpp::Rcout << std::endl;
+          
+          Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
+        }
+      }
+    } // closes loop over all entries in nx
+  }
+}
+
+
+
+
+void compute_suff_stat_prune(suff_stat &orig_suff_stat, suff_stat &new_suff_stat, int &nl_nid, int &nr_nid, int &np_nid, tree &t, data_info &di)
+{
+  //int i;
+  if(orig_suff_stat.count(nl_nid) != 1) Rcpp::stop("[compute_ss_prune]: did not find left node in suff stat map");
+  if(orig_suff_stat.count(nr_nid) != 1) Rcpp::stop("[compute_ss_prune]: did not find right node in suff stat map");
+  
+  suff_stat_it nl_it = orig_suff_stat.find(nl_nid); // iterator at element for nl in original suff stat map
+  suff_stat_it nr_it = orig_suff_stat.find(nr_nid); // iterator at element for nr in original suff stat map
+  
+  new_suff_stat.clear();
+  // this makes a completely new copy of orig_suff_stat
+  for(suff_stat_it ss_it = orig_suff_stat.begin(); ss_it != orig_suff_stat.end(); ++ss_it){
+    new_suff_stat.insert(std::pair<int,std::vector<int>>(ss_it->first, ss_it->second));
+  }
+  new_suff_stat.insert(std::pair<int,std::vector<int>>(np_nid, std::vector<int>())); // add element for np in new suff stat map
+  new_suff_stat.erase(nl_nid); // delete element for nl in new suff stat map since nl has been pruned
+  new_suff_stat.erase(nr_nid); // delete element for nr in new suff stat map since nr has been pruned
+  
+  if(new_suff_stat.count(np_nid) != 1) Rcpp::stop("[compute_ss_prune]: didn't create element in new suff stat map for np correctly");
+  suff_stat_it np_it = new_suff_stat.find(np_nid); // iterator at element for np in new suff stat map
+  
+  // time to populate np_it
+  // first let's add the elements from nl_it
+  for(int_it it = nl_it->second.begin(); it != nl_it->second.end(); ++it) np_it->second.push_back( *it );
+  for(int_it it = nr_it->second.begin(); it != nr_it->second.end(); ++it) np_it->second.push_back( *it );
+}
+
+double compute_lil(suff_stat &ss, int &nid, double &sigma, data_info &di, tree_prior_info &tree_pi)
+{
+  // reminder posterior of jump mu is N(P^-1 Theta, P^-1)
+  if(ss.count(nid) != 1) Rcpp::stop("[compute_lil]: did not find node in suff stat map!");
+  suff_stat_it ss_it = ss.find(nid);
+  
+  double P = 1.0/pow(tree_pi.tau, 2.0) + ( (double) ss_it->second.size())/pow(sigma, 2.0); // precision of jump mu
+  double Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
+  
+  if(ss_it->second.size() > 0){
+    for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma, 2.0);
+  }
+  
+  return(-0.5 * log(P) + 0.5 * pow(Theta,2.0) / P);
+  
+}
+
+void draw_mu(tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_info &tree_pi, RNG &gen)
+{
+  //int i;
+  double P;
+  double Theta;
+  double post_sd;
+  double post_mean;
+  tree::tree_p bn; // we are modifying bn so we need a pointer not a constant pointer
+  
+  for(suff_stat_it ss_it = ss.begin(); ss_it != ss.end(); ++ss_it){
+    bn = t.get_ptr(ss_it->first);
+    if(bn == 0) Rcpp::stop("[draw_mu]: could not find node that is in suff stat map in the tree");
+    else{
+      P = 1.0/pow(tree_pi.tau, 2.0) + ( (double) ss_it->second.size())/pow(sigma, 2.0); // precision of jump mu
+      Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
+      
+      if(ss_it->second.size() > 0){
+        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma,2.0);
+      }
+      post_sd = sqrt(1.0/P);
+      post_mean = Theta/P;
+      bn->set_mu(gen.normal(post_mean, post_sd));
+    }
+  }
+}
+
+
+
+void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   
   std::vector<int> bn_nid_vec; // vector to hold the id's of all of the bottom nodes in the tree
@@ -82,19 +232,13 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
     // accept the transition!
     
     ++(*tree_pi.rule_count); // increment running count of total number of splitting rules
-    if(rule.is_aa && !rule.is_cat){
+    if(!rule.is_cat){
       ++(tree_pi.var_count->at(rule.v_aa)); // in our bookkeeping, continuous variables come first
-    } else if(!rule.is_aa && rule.is_cat){
+      ++(rule_diag.aa_prop);
+    } else {
       int v_raw = rule.v_cat + di_train.p_cont;
       ++(tree_pi.var_count->at(v_raw));
-    } else if(!rule.is_aa && !rule.is_cat){
-      ++(*tree_pi.rc_rule_count);
-      for(rc_it it = rule.rc_weight.begin(); it != rule.rc_weight.end(); ++it){
-        ++(*tree_pi.rc_var_count); // update the *total* number of variables that are involved in a random combination rule
-      }
-    } else{
-      // this should *never* be encountered
-      Rcpp::stop("[grow tree]: after accepting a birth move, we cannot resolve rule type");
+      ++(rule_diag.cat_prop);
     }
    
     // we need to update ss, the sufficient statistic object
@@ -136,6 +280,13 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, do
     accept = 1;
   } else{
     accept = 0;
+    if(!rule.is_cat){
+      ++rule_diag.aa_prop;
+      ++rule_diag.aa_rej;
+    } else{
+      ++rule_diag.cat_prop;
+      ++rule_diag.cat_rej;
+    }
     // don't do anything with rule counters or variable splitting counters etc.
   }
 }
@@ -200,23 +351,12 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, d
     // need to decrement several counters
     --(*tree_pi.rule_count);
     
-    if( nx->get_is_aa() && !nx->get_is_cat()){
+    if(!nx->get_is_cat()){
       // we pruned away an axis-aligned or categorical rule
      --(tree_pi.var_count->at(nx->get_v_aa()));
-    } else if(!nx->get_is_aa() && nx->get_is_cat()){
+    } else{
       int v_raw = di_train.p_cont + nx->get_v_cat();
       --(tree_pi.var_count->at(v_raw));
-    } else if( !nx->get_is_aa() && !nx->get_is_cat()){
-      // random combination rule
-      std::map<int,double> rc_weight = nx->get_rc_weight();
-      --(*tree_pi.rc_rule_count);
-      for(rc_it it = rc_weight.begin(); it != rc_weight.end(); ++it){
-        --(*tree_pi.rc_var_count);
-      }
-    } else{
-      Rcpp::Rcout << "[prune_tree]: accepted a prune at nog node " << nx_nid << " but unable to figure out its rule type" << std::endl;
-      t.print();
-      Rcpp::stop("[prune tree]: cannot resolve rule type");
     }
 
     // need to adjust ss
@@ -258,13 +398,13 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, d
   }
 }
 
-void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   accept = 0; // initialize indicator of MH acceptance to 0 (reject)
   double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
   if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
   
-  if(gen.uniform() < PBx) grow_tree(t, ss_train, ss_test, accept, sigma, di_train, di_test,tree_pi, gen);
+  if(gen.uniform() < PBx) grow_tree(t, ss_train, ss_test, accept, rule_diag, sigma, di_train, di_test,tree_pi, gen);
   else prune_tree(t, ss_train, ss_test, accept, sigma, di_train, di_test, tree_pi, gen);
 
   // by this point, the decision tree has been updated so we can draw new jumps.

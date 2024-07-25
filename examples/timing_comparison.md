@@ -1,6 +1,6 @@
 timing_comparison
 ================
-2023-05-12
+2024-03-31
 
 **flexBART** is often much faster than **BART** because it avoids a lot
 of redundant computations. The speedup really manifests when you have
@@ -53,17 +53,6 @@ We’re now ready to run both `BART::wbart` and `flexBART::flexBART`. Note
 that we have hidden the printed output.
 
 ``` r
-flex_time <-
-  system.time(
-    flex_fit <- 
-      flexBART::flexBART(Y_train = y, 
-                         X_cont_train = X, X_cont_test = X_test))
-rmse_train["flexBART"] <- sqrt(mean( (mu - flex_fit$yhat.train.mean)^2 ))
-rmse_test["flexBART"] <- sqrt(mean( (mu_test - flex_fit$yhat.test.mean)^2 ))
-timing["flexBART"] <- flex_time["elapsed"]
-```
-
-``` r
 bart_time <-
   system.time(
     bart_fit <-
@@ -72,6 +61,17 @@ bart_time <-
 rmse_train["BART"] <- sqrt(mean( (mu - bart_fit$yhat.train.mean)^2 ))
 rmse_test["BART"] <- sqrt(mean( (mu_test - bart_fit$yhat.test.mean)^2 ))
 timing["BART"] <- bart_time["elapsed"]
+```
+
+``` r
+flex_time <-
+  system.time(
+    flex_fit <- 
+      flexBART::flexBART(Y_train = y, 
+                         X_cont_train = X, X_cont_test = X_test))
+rmse_train["flexBART"] <- sqrt(mean( (mu - flex_fit$yhat.train.mean)^2 ))
+rmse_test["flexBART"] <- sqrt(mean( (mu_test - flex_fit$yhat.test.mean)^2 ))
+timing["flexBART"] <- flex_time["elapsed"]
 ```
 
 ``` r
@@ -87,10 +87,10 @@ print(round(timing, digits = 3))
 
     ## [1] "Training RMSE"
     ## flexBART     BART 
-    ##    0.305    0.303 
+    ##    0.305    0.287 
     ## [1] "Testing RMSE"
     ## flexBART     BART 
-    ##    0.343    0.338 
+    ##    0.396    0.365 
     ## [1] "Timing (seconds):"
     ## flexBART     BART 
-    ##   35.251  111.539
+    ##   35.830  111.738

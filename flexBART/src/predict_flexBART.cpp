@@ -1,4 +1,5 @@
 #include "funs.h"
+#include "data_parsing_funs.h"
 // TO DO: rewrite to work with the new graph stuff
 
 // [[Rcpp::export(".predict_flexBART")]]

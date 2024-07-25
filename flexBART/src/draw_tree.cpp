@@ -1,7 +1,5 @@
 #include "draw_tree.h"
 
-
-
 void draw_tree(tree &t, data_info &di, tree_prior_info &tree_pi, RNG &gen)
 {
   //Rcpp::Rcout << "[draw tree]: started!" << std::endl;
@@ -72,12 +70,10 @@ void draw_tree(tree &t, data_info &di, tree_prior_info &tree_pi, RNG &gen)
     ++(counter);
   } // closes main while loop
   
-  
   // now that we have drawn the decision tree, let's draw the jumps
   bnv.clear();
   t.get_bots(bnv);
   for(tree::npv_it l_it = bnv.begin(); l_it != bnv.end(); ++l_it){
     (*l_it)->set_mu(gen.normal(tree_pi.mu0, tree_pi.tau));
   }
-  
 }

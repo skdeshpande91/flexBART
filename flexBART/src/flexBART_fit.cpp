@@ -1,5 +1,6 @@
 #include "update_tree.h"
-
+#include "data_parsing_funs.h"
+#include "funs.h"
 // [[Rcpp::export(".flexBART_fit")]]
 Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
                         Rcpp::NumericMatrix tX_cont_train,
@@ -11,8 +12,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
                         Rcpp::Nullable<Rcpp::List> cat_levels_list,
                         Rcpp::Nullable<Rcpp::List> edge_mat_list,
                         Rcpp::LogicalVector graph_split, int graph_cut_type,
-                        double a_cat, double b_cat,
-                        bool rc_split, double prob_rc, double a_rc, double b_rc,
                         bool sparse, double a_u, double b_u,
                         double mu0, double tau,
                         double lambda, double nu,
@@ -100,12 +99,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   double u = 1.0/(1.0 + (double) p);
   std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
   int rule_count = 0; // how many total decision rules are there in the ensemble
-  int rc_rule_count = 0; // how many random combination rules are there in the ensemble
-  int rc_var_count = 0; // only when we are using random combination rules
-  double theta_rc = 0.0; // prob of including a variable in a random combination rule
-  if(p_cont >= 2 && rc_split){
-    theta_rc = 2.0/( (double) p_cont);
-  }
   
   tree_prior_info tree_pi;
   tree_pi.theta = &theta;
@@ -121,16 +114,9 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     tree_pi.cat_levels = &cat_levels;
     tree_pi.edges = &edges;
     tree_pi.K = &K;
-    tree_pi.a_cat = a_cat;
-    tree_pi.b_cat = b_cat;
     tree_pi.graph_split = graph_split.begin();
     tree_pi.graph_cut_type = graph_cut_type;
   }
-  tree_pi.rc_split = rc_split;
-  tree_pi.prob_rc = &prob_rc;
-  tree_pi.theta_rc = &theta_rc;
-  tree_pi.rc_var_count = &rc_var_count;
-  tree_pi.rc_rule_count = &rc_rule_count;
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;
   
@@ -145,6 +131,9 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   int sample_index = 0;
   int accept = 0;
   int total_accept = 0; // counts how many trees we change in each iteration
+  rule_diag_t rule_diag;
+  
+  
   tree::npv bnv; // for checking that our ss map and our trees are not totally and utterly out of sync
   double tmp_mu; // for holding the value of mu when we're doing the backfitting
   
@@ -191,18 +180,16 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   }
   
   arma::vec sigma_samples(total_draws);
-  arma::vec total_accept_samples(nd);
+  arma::vec total_accept_samples(total_draws);
+  arma::vec aa_proposed_samples(total_draws); // how many axis-aligned rules proposed in this iteration
+  arma::vec aa_rejected_samples(total_draws); // how many axis-aligned rules rejected in this iteration
+  arma::vec cat_proposed_samples(total_draws); // how many categorical rules proposed in this iteration
+  arma::vec cat_rejected_samples(total_draws); // how many categorical rules rejected in this iteration
+
+
   arma::mat theta_samples(1,1); // unless we're doing DART, no need to waste space
   if(sparse) theta_samples.set_size(total_draws, p);
   arma::mat var_count_samples(total_draws, p); // always useful to see how often we're splitting on variables in the ensemble
-  arma::vec theta_rc_samples(1);
-  arma::vec rc_rule_count_samples(1);
-  arma::vec rc_var_count_samples(1);
-  if(rc_split){
-    theta_rc_samples.set_size(total_draws);
-    rc_rule_count_samples.set_size(total_draws);
-    rc_var_count_samples.set_size(total_draws);
-  }
   
   Rcpp::List tree_draws(nd);
   
@@ -224,6 +211,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     
     // loop over trees
     total_accept = 0;
+    rule_diag.reset();
     for(int m = 0; m < M; m++){
       for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
         // loop over the bottom nodes in m-th tree
@@ -237,7 +225,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         }
       } // this whole loop is O(n)
       
-      update_tree(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
+      update_tree(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, rule_diag, sigma, di_train, di_test, tree_pi, gen); // update the tree
       total_accept += accept;
     
       // now we need to update the value of allfit
@@ -262,6 +250,14 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     sigma = sqrt(scale_post/gen.chi_square(nu_post));
     sigma_samples(iter) = sigma;
     
+    // save information for the diagnostics
+    total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
+    aa_proposed_samples(iter) = rule_diag.aa_prop;
+    aa_rejected_samples(iter) = rule_diag.aa_rej;
+    cat_proposed_samples(iter) = rule_diag.cat_prop;
+    cat_rejected_samples(iter) = rule_diag.cat_rej;
+
+    
     if(sparse){
       update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
       for(int j = 0; j < p; j++){
@@ -271,16 +267,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     } else{
       for(int j = 0; j < p; j++) var_count_samples(iter, j) = var_count[j];
     }
-    if(rc_split){
-      update_theta_rc(theta_rc, rc_var_count, rc_rule_count, a_rc, b_rc, p_cont, gen);
-      theta_rc_samples(iter) = theta_rc;
-      rc_var_count_samples(iter) = rc_var_count;
-      rc_rule_count_samples(iter) = rc_rule_count;
-    }
+    
     
     if( (iter >= burn) && ( (iter - burn)%thin == 0)){
       sample_index = (int) ( (iter-burn)/thin);
-      total_accept_samples(sample_index) = total_accept; // how many trees changed in this iteration
       // time to write each tree as a string
       if(save_trees){
         // Option 1 in coatless' answer:
@@ -341,6 +331,11 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   }
   results["sigma"] = sigma_samples;
   results["total_accept"] = total_accept_samples;
+  results["aa_proposed"] = aa_proposed_samples;
+  results["aa_rejected"] = aa_rejected_samples;
+  results["cat_proposed"] = cat_proposed_samples;
+  results["cat_rejected"] = cat_rejected_samples;
+
   results["var_count"] = var_count_samples;
   if(save_trees){
     results["trees"] = tree_draws;
@@ -348,11 +343,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   if(sparse){
     results["theta"] = theta_samples;
   }
-  if(rc_split){
-    results["theta_rc_samples"] = theta_rc_samples;
-    results["rc_var_count_samples"] = rc_var_count_samples;
-    results["rc_rule_count_samples"] = rc_rule_count_samples;
-  }
+  
   return results;
   
 }

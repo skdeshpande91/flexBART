@@ -65,6 +65,7 @@ item{yhat.train.mean}{Vector containing posterior mean of evaluations of regress
 \item{yhat.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}. Only returned if testing data is passed and \code{save_samples == TRUE}.}
 \item{sigma}{Vector containing ALL samples of the residual standard deviation, including burn-in.}
 \item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{yhat_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors}
+\item{diag}{A list containing diagnostic information about the Metropolis-Hastings step. Separate elements for numbers of tree proposals accepted and the number of axis-aligned and categorical rules proposed and rejected in each MCMC iteration.}
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict_flexBART}} to reconstruct the C++ representations of the sampled trees.}
 }
 \seealso{

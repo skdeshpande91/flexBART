@@ -1,0 +1,7 @@
+load("/Users/sameer/Library/CloudStorage/Dropbox/flexBART_simulations/revision/bakeoff/data/ammenity.RData")
+names(ammenity_data)
+ammenity_data$n_all
+load("/Users/sameer/Library/CloudStorage/Dropbox/flexBART_simulations/revision/bakeoff/data/abalone.RData")
+abalone_data$n_all
+load("/Users/sameer/Library/CloudStorage/Dropbox/flexBART_simulations/revision/bakeoff/data/ais.RData")
+load("~/Dropbox/flexBART_simulations/revision/bakeoff/data/ais.RData")
