@@ -20,7 +20,7 @@ probit_networkBART(Y_train,
                    graph_cut_type = 1,
                    sparse = FALSE,
                    M = 200,
-                   mu0 = stats::qnorm(mean(Y_train)), tau = 1/sqrt(M),
+                   mu0 = stats::qnorm(mean(Y_train))/M, tau = 1/sqrt(M),
                    nd = 1000, burn = 1000, thin = 1,
                    save_samples = TRUE,
                    save_trees = TRUE, verbose = TRUE, 
@@ -40,7 +40,7 @@ probit_networkBART(Y_train,
   \item{graph_cut_type}{An integer (0, 1, 2, or 3) that determines how partitions of the network are constructed. Default is 1. See Details of \code{\link{network_BART}}.}
   \item{sparse}{Logical, indicating whether or not to perform variable selection based on a sparse Dirichlet prior rather than uniform prior; see Linero 2018. Default is \code{FALSE}}
   \item{M}{Number of trees in the ensemble. Default is 200.}
-  \item{mu0}{Prior mean on the jumps/leaf parameters. See Details. Default is \code{qnorm(mean(Y_train))} so that the prior on the regression function is shrunk toward the empirical probability that Y = 1.}
+  \item{mu0}{Prior mean on the jumps/leaf parameters. See Details. Default is \code{qnorm(mean(Y_train))/M} so that the prior on the regression function is shrunk toward the empirical probability that Y = 1.}
   \item{tau}{Prior standard deviation on the jumps/leaf parameters. See Details. Default is \code{1/sqrt(M)}. Smaller values of \code{tau} induce stronger shrinkage towards the empirical probability that Y = 1.}
   \item{nd}{Number of posterior draws to return. Default is 1000.}
   \item{burn}{Number of MCMC iterations to be treated as "warmup" or "burn-in". Default is 1000.}
@@ -52,9 +52,9 @@ probit_networkBART(Y_train,
 }
 \details{
 Implements the Albert & Chib (1993) data augmentation strategy for probit regression and models the regression function with a sum-of-trees for network-indexed data.
-The marginal prior of any evaluation of the regression function f(x) is a normal distribution centered at \code{mu0} with standard deviation \code{tau * sqrt(M)}. 
-As such, for each x, the induced prior for P(Y = 1 | x) places 95\% probability on the interval \code{pnorm(mu0 -2 * tau * sqrt(M)), pnorm(mu0 + 2 * tau * sqrt(M))}. 
-By default, we set \code{tau = 1/sqrt(M)} and \code{mu0 = qnorm(mean(Y_train))} to shrink towards the observed mean.
+The marginal prior of any evaluation of the regression function f(x) is a normal distribution centered at \code{mu0 * M} with standard deviation \code{tau * sqrt(M)}. 
+As such, for each x, the induced prior for P(Y = 1 | x) places 95\% probability on the interval \code{pnorm(mu0*M -2 * tau * sqrt(M)), pnorm(mu0*M + 2 * tau * sqrt(M))}. 
+By default, we set \code{tau = 1/sqrt(M)} and \code{mu0 = qnorm(mean(Y_train))/M} to shrink towards the observed mean.
 
 The flexBART prior is modified to handle network-structured categorical predictors as follows.
 To split on the vertex label, we randomly draw a partition of the network into two (possibly disconnected) subgraphs.

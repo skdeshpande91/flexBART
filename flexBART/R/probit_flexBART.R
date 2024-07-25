@@ -7,7 +7,7 @@ probit_flexBART <- function(Y_train,
                             cutpoints_list = NULL,
                             cat_levels_list,
                             sparse = FALSE,
-                            M = 200, mu0 = stats::qnorm(mean(Y_train)), tau = 1/sqrt(M),
+                            M = 200, mu0 = stats::qnorm(mean(Y_train))/M, tau = 1/sqrt(M),
                             nd = 1000, burn = 1000, thin = 1,
                             save_samples = TRUE,
                             save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)

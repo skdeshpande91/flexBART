@@ -18,7 +18,7 @@ probit_flexBART(Y_train,
                 cat_levels_list,
                 sparse = FALSE,
                 M = 200,
-                mu0 = stats::qnorm(mean(Y_train)), tau = 1/sqrt(M),
+                mu0 = stats::qnorm(mean(Y_train))/M, tau = 1/sqrt(M),
                 nd = 1000, burn = 1000, thin = 1, save_samples = TRUE,
                 save_trees = TRUE, verbose = TRUE, 
                 print_every = floor( (nd*thin + burn))/10)
@@ -47,9 +47,9 @@ probit_flexBART(Y_train,
 }
 \details{
 Implements the Albert & Chib (1993) data augmentation strategy for probit regression and models the regression function with a sum-of-trees.
-The marginal prior of any evaluation of the regression function f(x) is a normal distribution centered at \code{mu0} with standard deviation \code{tau * sqrt(M)}. 
-As such, for each x, the induced prior for P(Y = 1 | x) places 95\% probability on the interval \code{pnorm(mu0 -2 * tau * sqrt(M)), pnorm(mu0 + 2 * tau * sqrt(M))}. 
-By default, we set \code{tau = 1/sqrt(M)} and \code{mu0 = qnorm(mean(Y_train))} to shrink towards the observed mean.
+The marginal prior of any evaluation of the regression function f(x) is a normal distribution centered at \code{mu0*M} with standard deviation \code{tau * sqrt(M)}. 
+As such, for each x, the induced prior for P(Y = 1 | x) places 95\% probability on the interval \code{pnorm(mu0*M -2 * tau * sqrt(M)), pnorm(mu0*M + 2 * tau * sqrt(M))}. 
+By default, we set \code{tau = 1/sqrt(M)} and \code{mu0 = qnorm(mean(Y_train))/M} to shrink towards the observed mean.
 }
 \value{
 A list containing
