@@ -2,7 +2,7 @@ Package: flexBART
 Type: Package
 Title: A More Flexible BART Model
 Version: 1.2.0
-Date: 2024-05-15
+Date: 2024-11-14
 Authors@R: c(
   person(given = "Sameer K.", family = "Deshpande", role = c("aut", "cre"), email = "sameer.deshpande@wisc.edu"))
 Description: A more flexible implementation of BART that accomodates structured categorical variables.
