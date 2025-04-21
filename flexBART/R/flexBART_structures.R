@@ -77,6 +77,13 @@ validate_flexBART_training <- function(trinfo)
       }
     }
   }
+  
+  if(!is.null(trinfo$cutpoints)){
+    if(any(sapply(trinfo$cutpoints, FUN = length) == 1)){
+      stop("Only one cutpoint supplied for some variables. Should be NULL or should provide >= 2 cutpoints ")
+    }
+  }
+  
 }
 
 
