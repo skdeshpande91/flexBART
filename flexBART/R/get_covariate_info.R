@@ -111,7 +111,7 @@ parse_adjacency <- function(adjacency_list, dinfo)
       tmp_indices <- which(tmp_A !=0, arr.ind = TRUE)
       edge_mat <- tmp_indices[tmp_indices[,1] < tmp_indices[,2],] # get only the lower triangle of A
       colnames(edge_mat) <- c("from", "to")
-      edge_mat_list[[j]] <- list(edge_mat-1) # remember C++ is 0-indexed
+      edge_mat_list[[j]] <- edge_mat-1 # remember C++ is 0-indexed
     } else{
       # no adjacency information for this variable
       # so put in a null value
@@ -131,7 +131,7 @@ get_continuous_info <- function(x, name, pad = 0.1, n_unik_diffs = 5)
   consecutive_diffs <- unik_x[-1] - unik_x[-n_unik]
   
   if(length(unique(consecutive_diffs)) < n_unik_diffs){
-    cat("[get_continuous info]:", name, " suspected to be discrete. Defining a grid of cutpoints for", name, "\n"))
+    cat("[get_continuous info]:", name, " suspected to be discrete. Defining a grid of cutpoints for", name, "\n")
     cat("Using the unique values of x as splitting points.\n")
     cat("To use a different grid, manually set the `cutpoints_list` argument of flexBART")
     x_sd <- NA

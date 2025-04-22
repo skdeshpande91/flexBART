@@ -9,7 +9,7 @@ new_flexBART_hyper <- function()
   out["beta_vec"] <- list(NULL)
   out["mu0_vec"] <- list(NULL)
   out["tau_vec"] <- list(NULL)
-  out["graph_cut_type"] <- 3
+  out["graph_cut_type"] <- 2
   out["nest_v"] <- FALSE
   out["nest_v_option"] <- 3
   out["nest_c"] <- FALSE

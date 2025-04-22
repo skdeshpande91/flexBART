@@ -26,16 +26,11 @@ prepare_data <- function(train_data,
   adjacency_list <- NULL
   tmp_adj <- pmatch(usr_names, table = "adjacency_list", duplicates.ok = FALSE)
   if(any(!is.na(tmp_adj))){
-    ix <- which(!is.na(tmp_M))
+    ix <- which(!is.na(tmp_adj))
     tmp_name <- usr_names[[ix]]
     adjacency_list <- usr_args[[tmp_name]]
   }
   
-  # did user provide covariate groups
-  covariate_groups <- NULL
-  if("covariate_groups" %in% usr_names) covariate_groups <- usr_args[["covariate_groups"]]
-  
-
   ###############################
   # Get the problem dimensions
   ###############################
@@ -48,21 +43,30 @@ prepare_data <- function(train_data,
   if(!is.null(test_data)){
     stopifnot(is.data.frame(test_data))
     if(!all(covariate_names %in% colnames(test_data))){
-      message("[prepare_data]: Following covariates used for training not found in supplied testing data:")
-      print(covariate_names[!covariate_names %in% colnames(test_data)])
+      cat("[prepare_data]: Following covariates used for training not found in supplied testing data: \n")
+      cat(covariate_names[!covariate_names %in% colnames(test_data)], "\n")
       stop("[prepare_data]: test_data must contain all training covariates")
     }
+    cat("[prepare_data]: Using both training & testing data to get covariate information \n")
+    if(p == 1){
+      cov_data <- 
+        data.frame(c(train_data[,covariate_names[1]], test_data[,covariate_names[1]]))
+      colnames(cov_data) <- covariate_names[1]
+    } else{
+      cov_data <- 
+        rbind(train_data[,covariate_names], test_data[,covariate_names])
+    }
     n_test <- nrow(test_data)
-    message("[prepare_data]: Using both training & testing data to get covariate information")
-    dinfo <- 
-      get_covariate_info(cov_data = rbind(train_data[,covariate_names], 
-                                          test_data[,covariate_names]),
-                         pad = pad, n_unik_diffs = n_unik_diffs)
   } else{
-    dinfo <- 
-      get_covariate_info(cov_data = train_data[,covariate_names], 
-                         pad = pad, n_unik_diffs = n_unik_diffs)
+    if(p == 1){
+      cov_data <- data.frame(train_data[,covariate_names[1]])
+      colname(cov_data) <- covariate_names[1]
+    } else{
+      cov_data <- train_data[,covariate_names]
+    }
   }
+  dinfo <- 
+    get_covariate_info(cov_data = cov_data, pad = pad, n_unik_diffs = n_unik_diffs)
   dinfo$outcome_name <- outcome_name
   
   ###############################
@@ -188,8 +192,7 @@ prepare_data <- function(train_data,
   ###############################
   if(dinfo$p_cat > 0){
     if(!is.null(test_data)){
-      message("[preprocess]: Using training & testing to detect 
-              nesting structure among categorical variables")
+      cat("[preprocess]: Using training & testing to detect nesting structure among categorical variables\n")
       tmp_nest <- parse_nesting(rbind(trinfo$X_cat, teinfo$X_cat), dinfo)
     } else{
       tmp_nest <- parse_nesting(trinfo$X_cat, dinfo)
