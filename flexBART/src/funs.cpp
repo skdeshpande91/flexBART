@@ -86,7 +86,7 @@ std::string write_tree(tree &t, tree_prior_info &tree_pi, set_str_conversion &se
         os << rule.c << " " << rule.v_aa;
       } else{
         // categorical rule
-        int K = tree_pi.K->at(rule.v_cat); // how many levels
+        int K = tree_pi.cat_levels->at(rule.v_cat).size(); // how many levels
         os << rule.v_cat << " " << K << " ";
         os << set_str.set_to_hex(K, rule.l_vals) << " ";
         os << set_str.set_to_hex(K, rule.r_vals) << " ";
@@ -225,4 +225,38 @@ void update_theta_u(std::vector<double> &theta, double &u, std::vector<int> &var
   }
 }
 
+void update_theta_u_subset(std::vector<double> &theta, double &u, std::vector<int> &var_count, double &a_u, double &b_u, RNG &gen)
+{
+  // only want to update the non-zero entries.
+  int counter = 0;
+  std::map<int,int> tmp_to_full;
+  std::vector<double> tmp_theta;
+  std::vector<int> tmp_var_count;
+  for(int j = 0; j < theta.size(); ++j){
+    if(theta[j] > 0.0){
+      tmp_theta.push_back(theta[j]);
+      tmp_var_count.push_back(var_count[j]);
+      tmp_to_full.insert(std::pair<int,int>(counter, j));
+      ++counter;
+    }
+  }
+  int tmp_p = tmp_theta.size();
+  update_theta_u(tmp_theta, u, tmp_var_count, tmp_p, a_u, b_u, gen);
+  for(std::map<int,int>::iterator it = tmp_to_full.begin(); it != tmp_to_full.end(); ++it){
+    theta[it->second] = tmp_theta[it->first];
+  }
+  
+  /*
+  if(tmp_p == 0){
+    // do nothing. everything is 0
+  } else if(tmp_p == 1){
+    tmp_theta[0] = 1.0;
+    for(std::map<int,int>::iterator it = tmp_to_full.begin(); it != tmp_to_full.end(); ++it){
+      theta[it->second] = tmp_theta[it->first];
+    }
+  } else{
+    
+  }
+   */
+}
 

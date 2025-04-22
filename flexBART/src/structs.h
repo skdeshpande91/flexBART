@@ -40,8 +40,8 @@ typedef std::map<int, std::vector<edge>>::iterator edge_map_it;
 class rule_t{
 public:
   bool is_cat; // is it a categorical split
-
-  int v_aa;
+  int v_raw; // for internal use
+  int v_aa; // used to access X_cat
   double c; // cutpoint
   int v_cat; // index of variable of the categorical variable on which we split (always between 0 and p_cat)
   std::set<int> l_vals; // holds unique values of levels of v associated w/ left child
@@ -49,6 +49,7 @@ public:
   
   rule_t(){
     is_cat = false;
+    v_raw = 0;
     v_aa = 0;
     c = 0.0;
     v_cat = 0;
@@ -57,6 +58,7 @@ public:
   }
   void clear(){
     is_cat = false;
+    v_raw = 0;
     v_aa = 0;
     c = 0.0;
     v_cat = 0;
@@ -71,75 +73,105 @@ struct rule_diag_t{
   int aa_rej;
   int cat_prop;
   int cat_rej;
-  int obl_prop;
-  int obl_rej;
-  rule_diag_t(){aa_prop = 0; aa_rej = 0; cat_prop = 0; cat_rej = 0; obl_prop = 0; obl_rej = 0;}
-  void reset(){aa_prop = 0; aa_rej = 0; cat_prop = 0; cat_rej = 0; obl_prop = 0; obl_rej = 0;}
+  rule_diag_t(){aa_prop = 0; aa_rej = 0; cat_prop = 0; cat_rej = 0;}
+  void reset(){aa_prop = 0; aa_rej = 0; cat_prop = 0; cat_rej = 0;}
 };
 
 // class holding data dimensions and pointers to the covariate data
 class data_info{
 public:
   int n; // number of observations
+  int R; // number of ensembles
   int p_cont; // number of continuous predictors
   int p_cat; // number of categorical predictors
   int p; // total number of predictors (likely will never every use this)
+  double* z; // for vcbart, these are the linear predictors/weights on ensembles
   double* x_cont; // pointer to the matrix of continuous predictors
   int* x_cat; // pointer to matrix of categorical predictors (levels coded as integers, beginning with 0)
   double* rp; // partial residual;
-  data_info(){n = 0; p_cont = 0; p_cat = 0; p = 0; x_cont = 0; x_cat = 0;rp = 0;}
+  data_info(){n = 0; R = 0; p_cont = 0; p_cat = 0; p = 0; z = 0; x_cont = 0; x_cat = 0;rp = 0;}
 };
 
+
+// structure for nested categorical variables:
+// lo: low resolution variable index
+// hi: high resolution variable index
+// map: keys are values of x_lo and value are the x_hi values contained within each value of x_lo
+struct hi_lo_map{
+  int hi;
+  int lo;
+  std::map<int, std::set<int>> map;
+  hi_lo_map(){hi = 0; lo = 0; map = std::map<int, std::set<int>>();}
+  hi_lo_map(int h, int l){hi = h; lo = l; map = std::map<int, std::set<int>>();}
+  hi_lo_map(int h, int l, std::map<int, std::set<int>> map_arg){
+    hi = h;
+    lo = l;
+    map = map_arg;
+  }
+
+  bool find(int h, int l){
+    if( (hi == h && lo == l) || (hi == l && lo == h)) return true;
+    else return false;
+  }
+};
 
 
 // holds hyperparameters for regression tree prior
 class tree_prior_info{
 public:
-  double alpha; // 1st parameter of the branching process prior
-  double beta; // 2nd parameter in branching process prior
   
   double prob_bd; // prob of proposing a grow (birth) or prune (death) move. almost always set to 1
   double prob_b; // prob of proposing a grow (birth) move. almost always set to 0.5
+  std::vector<std::set<double> >* cutpoints; // holds cutpoints if there are any
+  std::vector<std::set<int>>* cat_levels; // holds the levels of the categorical variables
+  std::vector<std::vector<edge>> *edges; // vector of edges for the graph-structured categorical levels
+  std::vector<hi_lo_map>* nesting; // maps between levels of hi and lo resolution variables
+  bool nest_v; // should nesting structure influence choice of splitting variable
+  bool nest_c; // should nesting structure include choice of cutset
+  int nest_v_option; // how should nesting structure influence choice of splitting variable
+  int graph_cut_type; // determines how graph is partitioned
+  // ensemble specific stuff
+  double alpha; // 1st parameter of the branching process prior
+  double beta; // 2nd parameter in branching process prior
+  // eventually will need stuff about the covariate graph
+  double tau;
+  double mu0;
   
   std::vector<double>* theta; // prob. that we pick one variable out of p_cont + p_cat
   std::vector<int> *var_count; // counts how many times we split on a single variable
   int* rule_count; // how many total rules are there in the ensemble
 
   // unif_cuts passed an Rcpp::LogicalVector
-  int* unif_cuts; // unif_cuts = 1 to draw cuts uniformly, = 0 to draw from pre-specified cutpoints, = minimum integer for NA
-  std::vector<std::set<double> >* cutpoints;
+  //int* unif_cuts; // unif_cuts = 1 to draw cuts uniformly, = 0 to draw from pre-specified cutpoints, = minimum integer for NA
   
-  std::vector<std::set<int>> *cat_levels; // holds the levels of the categorical variables
-  std::vector<std::vector<edge>> *edges; // vector of edges for the graph-structured categorical levels
-  std::vector<int> *K; // number of levels per categorical variable
+  //std::vector<int> *K; // number of levels per categorical variable
 
-  int* graph_split; // do we split categorical variables using the supplied graphs?
-  int graph_cut_type; // determines how we generate the partition
+  //int* graph_split; // do we split categorical variables using the supplied graphs?
+  //int graph_cut_type; // determines how we generate the partition
 
   // hyperparameters will go here eventually
-  double tau;
-  double mu0; // prior mean
+  //double tau;
+  //double mu0; // prior mean
   
   // constructor
   tree_prior_info(){
-    alpha = 0.95;
-    beta = 2.0;
     prob_bd = 1.0;
     prob_b = 0.5;
+    cutpoints = 0;
+    cat_levels = 0;
+    edges = 0;
+    graph_cut_type = 2;
+
+    nesting = 0;
+    nest_v = true;
+    nest_v_option = 3;
+    nest_c = true;
+    
+    alpha = 0.95;
+    beta = 2.0;
     theta = 0; // 0 pointer
     var_count = 0; // 0 pointer
     rule_count = 0; // 0 pointer
-    
-    unif_cuts = 0; // 0 pointer
-    cutpoints = 0; // 0 pointer
-    
-    cat_levels = 0; // 0 pointer
-    edges = 0; // 0 pointer
-    K = 0; // 0 pointer
-  
-    graph_split = 0; // 0 pointer
-    graph_cut_type = 0;
-    
     tau = 1.0;
     mu0 = 0.0;
   }

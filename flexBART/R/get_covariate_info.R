@@ -114,8 +114,8 @@ parse_adjacency <- function(adjacency_list, dinfo)
       edge_mat_list[[j]] <- list(edge_mat-1) # remember C++ is 0-indexed
     } else{
       # no adjacency information for this variable
-      # so put in a 1x1 matrix
-      edge_mat_list[j] <- NULL
+      # so put in a null value
+      edge_mat_list[j] <- list(NULL)
     }
   } # close loop over the categorical variables
   return(edge_mat_list)
