@@ -3,8 +3,10 @@
 #include "funs.h"
 // [[Rcpp::export(".flexBART_fit")]]
 Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
+                        Rcpp::NumericMatrix tZ_train,
                         Rcpp::NumericMatrix tX_cont_train,
                         Rcpp::IntegerMatrix tX_cat_train,
+                        Rcpp::NumericMatrix tZ_test,
                         Rcpp::NumericMatrix tX_cont_test,
                         Rcpp::IntegerMatrix tX_cat_test,
                         Rcpp::Nullable<Rcpp::List> cutpoints_list,
@@ -26,27 +28,16 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   set_str_conversion set_str; // for converting sets of integers into strings
   
   // BEGIN: get dimensions of training data
-  int n_train = Y_train.size();
-  int n_test = 0;
+  int n_train = tZ_train.cols(); // how many training observations
+  int R = tZ_train.rows(); // how many ensembles
+  if(R != 1) Rcpp::stop("[flexBART_fit]: this function assumes R = 1");
   int p_cont = 0;
   int p_cat = 0;
   if(tX_cont_train.size() > 1) p_cont = tX_cont_train.rows();
   if(tX_cat_train.size() > 1) p_cat = tX_cat_train.rows();
   int p = p_cont + p_cat;
-  
-  if( tX_cont_test.size() > 1 && tX_cat_test.size() == 1){
-    n_test = tX_cont_test.cols();
-  } else if(tX_cont_test.size() == 1 && tX_cat_test.size() > 1){
-    n_test = tX_cat_test.cols();
-  } else if(tX_cont_test.size() > 1 && tX_cat_test.size() > 1){
-    if(tX_cont_test.cols() != tX_cat_test.cols()){
-      Rcpp::stop("X_cont_test & X_cat_test must have same number of rows");
-    } else{
-      n_test = tX_cont_test.cols();
-    }
-  } else{
-    n_test = 0;
-  }
+  int n_test = 0;
+  if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
   // END: get dimensions of testing data
   
   // BEGIN: set cutpoints & categorical levels + parse network structure
@@ -61,46 +52,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   }
   // END: set cutpoints & categorical levels + parse network structure
 
-  
-
-  /*
-  parse_training_data(n_train, p_cont, p_cat, tX_cont_train, tX_cat_train);
-  if(Y_train.size() != n_train) Rcpp::stop("Number of observations in Y_train does not match number of rows in training design matrices");
-  parse_testing_data(n_test, tX_cont_test, tX_cat_test, p_cat, p_cont);
-  
-  int p = p_cont + p_cat;
-  
-  if(verbose){
-    Rcpp::Rcout << "n_train = " << n_train << " n_test = " << n_test;
-    Rcpp::Rcout << " p_cont = " << p_cont << "  p_cat = " << p_cat << std::endl;
-  }
-  
-  std::vector<std::set<double>> cutpoints;
-  if(p_cont > 0){
-    if(cutpoints_list.isNotNull()){
-      Rcpp::List tmp_cutpoints  = Rcpp::List(cutpoints_list);
-      parse_cutpoints(cutpoints, p_cont, tmp_cutpoints, unif_cuts);
-    }
-  }
-  
-  std::vector<std::set<int>> cat_levels;
-  std::vector<int> K; // number of levels for the different categorical variables
-  std::vector<std::vector<edge>> edges;
-  
-  if(p_cat > 0){
-    if(cat_levels_list.isNotNull()){
-      Rcpp::List tmp_cat_levels = Rcpp::List(cat_levels_list);
-      parse_cat_levels(cat_levels, K, p_cat, tmp_cat_levels);
-    } else{
-      Rcpp::stop("Must provide list of categorical levels!");
-    }
-    if(edge_mat_list.isNotNull()){
-      Rcpp::List tmp_edge_mat = Rcpp::List(edge_mat_list);
-      parse_graphs(edges, p_cat, K, tmp_edge_mat, graph_split);
-    }
-  }
-  */
-  
   // BEGIN: create splitting probabilities
   // declare stuff for variable selection
   std::vector<double> theta(p, 1.0/ (double) p);
@@ -130,6 +81,8 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   di_train.p_cont = p_cont;
   di_train.p_cat = p_cat;
   di_train.p = p;
+  di_train.R = R;
+  di_train.z = tZ_train.begin();
   if(p_cont > 0) di_train.x_cont = tX_cont_train.begin();
   if(p_cat > 0) di_train.x_cat = tX_cat_train.begin();
   di_train.rp = residual;
@@ -141,8 +94,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     di_test.p_cont = p_cont;
     di_test.p_cat = p_cat;
     di_test.p = p;
+    di_test.R = R;
     if(p_cont > 0) di_test.x_cont = tX_cont_test.begin();
     if(p_cat > 0)  di_test.x_cat = tX_cat_test.begin();
+    di_test.z = tZ_test.begin();
   }
   // END: create data_info objects for training & testing
  
@@ -238,6 +193,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   // END: create output containers
   
   // main MCMC loop starts here
+  int r = 0; // for this function only, assume there is only one
   for(int iter = 0; iter < total_draws; iter++){
     if(verbose){
     // remember that R is 1-indexed
@@ -269,7 +225,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         }
       } // this whole loop is O(n)
       
-      update_tree(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, rule_diag, sigma, di_train, di_test, tree_pi, gen); // update the tree
+      update_tree(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, rule_diag, r, sigma, di_train, di_test, tree_pi, gen); // update the tree
       total_accept += accept;
     
       // now we need to update the value of allfit

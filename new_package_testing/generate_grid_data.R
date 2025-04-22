@@ -7,6 +7,7 @@ A <- as_adjacency_matrix(g, type = "both", sparse = FALSE)
 colnames(A) <- 0:(n-1)
 rownames(A) <- 0:(n-1)
 
+col_list <- colorBlindness::Blue2DarkRed18Steps
 # make up 5 clusters
 cluster1 <- 81:100
 cluster1 <- cluster1[!cluster1 %in% c(89,90, 100)]

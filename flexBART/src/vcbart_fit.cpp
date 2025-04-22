@@ -63,8 +63,8 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   std::vector<std::set<int>> cat_levels;
   std:vector<std::vector<edge>> edges;
   if(p_cat > 0){
-    parse_cat_levels(cat_levels, p_cat, p_cont, cat_levels_list);
-    parse_graphs(edges, p_cat, p_cont, edge_mat_list);
+    parse_cat_levels(cat_levels, p_cat, cat_levels_list);
+    parse_graphs(edges, p_cat, edge_mat_list);
   }
   // END: set cutpoints & categorical levels + parse network structure
   
@@ -178,7 +178,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     tree_pi_vec[r].nest_v_option = nest_v_option;
     tree_pi_vec[r].nest_c = nest_c;
     // initialize things that are specific to the ensemble
-    tree_pi_vec[r].theta = &(theta);
+    tree_pi_vec[r].theta = &(theta[r]);
     tree_pi_vec[r].var_count = &(var_count[r]);
     tree_pi_vec[r].rule_count = &(rule_count[r]);
     
@@ -280,8 +280,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   }
   
   arma::vec sigma_samples(total_draws);
-  arma::cube group_count_samples(total_draws, n_group, R); // how many times was a group used in each iteration
-  arma::cube varcount_samples(total_draws, p, R); // how many times was a variable used in each iteration
+  arma::cube var_count_samples(total_draws, p, R); // how many times was a variable used in each iteration
 
   arma::mat total_accept_samples(total_draws, R);
   arma::mat grow_proposed_samples(total_draws, R); // how many grow proposals in this iteration
@@ -403,11 +402,10 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
       if(sparse){
         update_theta_u_subset(theta[r], u[r], var_count[r], a_u, b_u, gen);
         for(int j = 0; j < p; j++){
-          theta_samples(iter, j) = theta[j];
-          var_count_samples(iter,j) = var_count[j];
+          var_count_samples(iter,j, r) = var_count[r][j];
         }
       } else{
-        for(int j = 0; j < p; j++) var_count_samples(iter, j) = var_count[j];
+        for(int j = 0; j < p; j++) var_count_samples(iter, j,r) = var_count[r][j];
       }
       // END: update selection probabilities
       
@@ -526,7 +524,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     }
   }
   results["sigma"] = sigma_samples;
-  results["varcount"] = varcount_samples;
+  results["varcount"] = var_count_samples;
   
   results["total_accept"] = total_accept_samples;
   results["grow_proposed"] = grow_proposed_samples;

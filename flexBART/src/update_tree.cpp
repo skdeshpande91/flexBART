@@ -105,24 +105,28 @@ void compute_suff_stat_prune(suff_stat &orig_suff_stat, suff_stat &new_suff_stat
   for(int_it it = nr_it->second.begin(); it != nr_it->second.end(); ++it) np_it->second.push_back( *it );
 }
 
-double compute_lil(suff_stat &ss, int &nid, double &sigma, data_info &di, tree_prior_info &tree_pi)
+double compute_lil(suff_stat &ss, int &nid, int &r, double &sigma, data_info &di, tree_prior_info &tree_pi)
 {
   // reminder posterior of jump mu is N(P^-1 Theta, P^-1)
   if(ss.count(nid) != 1) Rcpp::stop("[compute_lil]: did not find node in suff stat map!");
   suff_stat_it ss_it = ss.find(nid);
   
-  double P = 1.0/pow(tree_pi.tau, 2.0) + ( (double) ss_it->second.size())/pow(sigma, 2.0); // precision of jump mu
-  double Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
+  double P = 1.0/pow(tree_pi.tau, 2.0); // prior leaf precision
+  double Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0); // contribution from prior leaf mean
   
   if(ss_it->second.size() > 0){
-    for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma, 2.0);
+    for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+      int i = *it;
+      P += pow(di.z[r + i * di.R], 2.0)/pow(sigma, 2.0);
+      Theta += di.z[r + i * di.R] * di.rp[i]/pow(sigma, 2.0);
+    }
   }
   
   return(-0.5 * log(P) + 0.5 * pow(Theta,2.0) / P);
   
 }
 
-void draw_mu(tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_info &tree_pi, RNG &gen)
+void draw_mu(tree &t, suff_stat &ss, int &r, double &sigma, data_info &di, tree_prior_info &tree_pi, RNG &gen)
 {
   //int i;
   double P;
@@ -135,11 +139,15 @@ void draw_mu(tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_in
     bn = t.get_ptr(ss_it->first);
     if(bn == 0) Rcpp::stop("[draw_mu]: could not find node that is in suff stat map in the tree");
     else{
-      P = 1.0/pow(tree_pi.tau, 2.0) + ( (double) ss_it->second.size())/pow(sigma, 2.0); // precision of jump mu
-      Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0);
+      P = 1.0/pow(tree_pi.tau, 2.0); // prior leaf precision
+      Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0); // contribution from prior leaf mean
       
       if(ss_it->second.size() > 0){
-        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it) Theta += di.rp[*it]/pow(sigma,2.0);
+        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+          int i = *it;
+          P += pow(di.z[r + i * di.R], 2.0)/pow(sigma, 2.0);
+          Theta += di.z[r + i * di.R] * di.rp[i]/pow(sigma, 2.0);
+        }
       }
       post_sd = sqrt(1.0/P);
       post_mean = Theta/P;
@@ -150,7 +158,7 @@ void draw_mu(tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_in
 
 
 
-void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   
   std::vector<int> bn_nid_vec; // vector to hold the id's of all of the bottom nodes in the tree
@@ -218,9 +226,9 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, ru
   int nxl_nid = 2*nx_nid; // id for the left child of nx
   int nxr_nid = 2*nx_nid+1; // id for right child of nx
   
-  double nxl_lil = compute_lil(prop_ss_train, nxl_nid, sigma, di_train, tree_pi); // nxl's contribution to log marginal likelihood of new tree
-  double nxr_lil = compute_lil(prop_ss_train, nxr_nid, sigma, di_train, tree_pi); // nxr's contribution to log marginal likelihood of new tree
-  double nx_lil = compute_lil(ss_train, nx_nid, sigma, di_train, tree_pi); // nx's contribution to log marginal likelihood of old tree
+  double nxl_lil = compute_lil(prop_ss_train, nxl_nid, r, sigma, di_train, tree_pi); // nxl's contribution to log marginal likelihood of new tree
+  double nxr_lil = compute_lil(prop_ss_train, nxr_nid, r, sigma, di_train, tree_pi); // nxr's contribution to log marginal likelihood of new tree
+  double nx_lil = compute_lil(ss_train, nx_nid, r, sigma, di_train, tree_pi); // nx's contribution to log marginal likelihood of old tree
   
   // likelihood ratio also needs to include some constants from prior on jumps condition on tree
   // in GROW move, the new tree has one extra leaf so there's an additional factor of tau^(-1) * exp(-mu0^2/2tau^2) from leaf prior in the numerator
@@ -291,7 +299,7 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, ru
   }
 }
 
-void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   // first we randomly select a nog node
   tree::npv nogs_vec; // vector of pointers to nodes w/ no grandchildren
@@ -335,9 +343,9 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, d
   compute_suff_stat_prune(ss_train, prop_ss_train, nxl_nid, nxr_nid, nx_nid, t, di_train); // create a sufficient statistic map for the new tree
   if(di_test.n > 0) compute_suff_stat_prune(ss_test, prop_ss_test, nxl_nid, nxr_nid, nx_nid, t, di_test);
   
-  double nxl_lil = compute_lil(ss_train, nxl_nid, sigma, di_train, tree_pi);
-  double nxr_lil = compute_lil(ss_train, nxr_nid, sigma, di_train, tree_pi);
-  double nx_lil = compute_lil(prop_ss_train, nx_nid, sigma, di_train, tree_pi);
+  double nxl_lil = compute_lil(ss_train, nxl_nid, r, sigma, di_train, tree_pi);
+  double nxr_lil = compute_lil(ss_train, nxr_nid, r, sigma, di_train, tree_pi);
+  double nx_lil = compute_lil(prop_ss_train, nx_nid, r, sigma, di_train, tree_pi);
   
   // old tree has one more leaf node than new tree so there is additional factor of
   // (tau)^(-1) * exp(-mu0^2/(2 * tau^2)) in denominator of likelihood ratio that comes from the prior on leafs
@@ -394,19 +402,20 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, d
     }
     t.death(nx_nid); // actually perform the death
   } else{
+    ++(rule_diag.prune_rej);
     accept = 0;
   }
 }
 
-void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   accept = 0; // initialize indicator of MH acceptance to 0 (reject)
   double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
   if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
   
-  if(gen.uniform() < PBx) grow_tree(t, ss_train, ss_test, accept, rule_diag, sigma, di_train, di_test,tree_pi, gen);
-  else prune_tree(t, ss_train, ss_test, accept, sigma, di_train, di_test, tree_pi, gen);
+  if(gen.uniform() < PBx) grow_tree(t, ss_train, ss_test, accept, rule_diag, r, sigma, di_train, di_test,tree_pi, gen);
+  else prune_tree(t, ss_train, ss_test, accept, rule_diag, r, sigma, di_train, di_test, tree_pi, gen);
 
   // by this point, the decision tree has been updated so we can draw new jumps.
-  draw_mu(t, ss_train, sigma, di_train, tree_pi, gen);
+  draw_mu(t, ss_train, r, sigma,di_train, tree_pi, gen);
 }
