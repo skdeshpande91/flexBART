@@ -133,6 +133,8 @@ public:
   bool nest_v; // should nesting structure influence choice of splitting variable
   bool nest_c; // should nesting structure include choice of cutset
   int nest_v_option; // how should nesting structure influence choice of splitting variable
+  edge_map* nest_in;
+  edge_map* nest_out;
   int graph_cut_type; // determines how graph is partitioned
   // ensemble specific stuff
   double alpha; // 1st parameter of the branching process prior
@@ -145,17 +147,6 @@ public:
   std::vector<int> *var_count; // counts how many times we split on a single variable
   int* rule_count; // how many total rules are there in the ensemble
 
-  // unif_cuts passed an Rcpp::LogicalVector
-  //int* unif_cuts; // unif_cuts = 1 to draw cuts uniformly, = 0 to draw from pre-specified cutpoints, = minimum integer for NA
-  
-  //std::vector<int> *K; // number of levels per categorical variable
-
-  //int* graph_split; // do we split categorical variables using the supplied graphs?
-  //int graph_cut_type; // determines how we generate the partition
-
-  // hyperparameters will go here eventually
-  //double tau;
-  //double mu0; // prior mean
   
   // constructor
   tree_prior_info(){
@@ -170,6 +161,8 @@ public:
     nest_v = true;
     nest_v_option = 3;
     nest_c = true;
+    nest_in = 0;
+    nest_out = 0;
     
     alpha = 0.95;
     beta = 2.0;

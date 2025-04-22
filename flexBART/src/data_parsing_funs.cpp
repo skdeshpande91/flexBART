@@ -35,34 +35,6 @@ void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont, Rcpp:
   } // closes if checking that cutpoints were provided
 }
 
-/*
- // APRIL 22: stage for deprecation.
-void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont, Rcpp::List &tmp_cutpoints, Rcpp::LogicalVector &unif_cuts)
-{
-  cutpoints.clear();
-  cutpoints.resize(p_cont, std::set<double>());
-  if(tmp_cutpoints.size() == p_cont && unif_cuts.size() == p_cont){
-    for(int j = 0; j < p_cont; j++){
-      
-      if(unif_cuts[j] == 0){
-        Rcpp::NumericVector cutpoints_vec = Rcpp::as<Rcpp::NumericVector>(tmp_cutpoints[j]);
-        if(cutpoints_vec.size() <= 1){
-          Rcpp::Rcout << "Only " << cutpoints_vec.size() << " cutpoints supplied for variable X_cont[," << j+1 << "]" << std::endl;
-          Rcpp::stop("[parse_cutpoints]: Not enough cutpoints supplied!");
-        } else{
-          for(int l = 0; l < cutpoints_vec.size(); l++) cutpoints[j].insert(cutpoints_vec[l]);
-        }
-      }
-    }
-  } else{
-    Rcpp::Rcout << "p_cont = " << p_cont;
-    Rcpp::Rcout << "  cutpoints_list.size() = " << tmp_cutpoints.size() << std::endl;
-    Rcpp::Rcout << "  unif_cuts.size() = " << unif_cuts.size() << std::endl;
-    Rcpp::stop("cutpoints_list & unif_cuts needs to have length p_cont!");
-  }
-}
-*/
-
 
 void parse_cat_levels(std::vector<std::set<int>> &cat_levels, int &p_cat, Rcpp::Nullable<Rcpp::List> &cat_levels_list)
 {
@@ -89,41 +61,20 @@ void parse_cat_levels(std::vector<std::set<int>> &cat_levels, int &p_cat, Rcpp::
   } // closes if checking that cat_levels are provided
 }
 
-/*
- // APRIL 22 DEPRECATE
-void parse_cat_levels(std::vector<std::set<int>> &cat_levels, std::vector<int> &K, int &p_cat, Rcpp::List &tmp_cat_levels)
-{
-  cat_levels.clear();
-  cat_levels.resize(p_cat, std::set<int>());
-  K.clear();
-  K.resize(p_cat);
-  if(tmp_cat_levels.size() == p_cat){
-    for(int j = 0; j < p_cat; j++){
-      Rcpp::IntegerVector levels_vec = Rcpp::as<Rcpp::IntegerVector>(tmp_cat_levels[j]);
-      for(int l = 0; l < levels_vec.size(); l++) cat_levels[j].insert(levels_vec[l]);
-      K[j] = levels_vec.size();
-    }
-  } else{
-    Rcpp::Rcout << "p_cat = " << p_cat;
-    Rcpp::Rcout << "cat_levels_list.size() = " << tmp_cat_levels.size();
-    Rcpp::stop("cat_levels_list must have size equal to p_cat!");
-  }
-}
-*/
 
 void parse_nesting(std::vector<hi_lo_map> &nesting,
-                   std::set<int> &nest_graph_vertices,
-                   std::vector<edge> &nest_graph_edges,
+                   std::vector<edge_map> &nest_graph_in,
+                   std::vector<edge_map> &nest_graph_out,
                    int &p_cont,
-                   int &p,
+                   Rcpp::IntegerMatrix &cov_ensm,
                    std::vector<std::set<int>> &cat_levels,
                    Rcpp::Nullable<Rcpp::List> &nest_list)
 {
-  nesting.clear();
-  nest_graph_edges.clear();
+  int R = cov_ensm.cols(); // how many ensembles are there
+  int p_cat = cat_levels.size();
   
-  // create a vertex for every covariate
-  for(int j = 0; j < p; ++j) nest_graph_vertices.insert(j);
+  nesting.clear();
+  std::vector<edge> nest_graph_edges; // holds all edges in the graph encoding nesting relationships
   
   if(nest_list.isNotNull()){
     Rcpp::List tmp_nest_list = Rcpp::List(nest_list);
@@ -132,15 +83,10 @@ void parse_nesting(std::vector<hi_lo_map> &nesting,
       Rcpp::List tmp_list = tmp_nest_list[nix];
       Rcpp::IntegerVector tmp_pair = tmp_list[0];
       Rcpp::IntegerVector tmp_map = tmp_list[1];
-      int hi = tmp_pair[0];
-      int lo = tmp_pair[1];
-      int K = cat_levels[hi-p_cont].size();
-      if( (hi >= p || lo >= p) || (hi < p_cont || lo < p_cont)){
-        Rcpp::Rcout << "Element " << nix+1 << " of nest_list:";
-        Rcpp::Rcout << " hi-res variable = " << hi << " lo-res variable =" << lo;
-        Rcpp::Rcout << " p = " << p << std::endl;
-        Rcpp::stop("Variable indices passed in each element of nest_list should be in {p_cont, ..., p-1}!");
-      } else if(tmp_map.size() != K){
+      int hi = tmp_pair[0] - p_cont; //hi is index among categoricals not all covariates
+      int lo = tmp_pair[1] - p_cont; // lo is index among categoricals not all covariates
+      int K = cat_levels[hi].size();
+      if(tmp_map.size() != K){
         Rcpp::Rcout << "Element " << nix+1 << " of nest_list:";
         Rcpp::Rcout << " hi-res variable = " << hi << " lo-res variable =" << lo << std::endl;
         Rcpp::Rcout << " Passed mapping with " << tmp_map.size() << " hi-res values but expected " << K << std::endl;
@@ -162,7 +108,6 @@ void parse_nesting(std::vector<hi_lo_map> &nesting,
             nest_it = nesting[nix].map.find(lo_val);
             if(nest_it == nesting[nix].map.end()){
               // we haven't seen this lo-res value before
-              //Rcpp::Rcout << "  adding map element for " << lo_val << std::endl;
               nesting[nix].map.insert(std::pair<int,std::set<int>>(lo_val, std::set<int>()));
             }
             nesting[nix].map.find(lo_val)->second.insert(hi_val);
@@ -172,6 +117,26 @@ void parse_nesting(std::vector<hi_lo_map> &nesting,
       // create an edge for the graph encoding nested edges
       nest_graph_edges.push_back(edge(hi,lo));
     } // closes loop over supplied nest_list
+    
+    //we are now ready to do ensemble specific calculations
+    // may need to resize some stuff later on
+    nest_graph_in.clear();
+    nest_graph_in.resize(R, edge_map());
+    
+    nest_graph_out.clear();
+    nest_graph_out.resize(R, edge_map());
+    
+    for(int r = 0; r < R; ++r){
+      std::set<int> tmp_vertices; // which vertices of nest_graph are exposed to this ensemble
+      for(int j  = 0; j < p_cat; ++j){
+        if(cov_ensm(j+p_cont,r) == 1) tmp_vertices.insert(j);
+      }
+      // get edges b/w categorical variables exposed to this ensemble
+      std::set<edge> tmp_edges = get_induced_edges(nest_graph_edges, tmp_vertices);
+      // nest_graph_in[r] is an edge map; key is vertex and value is all
+      build_in_out_edge_map(nest_graph_in[r], nest_graph_out[r], tmp_edges, tmp_vertices);
+    }
+
   } // closes if checking that nest_list is not null
 }
 

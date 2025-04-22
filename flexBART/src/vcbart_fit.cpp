@@ -70,26 +70,9 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   
   // BEGIN: build graph encoding nesting relationships b/w categorical predictors
   std::vector<hi_lo_map> nesting;
-  std::set<int> nest_graph_vertices;
-  std::vector<edge> nest_graph_edges;
-  parse_nesting(nesting, nest_graph_vertices, nest_graph_edges, p_cont, p, cat_levels, nest_list);
-  
-  /*
-   This will need some refactoring
-  std::vector<std::map<int, std::set<int>>> ensm_cov_groups(R, std::map<int, std::set<int>>()); // records groups of variables exposed to each ensemble
-  std::vector<std::set<int>> ensm_nest_graph_vertices;
-  std::vector<std::vector<edge>> ensm_nest_graph_edges;
-  
-  std::vector<std::vector<std::map<int, std::set<int>>>> ensm_component_vertices;
-  std::vector<std::vector<std::map<int, edge_map>>> ensm_component_emap_in;
-  std::vector<std::vector<std::map<int, edge_map>>> ensm_component_emap_out;
-  
-  build_ensm_cov_info(ensm_cov_groups,
-                      ensm_nest_graph_vertices,
-                      ensm_nest_graph_edges,
-                      ensm_component_vertices, ensm_component_emap_in, ensm_component_emap_out,
-                      cov_ensm, cov_group_id, nest_graph_edges, nest_graph_vertices);
-*/
+  std::vector<edge_map> nest_graph_in;
+  std::vector<edge_map> nest_graph_out;
+  parse_nesting(nesting, nest_graph_in, nest_graph_out, p_cont, cov_ensm, cat_levels, nest_list);
   // END: build graph encoding nesting relationships b/w categorical predictors
   
   // BEGIN: create splitting probabilities
@@ -105,9 +88,14 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         theta[r][j] = 1.0;
         ++n_avail_vars;
       }
+    } // closes loop over variables
+    if(n_avail_vars == 0){
+      Rcpp::Rcout << "Ensemble r = " << r << " no covariates detected!" << std::endl;
+      Rcpp::stop("At least one covariate needed for each ensemble!");
+    } else{
       for(int j = 0; j < p; ++j) theta[r][j] /= (double) n_avail_vars;
       u[r] = 1.0/(1.0 + (double) n_avail_vars);
-    } // closes loop over variables
+    }
   } // closes loop over ensembles
   // END: create splitting probabilities
 
@@ -177,6 +165,8 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     tree_pi_vec[r].nest_v = nest_v;
     tree_pi_vec[r].nest_v_option = nest_v_option;
     tree_pi_vec[r].nest_c = nest_c;
+    tree_pi_vec[r].nest_in = &(nest_in[r]);
+    tree_pi_vec[r].nest_out = &(nest_out[r]);
     // initialize things that are specific to the ensemble
     tree_pi_vec[r].theta = &(theta[r]);
     tree_pi_vec[r].var_count = &(var_count[r]);

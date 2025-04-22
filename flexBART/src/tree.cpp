@@ -353,6 +353,158 @@ void tree::get_rg_cat(int &v, std::set<int> &levels){
   }
 }
 
+
+void tree:get_rg_nested_cat(std::set<int> &levels, int &v, tree_prior_info &tree_pi)
+{
+  bool recurse = true;
+  std::set<int>* parent_vals;
+  if(p){
+    // this has a parent
+    if(p->rule.is_cat){
+      // parent splits on categorical predictor
+      // get parent values
+      if(this == p->l) parent_vals = &p->rule.l_vals;
+      else if(this == p->r) parent_vals = &p->rule.r_vals;
+      else Rcpp::stop("[get_rg_nested_cat]: this was not left nor right child of its parent!");
+      
+      if(levels.size() == 0){
+        // this->p is the first ancestor at which we split on this cluster. We will populate levels for the first time here
+        // 3 possibilities: 1. Parent splits on v; 2. Parent splits on higher res than v (e.g., blockgroup vs tract); 3. Parent splits on lower res than v (tract vs blockgroup)
+        // When we recurse up the tree, we don't want to over-include things. So let's add some checks to see whether levels is empty or not
+        
+        if(p->rule.v_cat == v){
+          // We inherit the values from the appropriate branch. At this point, we can stop the recursion
+          for(std::set<int>::iterator it = parent_vals->begin(); it != parent_vals->end(); ++it) levels.insert(*it);
+          recurse = false;
+        } else{
+          // we now loop over the hi_lo maps to find the ones involving v and p->rule.v_cat
+          
+          std::vector<hi_lo_map>::iterator nest_it = tree_pi.nesting->begin();
+          for(; nest_it != tree_pi.nesting->end(); ++nest_it){
+            if(nest_it->hi == v && nest_it->lo == p->rule.v_cat){
+              // p splits on lower resolution than v; we will inherit all the high resolution values contained in appropriate branch
+              // now we loop over lo-res values in appropriate branch and get each of the hi-res values
+              for(std::set<int>::iterator lo_it = parent_vals->begin(); lo_it != parent_vals->end(); ++lo_it){
+                // The lo-res value *lo_it is an available at the node. We need to find the corresponding hi-resolution values
+                std::map<int, std::set<int>>::iterator hi_val_it = nest_it->map.find(*lo_it);
+                if(hi_val_it != nest_it->map.end()){
+                  for(std::set<int>::iterator it = hi_val_it->second.begin(); it != hi_val_it->second.end(); ++it) levels.insert(*it);
+                }
+              } // closes loop over the lo-res values available from parent
+              recurse = false; // no need to continue recursion past a lower-resolution ancestor
+              break; // no need to continue looping over elements of nesting.
+            }
+            if(nest_it->hi == p->rule.v_cat && nest_it->lo == v){
+              // p splits on higher resolution than v;
+              // loop over hi-res values from parent and add the lo-res value containing it to levels.
+              std::map<int, std::set<int>>::iterator lo_it = nest_it->map.begin();
+              for(std::set<int>::iterator hi_it = parent_vals->begin(); hi_it != parent_vals->end(); ++hi_it){
+                lo_it = nest_it->map.begin();
+                for(; lo_it != nest_it->map.end(); ++lo_it){
+                  if(lo_it->second.count(*hi_it) == 1){
+                    // lo_it->first is the lo-res value containing *hi_it
+                    // we need to dump lo_it->first into the levels
+                    // we can also break out of this loop
+                    levels.insert(lo_it->first);
+                    break;
+                  }
+                } // closes loop looking for the lo-res value containing current hi-res value
+              } // closes loop over available hi-res values from parent
+              recurse = true; // we need to continue recursion to make sure we don't over-include
+              break;
+            }  // closes if/else checking whether p splits on higher or lower resolution than v
+          } // closes loop over hi-lo maps in the family
+        } // closes if/else checking if p splits on v or not
+      } else{
+        // levels is not empty. earlier in the recursion, we encountered a split
+        // on a variable connected to v in nest_graph
+        // we cannot simply inherit values
+        // if p->rule.v_cat = v, then we need to remove anything from levels not contained in the appropriate branch
+        // and if p->rule.v_cat is higher resolution than v, we also need to
+        // remove anything from levels not contained in appropriate branch
+        
+        std::set<int> parent_levels;
+
+        if(p->rule.v_cat == v){
+          for(std::set<int>::iterator it = parent_vals->begin(); it != parent_vals->end(); ++it) parent_levels.insert(*it);
+          recurse = false; // after this point we need not continue recursion up the tree
+        } else{
+          std::vector<hi_lo_map>::iterator nest_it = tree_pi.nesting->begin();
+          for(; nest_it != tree_pi.nesting->end(); ++nest_it){
+            if(nest_it->hi == p->rule.v_cat && nest_it->lo == v){
+              // loop over hi-res values in parent_vals and add them to temporary parent_levels
+              std::map<int, std::set<int>>::iterator lo_it = nest_it->map.begin();
+              for(std::set<int>::iterator hi_it = parent_vals->begin(); hi_it != parent_vals->end(); ++hi_it){
+                lo_it = nest_it->map.begin();
+                for(; lo_it != nest_it->map.end(); ++lo_it){
+                  if(lo_it->second.count(*hi_it) == 1){
+                    // lo_it->first is the lo-res value containing *hi_it
+                    // we need to dump lo_it->first into the levels
+                    // we can also break out of this loop
+                    parent_levels.insert(lo_it->first);
+                    break;
+                  }
+                } // closes loop looking for the lo-res value containing current hi-res value
+              } // closes loop over available hi-res values from parent
+              recurse = true; // we should still continue recursion to make sure we don't over-include levels
+              break;
+            } // closes if checking whehter parent split on higher-resolution than v in the branch
+            if(nest_it->hi == v && nest_it->lo == p->rule.v_cat){
+              // we have split on a lower-resolution before and we can just inherit these values.
+              // this bit is redundant but it will allow us to do the intersection by hand
+              for(std::set<int>::iterator lo_it = parent_vals->begin(); lo_it != parent_vals->end(); ++lo_it){
+                // The lo-res value *lo_it is an available at the node. We need to find the corresponding hi-resolution values
+                std::map<int, std::set<int>>::iterator hi_val_it = nest_it->map.find(*lo_it);
+                if(hi_val_it != nest_it->map.end()){
+                  for(std::set<int>::iterator it = hi_val_it->second.begin(); it != hi_val_it->second.end(); ++it) parent_levels.insert(*it);
+                }
+              } // closes loop over the lo-res values available from parent
+              recurse = false; // no need to continue recursion past a lower-resolution ancestor
+              break;
+            } // closes if checking whether parent split on lower-resolution than v in the branch
+          } // closes loop over the hi_lo maps in the family looking for the one with v and p->rule.v_cat
+        } // closes if/else checking if we split on v or a high-resolution variable
+        
+        // at this point, levels may contain more than what we want. we need to include only those values in both levels & parent_levels.
+        std::set<int> new_levels;
+        for(std::set<int>::iterator it = levels.begin(); it != levels.end(); ++it){
+          if(parent_levels.count(*it) == 1) new_levels.insert(*it);
+        }
+        // now overwrite levels to include everything in new_levels.
+        levels.clear();
+        for(std::set<int>::iterator it = new_levels.begin(); it != new_levels.end(); ++it) levels.insert(*it);
+        
+        
+      } // closes if/else checking if levels is currently empty.
+      
+      
+      
+      std::vector<hi_lo_map>::iterator nest_it = tree_pi.nesting->begin();
+      for(; nest_it != tree_pi.nesting->end(); ++nest_it){
+        if(nest_it->hi == v && nest_it->lo == p->rule.v_cat){
+          // p splits on lower resolution than v; we will inherit all the high resolution values contained in appropriate branch
+          // now we loop over lo-res values in appropriate branch and get each of the hi-res values
+          for(std::set<int>::iterator lo_it = parent_vals->begin(); lo_it != parent_vals->end(); ++lo_it){
+            // The lo-res value *lo_it is an available at the node. We need to find the corresponding hi-resolution values
+            std::map<int, std::set<int>>::iterator hi_val_it = nest_it->map.find(*lo_it);
+            if(hi_val_it != nest_it->map.end()){
+              for(std::set<int>::iterator it = hi_val_it->second.begin(); it != hi_val_it->second.end(); ++it) levels.insert(*it);
+            }
+          } // closes loop over the lo-res values available from parent
+          recurse = false; // no need to continue recursion past a lower-resolution ancestor
+          break; // no need to continue looping over elements of nesting.
+        } else if(nest_it->hi == p->rule.v_cat && nest_it->lo == v){
+          
+        }
+      }
+      
+      
+      
+    }
+  }
+}
+
+
 //private functions
 
 //copy tree o to tree n

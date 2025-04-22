@@ -11,9 +11,8 @@
 
 void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont, Rcpp::Nullable<Rcpp::List> &cutpoints_list);
 void parse_cat_levels(std::vector<std::set<int>> &cat_levels, int &p_cat, Rcpp::Nullable<Rcpp::List> &cat_levels_list);
-void parse_nesting(std::vector<hi_lo_map> &nesting, std::set<int> &nest_graph_vertices, std::vector<edge> &nest_graph_edges,
-                   int &p_cont, int &p, std::vector<std::set<int>> &cat_levels,
-                   Rcpp::Nullable<Rcpp::List> &nest_list);
+void parse_nesting(std::vector<hi_lo_map> &nesting, std::vector<edge_map> &nest_graph_in,std::vector<edge_map> &nest_graph_out,
+                   int &p_cont, Rcpp::IntegerMatrix &cov_ensm, std::vector<std::set<int>> &cat_levels, Rcpp::Nullable<Rcpp::List> &nest_list);
 
 //void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont, Rcpp::List &tmp_cutpoints, Rcpp::LogicalVector &unif_cuts);
 //void parse_cat_levels(std::vector<std::set<int>> &cat_levels, std::vector<int> &K, int &p_cat, Rcpp::List &tmp_cat_levels);
