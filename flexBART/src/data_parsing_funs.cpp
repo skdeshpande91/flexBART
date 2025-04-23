@@ -65,6 +65,7 @@ void parse_cat_levels(std::vector<std::set<int>> &cat_levels, int &p_cat, Rcpp::
 void parse_nesting(std::vector<hi_lo_map> &nesting,
                    std::vector<edge_map> &nest_graph_in,
                    std::vector<edge_map> &nest_graph_out,
+                   std::vector<std::map<int, std::set<int>>> &nest_graph_components,
                    int &p_cont,
                    Rcpp::IntegerMatrix &cov_ensm,
                    std::vector<std::set<int>> &cat_levels,
@@ -135,6 +136,16 @@ void parse_nesting(std::vector<hi_lo_map> &nesting,
       std::set<edge> tmp_edges = get_induced_edges(nest_graph_edges, tmp_vertices);
       // nest_graph_in[r] is an edge map; key is vertex and value is all
       build_in_out_edge_map(nest_graph_in[r], nest_graph_out[r], tmp_edges, tmp_vertices);
+      
+      // we should also compute the clusters of the nest graph, since that plays a role in determining
+      // splitting probabilities when nest_v = TRUE
+      std::vector<std::vector<int>> tmp_components;
+      find_components(tmp_components, tmp_edges, tmp_vertices);
+      for(int cl = 0; cl < tmp_components.size(); ++cl){
+        nest_graph_components[r].insert(std::pair<int, std::set<int>>(cl,std::set<int>()));
+        std::map<int, std::set<int>>::iterator cl_it = nest_graph_components.find(cl);
+        for(std::vector<int>::iterator it = tmp_components[cl].begin(); it != tmp_components[cl].end(); ++it) cl_it->second.insert(*it);
+      }
     }
 
   } // closes if checking that nest_list is not null

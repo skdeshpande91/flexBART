@@ -352,7 +352,15 @@ void tree::get_rg_cat(int &v, std::set<int> &levels){
     if(recurse) p->get_rg_cat(v, levels);
   }
 }
-
+void tree::get_anc_v_cat(std::vector<int> &anc_v)
+{
+  if(p){
+    if(p->rule.is_cat){
+      anc_v.push_back(p->rule.v_cat);
+      p->get_anc_v_cat(anc_v);
+    }
+  }
+}
 
 void tree:get_rg_nested_cat(std::set<int> &levels, int &v, tree_prior_info &tree_pi)
 {

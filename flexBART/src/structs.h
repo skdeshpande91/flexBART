@@ -135,6 +135,7 @@ public:
   int nest_v_option; // how should nesting structure influence choice of splitting variable
   edge_map* nest_in;
   edge_map* nest_out;
+  std::map<int, std::set<int>>* nest_components;
   int graph_cut_type; // determines how graph is partitioned
   // ensemble specific stuff
   double alpha; // 1st parameter of the branching process prior
@@ -163,6 +164,7 @@ public:
     nest_c = true;
     nest_in = 0;
     nest_out = 0;
+    nest_components = 0;
     
     alpha = 0.95;
     beta = 2.0;
