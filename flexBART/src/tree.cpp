@@ -328,7 +328,7 @@ void tree::get_rg_aa(int &v, double &c_lower, double &c_upper){
   }
 }
 
-void tree::get_rg_cat(int &v, std::set<int> &levels){
+void tree::get_rg_cat(std::set<int> &levels, int &v){
 // recruse up the tree:
 //    1. we will initialize levels to be the set of all levels for x_cat[v]
 //    2. if this has a parent that splits on v, check if this is p->l or p->r.
@@ -349,7 +349,7 @@ void tree::get_rg_cat(int &v, std::set<int> &levels){
         recurse = false; // no need to continue recursing up the tree
       } else Rcpp::stop("[get_rg_cat]: this was not equal to either left or right child of its parent!");
     }
-    if(recurse) p->get_rg_cat(v, levels);
+    if(recurse) p->get_rg_cat(levels, v);
   }
 }
 void tree::get_anc_v_cat(std::vector<int> &anc_v)
@@ -482,26 +482,9 @@ void tree::get_rg_nested_cat(std::set<int> &levels, int &v, tree_prior_info &tre
         levels.clear();
         for(std::set<int>::iterator it = new_levels.begin(); it != new_levels.end(); ++it) levels.insert(*it);
       } // closes if/else checking if levels is currently empty.
-      std::vector<hi_lo_map>::iterator nest_it = tree_pi.nesting->begin();
-      for(; nest_it != tree_pi.nesting->end(); ++nest_it){
-        if(nest_it->hi == v && nest_it->lo == p->rule.v_cat){
-          // p splits on lower resolution than v; we will inherit all the high resolution values contained in appropriate branch
-          // now we loop over lo-res values in appropriate branch and get each of the hi-res values
-          for(std::set<int>::iterator lo_it = parent_vals->begin(); lo_it != parent_vals->end(); ++lo_it){
-            // The lo-res value *lo_it is an available at the node. We need to find the corresponding hi-resolution values
-            std::map<int, std::set<int>>::iterator hi_val_it = nest_it->map.find(*lo_it);
-            if(hi_val_it != nest_it->map.end()){
-              for(std::set<int>::iterator it = hi_val_it->second.begin(); it != hi_val_it->second.end(); ++it) levels.insert(*it);
-            }
-          } // closes loop over the lo-res values available from parent
-          recurse = false; // no need to continue recursion past a lower-resolution ancestor
-          break; // no need to continue looping over elements of nesting.
-        } else if(nest_it->hi == p->rule.v_cat && nest_it->lo == v){
-          
-        }
-      }
-    }
-  }
+    } // closes if checking whether p splits on categorical variable or not
+    if(recurse) p->get_rg_nested_cat(levels, v, tree_pi);
+  } // close sif checking whether there is a parent
 }
 
 

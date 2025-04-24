@@ -26,6 +26,18 @@ double RNG::gamma(double shape, double scale){
   return R::rgamma(shape, 1)*scale;
 }
 
+// if V ~ Exponential(1) and Z ~ Normal(0, 1)
+// then X ~ Laplace(mu, b) where X = mu + b * sqrt(2V) * Z
+double RNG::laplace(double mu, double b){
+  return mu + b * std::sqrt(2 * exponential(1.0)) * normal(0.0, 1.0);
+}
+
+// if X, Y ~ Normal(0, 1), then X / Y ~ Cauchy(0, 1)
+// if V ~ Cauchy(0, 1), then V * scale + loc ~ Cauchy(loc, scale)
+double RNG::cauchy(double loc, double scale){
+  return loc + normal(0.0, 1.0) / normal(0.0, 1.0) * scale;
+}
+
 double RNG::beta(double a1, double a2){
   const double x1 = gamma(a1, 1); return (x1 / (x1 + gamma(a2, 1)));
 }
@@ -34,13 +46,14 @@ double RNG::chi_square(double df){
   return R::rchisq(df);
 }
 
+
 int RNG::categorical(std::vector<double> &probs){
   int n = probs.size();
   int output = 0;
   double tmp = 0.0;
   if(n > 1){
-    double max_quantity = log(probs[0]) + gumbel();
-    for(int i = 1; i < n; i++){
+    double max_quantity = -100.00; // large negative number, any non-trivial log(prob) value exceed this
+    for(int i = 0; i < n; ++i){
       tmp = log(probs[i]) + gumbel();
       if(tmp > max_quantity){
         max_quantity = tmp;
@@ -59,8 +72,8 @@ int RNG::categorical(std::vector<double>* probs){
   int output = 0;
   double tmp = 0.0;
   if(n > 1){
-    double max_quantity = log(probs->at(0)) + gumbel();
-    for(int i = 1; i < n; i++){
+    double max_quantity = -100.00;
+    for(int i = 0; i < n; i++){
       tmp = log(probs->at(i)) + gumbel();
       if(tmp > max_quantity){
         max_quantity = tmp;

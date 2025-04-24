@@ -108,7 +108,6 @@ void partition_levels(rule_t &rule, std::set<int> &avail_levels, tree_prior_info
 }
 
 
-// when nest_v = TRUE, we override theta
 void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, int &p_cont, int &p_cat, tree_prior_info &tree_pi)
 {
   int p = p_cont + p_cat;
@@ -166,7 +165,7 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
             // include v_rep and everything that has edge from v
             nest_theta[v_rep + p_cont] = 1.0;
             edge_map_it e_it = tree_pi.nest_out->find(v_rep);
-            for(std::vector<edge>::iterator it = e_it->second.end(); it != e_it->second.end(); ++it){
+            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it){
               nest_theta[it->sink + p_cont] = 1.0;
             }
           } else if(tree_pi.nest_v_option == 3){
@@ -175,7 +174,7 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
             edge_map_it e_it = tree_pi.nest_in->find(v_rep);
             for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it) nest_theta[it->source + p_cont] = 1.0;
             e_it = tree_pi.nest_out->find(v_rep);
-            for(std::vector<edge>::iterator it = e_it->second.end(); it != e_it->second.end(); ++it){
+            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it){
               nest_theta[it->sink + p_cont] = 1.0;
             }
           } else{
@@ -185,6 +184,47 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
       } // closes if/else checking if any ancestors split on variable from this cluster
     } // closes loop over the components in the nest graph
   } // closes if/else checking that anc_v is empty or not
+}
+
+
+void draw_rule(rule_t & rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen)
+{
+  rule.clear();
+  if(tree_pi.nest_v){
+    // we have nested variables: we form un-normalized vector of selection probabilities
+    // based on tree_pi.nest_v_option
+    
+    std::vector<double> nest_theta;
+    compute_nested_theta(nest_theta, t, nid, di.p_cont, di.p_cat, tree_pi);
+    
+    int v_raw = gen.categorical(nest_theta);
+    if(v_raw < di.p_cont){
+      rule.is_cat = false;
+      rule.v_aa = v_raw;
+      draw_aa_cutpoint(rule, t, nid, di, tree_pi, gen);
+    } else{
+      rule.is_cat = true;
+      rule.v_cat = v_raw - di.p_cont;
+      std::set<int> avail_levels;
+      t.get_ptr(nid)->get_rg_nested_cat(avail_levels, rule.v_cat, tree_pi);
+      if(avail_levels.size() <= 1) avail_levels = tree_pi.cat_levels->at(rule.v_cat);
+      partition_levels(rule, avail_levels, tree_pi, gen);
+    }
+  } else{
+    int v_raw = gen.categorical(tree_pi.theta);
+    if(v_raw < di.p_cont){
+      rule.is_cat = false;
+      rule.v_aa = v_raw;
+      draw_aa_cutpoint(rule, t, nid, di, tree_pi, gen);
+    } else{
+      rule.is_cat = true;
+      rule.v_cat = v_raw - di.p_cont;
+      std::set<int> avail_levels;
+      t.get_ptr(nid)->get_rg_cat(avail_levels, rule.v_cat);
+      if(avail_levels.size() <= 1) avail_levels = tree_pi.cat_levels->at(rule.v_cat);
+      partition_levels(rule, avail_levels, tree_pi, gen);
+    }
+  }
 }
 
 /*

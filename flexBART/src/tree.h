@@ -84,7 +84,7 @@ public:
   void death(int nid);
 
   void get_rg_aa(int &v, double &c_lower, double &c_upper); // for axis aligned splits
-  void get_rg_cat(int &v, std::set<int> &levels); // what are the available levels of a categorical variable at some node
+  void get_rg_cat(std::set<int> &levels, int &v); // what are the available levels of a categorical variable at some node
   void get_anc_v_cat(std::vector<int> &anc_v);
   void get_rg_nested_cat(std::set<int> &levels, int &v, tree_prior_info &tree_pi);
 private:
