@@ -311,6 +311,8 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
           }
         } // closes loop over all leafs removing fit
         // END: remove fit of a single tree (training)
+        /*
+        // SKD: this step is a bit redundant: we can just update the tree
         // BEGIN: remove fit of a single tree (testing). Only occurs post-warmup
         if(iter >= burn && n_test > 0){
           for(suff_stat_it l_it = ss_test_vec[r][m].begin(); l_it != ss_test_vec[r][m].end(); ++l_it){
@@ -324,7 +326,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
           }
         } // closes loop removing fit from test
         // END: remove fit of a single tree (testing). Only occurs post-warmup
-
+*/
         // BEGIN: update the tree
         update_tree_unnested(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
         total_accept += accept;
@@ -343,6 +345,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         } // closes loop restoring fit for training
         // END: restore fit of updated tree (training)
         
+        /*
         // BEGIN: restore fit of updated tree (testing). Only occurs post-warmup
         if(iter >= burn && n_test > 0){
           for(suff_stat_it l_it = ss_test_vec[r][m].begin(); l_it != ss_test_vec[r][m].end(); ++l_it){
@@ -357,7 +360,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
           } // closes loop restoring fit for training
         }// closes check to see if we need to update testing data fits
         // END: restore fit of updated tree (testing). Only occurs post-warmup
-        //Rcpp::Rcout << " restored fit" << std::endl;
+        */
 
       } // closes loop over all of the trees in this ensemble
       // END: loop over all trees in a single ensmble
@@ -414,10 +417,30 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
           }
         }
       }
-      // END: save ssamples and/or posterior means (training)
+      // END: save samples and/or posterior means (training)
       
       // BEGIN: save samples and/or posterior means (testing)
       if(n_test > 0){
+        // reset the values
+        for(int i = 0; i < n_test; ++i){
+          allfit_test[i] = 0.0;
+          for(int r = 0; r < R; ++r) beta_fit_test[r + i*R] = 0.0;
+        }
+        for(int r = 0; r < R; ++r){
+          for(int m = 0; m < M_vec[r]; ++m){
+            for(suff_stat_it ss_it = ss_test_vec[r][m].begin(); ss_it != ss_test_vec[r][m].end(); ++ss_it){
+              tmp_mu = t_vec[r][m].get_ptr(ss_it->first)->get_mu();
+              if(ss_it->second.size() > 0){
+                for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+                  allfit_test[*it] += di_test.z[r + (*it) * R] * tmp_mu;
+                  beta_fit_test[r + (*it) * R] += tmp_mu;
+                }
+              }
+            }
+          }
+        }
+        
+        
         if(save_samples){
           for(int i = 0; i < n_test; ++i){
             fit_test(sample_index,i) = allfit_test[i];

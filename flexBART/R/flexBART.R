@@ -154,33 +154,64 @@ flexBART <- function(formula,
     if(control$verbose){
       cat("Starting chain", chain_num, "at", as.character(round(Sys.time())), "\n")
     }
-    tmp_time <-
-      system.time(
-        fit <-
-          ._vcbart_fit(Y_train = tmp_data$training_info$std_Y,
-                       tZ_train = t(tmp_data$training_info$Z),
-                       tX_cont_train = t(tmp_data$training_info$X_cont),
-                       tX_cat_train = t(tmp_data$training_info$X_cat),
-                       sigest = hyper$sigest, 
-                       cov_ensm = cov_ensm,
-                       cutpoints_list = tmp_data$training_info$cutpoints,
-                       cat_levels_list = tmp_data$training_info$cat_levels_list,
-                       edge_mat_list = tmp_data$training_info$edge_mat_list,
-                       nest_list = tmp_data$training_info$nest_list,
-                       tZ_test = t(tmp_data$testing_info$Z),
-                       tX_cont_test = t(tmp_data$testing_info$X_cont),
-                       tX_cat_test = t(tmp_data$testing_info$X_cat),
-                       M_vec = hyper$M_vec,
-                       alpha_vec = hyper$alpha_vec, beta_vec = hyper$beta_vec,
-                       mu0 = hyper$mu0_vec, tau = hyper$tau_vec,
-                       graph_cut_type = hyper$graph_cut_type,
-                       nest_v = hyper$nest_v, nest_v_option = hyper$nest_v_option,
-                       nest_c = hyper$nest_c,
-                       sparse = FALSE, a_u = hyper$a_u, b_u = hyper$b_u,
-                       nu = hyper$nu,lambda = hyper$lambda, 
-                       nd = control$nd, burn = control$burn, thin = control$thin,
-                       save_samples = control$save_samples, save_trees = control$save_trees,
-                       verbose = control$verbose, print_every = control$print_every))
+    
+    if(hyper$nest_v){
+      tmp_time <-
+        system.time(
+          fit <-
+            ._vcbart_fit(Y_train = tmp_data$training_info$std_Y,
+                         tZ_train = t(tmp_data$training_info$Z),
+                         tX_cont_train = t(tmp_data$training_info$X_cont),
+                         tX_cat_train = t(tmp_data$training_info$X_cat),
+                         sigest = hyper$sigest, 
+                         cov_ensm = cov_ensm,
+                         cutpoints_list = tmp_data$training_info$cutpoints,
+                         cat_levels_list = tmp_data$training_info$cat_levels_list,
+                         edge_mat_list = tmp_data$training_info$edge_mat_list,
+                         nest_list = tmp_data$training_info$nest_list,
+                         tZ_test = t(tmp_data$testing_info$Z),
+                         tX_cont_test = t(tmp_data$testing_info$X_cont),
+                         tX_cat_test = t(tmp_data$testing_info$X_cat),
+                         M_vec = hyper$M_vec,
+                         alpha_vec = hyper$alpha_vec, beta_vec = hyper$beta_vec,
+                         mu0 = hyper$mu0_vec, tau = hyper$tau_vec,
+                         graph_cut_type = hyper$graph_cut_type,
+                         nest_v = hyper$nest_v, nest_v_option = hyper$nest_v_option,
+                         nest_c = hyper$nest_c,
+                         nu = hyper$nu,lambda = hyper$lambda, 
+                         nd = control$nd, burn = control$burn, thin = control$thin,
+                         save_samples = control$save_samples, save_trees = control$save_trees,
+                         verbose = control$verbose, print_every = control$print_every))
+    } else{
+      tmp_time <-
+        system.time(
+          fit <-
+            ._vcbart_fit_unnested(Y_train = tmp_data$training_info$std_Y,
+                         tZ_train = t(tmp_data$training_info$Z),
+                         tX_cont_train = t(tmp_data$training_info$X_cont),
+                         tX_cat_train = t(tmp_data$training_info$X_cat),
+                         sigest = hyper$sigest, 
+                         cov_ensm = cov_ensm,
+                         cutpoints_list = tmp_data$training_info$cutpoints,
+                         cat_levels_list = tmp_data$training_info$cat_levels_list,
+                         edge_mat_list = tmp_data$training_info$edge_mat_list,
+                         tZ_test = t(tmp_data$testing_info$Z),
+                         tX_cont_test = t(tmp_data$testing_info$X_cont),
+                         tX_cat_test = t(tmp_data$testing_info$X_cat),
+                         M_vec = hyper$M_vec,
+                         alpha_vec = hyper$alpha_vec, beta_vec = hyper$beta_vec,
+                         mu0 = hyper$mu0_vec, tau = hyper$tau_vec,
+                         graph_cut_type = hyper$graph_cut_type,
+                         sparse = hyper$sparse, a_u = hyper$a_u, b_u = hyper$b_u,
+                         nu = hyper$nu,lambda = hyper$lambda, 
+                         nd = control$nd, burn = control$burn, thin = control$thin,
+                         save_samples = control$save_samples, save_trees = control$save_trees,
+                         verbose = control$verbose, print_every = control$print_every))
+    }
+    
+    
+    
+
     
     start_index <- (chain_num-1)*control$nd + 1
     end_index <- chain_num*control$nd

@@ -187,7 +187,7 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
 }
 
 
-void draw_unnested_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen)
+void draw_rule_unnested(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen)
 {
   rule.clear();
   int v_raw = gen.categorical(tree_pi.theta);
@@ -205,7 +205,7 @@ void draw_unnested_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_pri
   }
 }
 
-void draw_nested_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_infp &tree_pi, RNG &gen)
+void draw_rule_nested(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen)
 {
   std::vector<double> nest_theta;
   compute_nested_theta(nest_theta, t, nid, di.p_cont, di.p_cat, tree_pi);

@@ -9,7 +9,10 @@ source("../flexBART/R/prepare_data.R")
 source("../flexBART/R/parse_controls.R")
 source("../flexBART/R/parse_hyper.R")
 source("../flexBART/R/get_sigma.R")
-sourceCpp("../flexBART/src/vcbart_fit.cpp")
+sourceCpp("../flexBART/src/vcbart_fit_unnested.cpp")
+
+
+
 sourceCpp("../flexBART/src/rescale_beta.cpp")
 source("../flexBART/R/flexBART.R")
 
@@ -37,7 +40,8 @@ test0 <-
   flexBART(formula = Y ~ bart(.),
            train_data = friedman_train,
            test_data = friedman_test,
-           M = 200, inform_sigma = FALSE)
+           sparse = TRUE,
+           M = 200, inform_sigma = FALSE, save_samples = FALSE)
 
 
 wbart_time <-
