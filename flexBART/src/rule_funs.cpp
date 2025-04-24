@@ -128,7 +128,7 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
   } else{
     std::map<int,int> cluster_rep; // key: id of the cluster in nest_graph; value: variable used at ancestor
     for(std::vector<int>::iterator v_it = anc_v.begin(); v_it != anc_v.end(); ++v_it){
-      for(std::map<int, std::set<int>>::iterator c_it = tree_pi.nest_components.begin();; c_it != tree_pi.nest_components.end(); ++c_it){
+      for(std::map<int, std::set<int>>::iterator c_it = tree_pi.nest_components->begin(); c_it != tree_pi.nest_components->end(); ++c_it){
         if(c_it->second.count(*v_it) == 1){
           if(cluster_rep.count(c_it->first) == 0){
             // this is the first time a variable from the cluster is present. we need to add *v_it to the set of representatives
@@ -142,41 +142,41 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
     // now loop over all the clusters (i.e. keys of nest_components)
     // if the cluster is not in cluster_rep, set corresponding elements of theta_ind to 1: since we haven't split on the cluster yet, we have option to split on it now
     // otherwise, we check if cluster is singleton: if it is, we set corresponding theta = 1
-    // if not a singletone, we set based on nest_v_option
-    for(std::map<int, std::set<int>>::iterator c_it = tree_pi.nest_components.begin(); c_it != tree_pi.nest_components.end(); ++c_it){
+    // if not a singletone, we set based on nest_v_option    
+    for(std::map<int, std::set<int>>::iterator c_it = tree_pi.nest_components->begin(); c_it != tree_pi.nest_components->end(); ++c_it){
       if(cluster_rep.count(c_it->first) == 0){
         // did not previously split on variable from this component. we could split on any variable now
         for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
-          theta_ind[*it + p_cont] = 1.0;
+          nest_theta[*it + p_cont] = 1.0;
         }
       } else{
         if(c_it->second.size() == 1){
-          theta_ind[*(c_it->second.begin()) + p_cont] = 1.0;
+          nest_theta[*(c_it->second.begin()) + p_cont] = 1.0;
         } else{
           int v_rep = cluster_rep.find(c_it->first)->second; // most recent variable from cluster
           if(tree_pi.nest_v_option == 0){
             // only allow ourselves to split on v_rep
-            theta_ind[v_rep + p_cont] = 1.0;
+            nest_theta[v_rep + p_cont] = 1.0;
           } else if(tree_pi.nest_v_option == 1){
             // include v_rep and everything that has edge into v
-            theta_ind[v_rep + p_cont] = 1.0;
+            nest_theta[v_rep + p_cont] = 1.0;
             edge_map_it e_it = tree_pi.nest_in->find(v_rep);
-            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it) theta_ind[it->source + p_cont] = 1.0;
+            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it) nest_theta[it->source + p_cont] = 1.0;
           } else if(tree_pi.nest_v_option == 2){
             // include v_rep and everything that has edge from v
-            theta_ind[v_rep + p_cont] = 1.0;
+            nest_theta[v_rep + p_cont] = 1.0;
             edge_map_it e_it = tree_pi.nest_out->find(v_rep);
             for(std::vector<edge>::iterator it = e_it->second.end(); it != e_it->second.end(); ++it){
-              theta_ind[it->sink + p_cont] = 1.0;
+              nest_theta[it->sink + p_cont] = 1.0;
             }
           } else if(tree_pi.nest_v_option == 3){
             // include v_rep and everything has edge from v or into v
-            theta_ind[v_rep + p_cont] = 1.0;
+            nest_theta[v_rep + p_cont] = 1.0;
             edge_map_it e_it = tree_pi.nest_in->find(v_rep);
-            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it) theta_ind[it->source + p_cont] = 1.0;
+            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it) nest_theta[it->source + p_cont] = 1.0;
             e_it = tree_pi.nest_out->find(v_rep);
             for(std::vector<edge>::iterator it = e_it->second.end(); it != e_it->second.end(); ++it){
-              theta_ind[it->sink + p_cont] = 1.0;
+              nest_theta[it->sink + p_cont] = 1.0;
             }
           } else{
             Rcpp::stop("[compute_nested_theta]: nest_v_option must be in {0, 1, 2, 3}");

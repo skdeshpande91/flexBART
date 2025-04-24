@@ -362,12 +362,12 @@ void tree::get_anc_v_cat(std::vector<int> &anc_v)
   }
 }
 
-void tree:get_rg_nested_cat(std::set<int> &levels, int &v, tree_prior_info &tree_pi)
+void tree::get_rg_nested_cat(std::set<int> &levels, int &v, tree_prior_info &tree_pi)
 {
-  bool recurse = true;
-  std::set<int>* parent_vals;
   if(p){
     // this has a parent
+    bool recurse = true; // initial value
+    std::set<int>* parent_vals;
     if(p->rule.is_cat){
       // parent splits on categorical predictor
       // get parent values
@@ -481,12 +481,7 @@ void tree:get_rg_nested_cat(std::set<int> &levels, int &v, tree_prior_info &tree
         // now overwrite levels to include everything in new_levels.
         levels.clear();
         for(std::set<int>::iterator it = new_levels.begin(); it != new_levels.end(); ++it) levels.insert(*it);
-        
-        
       } // closes if/else checking if levels is currently empty.
-      
-      
-      
       std::vector<hi_lo_map>::iterator nest_it = tree_pi.nesting->begin();
       for(; nest_it != tree_pi.nesting->end(); ++nest_it){
         if(nest_it->hi == v && nest_it->lo == p->rule.v_cat){
@@ -505,9 +500,6 @@ void tree:get_rg_nested_cat(std::set<int> &levels, int &v, tree_prior_info &tree
           
         }
       }
-      
-      
-      
     }
   }
 }

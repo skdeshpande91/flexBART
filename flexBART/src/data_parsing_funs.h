@@ -1,13 +1,6 @@
-//
-//  data_parsing_funs.hpp
-//  
-//
-//  Created by Sameer Deshpande on 11/19/23.
-//
-
 #ifndef data_parsing_funs_h
 #define data_parsing_funs_h
-#include "structs.h"
+#include "graph_funs.h"
 
 void parse_cutpoints(std::vector<std::set<double>> &cutpoints, int p_cont, Rcpp::Nullable<Rcpp::List> &cutpoints_list);
 void parse_cat_levels(std::vector<std::set<int>> &cat_levels, int &p_cat, Rcpp::Nullable<Rcpp::List> &cat_levels_list);

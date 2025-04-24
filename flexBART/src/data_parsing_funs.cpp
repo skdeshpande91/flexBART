@@ -1,10 +1,3 @@
-//
-//  data_parsing_funs.cpp
-//  
-//
-//  Created by Sameer Deshpande on 11/19/23.
-//
-
 #include "data_parsing_funs.h"
 
 
@@ -84,7 +77,7 @@ void parse_nesting(std::vector<hi_lo_map> &nesting,
       Rcpp::List tmp_list = tmp_nest_list[nix];
       Rcpp::IntegerVector tmp_pair = tmp_list[0];
       Rcpp::IntegerVector tmp_map = tmp_list[1];
-      int hi = tmp_pair[0] - p_cont; //hi is index among categoricals not all covariates
+      int hi = tmp_pair[0] - p_cont; // hi is index among categoricals not all covariates
       int lo = tmp_pair[1] - p_cont; // lo is index among categoricals not all covariates
       int K = cat_levels[hi].size();
       if(tmp_map.size() != K){
@@ -120,34 +113,37 @@ void parse_nesting(std::vector<hi_lo_map> &nesting,
     } // closes loop over supplied nest_list
     
     //we are now ready to do ensemble specific calculations
-    // may need to resize some stuff later on
     nest_graph_in.clear();
     nest_graph_in.resize(R, edge_map());
     
     nest_graph_out.clear();
     nest_graph_out.resize(R, edge_map());
     
+    nest_graph_components.clear();
+    nest_graph_components.resize(R, std::map<int, std::set<int>>());
+    
     for(int r = 0; r < R; ++r){
       std::set<int> tmp_vertices; // which vertices of nest_graph are exposed to this ensemble
       for(int j  = 0; j < p_cat; ++j){
         if(cov_ensm(j+p_cont,r) == 1) tmp_vertices.insert(j);
       }
-      // get edges b/w categorical variables exposed to this ensemble
-      std::set<edge> tmp_edges = get_induced_edges(nest_graph_edges, tmp_vertices);
-      // nest_graph_in[r] is an edge map; key is vertex and value is all
-      build_in_out_edge_map(nest_graph_in[r], nest_graph_out[r], tmp_edges, tmp_vertices);
-      
-      // we should also compute the clusters of the nest graph, since that plays a role in determining
-      // splitting probabilities when nest_v = TRUE
-      std::vector<std::vector<int>> tmp_components;
-      find_components(tmp_components, tmp_edges, tmp_vertices);
-      for(int cl = 0; cl < tmp_components.size(); ++cl){
-        nest_graph_components[r].insert(std::pair<int, std::set<int>>(cl,std::set<int>()));
-        std::map<int, std::set<int>>::iterator cl_it = nest_graph_components.find(cl);
-        for(std::vector<int>::iterator it = tmp_components[cl].begin(); it != tmp_components[cl].end(); ++it) cl_it->second.insert(*it);
-      }
-    }
-
+      if(tmp_vertices.size() > 0){
+        // get edges b/w categorical variables exposed to this ensemble
+        std::vector<edge> tmp_edges = get_induced_edges(nest_graph_edges, tmp_vertices);
+        // nest_graph_in[r] is an edge map; key is vertex and value is all
+        build_in_out_edge_map(nest_graph_in[r], nest_graph_out[r], tmp_edges, tmp_vertices);
+        
+        // we should also compute the clusters of the nest graph, since that plays a role in determining
+        // splitting probabilities when nest_v = TRUE
+        std::vector<std::vector<int>> tmp_components;
+        find_components(tmp_components, tmp_edges, tmp_vertices);
+        for(int c = 0; c < tmp_components.size(); ++c){
+          nest_graph_components[r].insert(std::pair<int, std::set<int>>(c,std::set<int>()));
+          std::map<int, std::set<int>>::iterator c_it = nest_graph_components[r].find(c);
+          for(std::vector<int>::iterator it = tmp_components[c].begin(); it != tmp_components[c].end(); ++it) c_it->second.insert(*it);
+        } // closes loop over components of the nest graph
+      } // closes if checking that there are categorical variables in this ensemble
+    } // closes loop over ensemble
   } // closes if checking that nest_list is not null
 }
 
