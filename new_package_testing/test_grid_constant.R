@@ -10,7 +10,7 @@ source("../flexBART/R/prepare_data.R")
 source("../flexBART/R/parse_controls.R")
 source("../flexBART/R/parse_hyper.R")
 source("../flexBART/R/get_sigma.R")
-sourceCpp("../flexBART/src/flexBART_fit.cpp")
+#sourceCpp("../flexBART/src/flexBART_fit.cpp")
 sourceCpp("../flexBART/src/vcbart_fit.cpp")
 
 #sourceCpp("reBART/src/rescale_beta.cpp")

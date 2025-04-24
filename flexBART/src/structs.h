@@ -68,6 +68,7 @@ public:
 };
 
 // structure for diagnostics tracking how often we propose/reject certain types of rules
+/*
 struct rule_diag_t{
   int grow_prop;
   int prune_prop;
@@ -80,7 +81,7 @@ struct rule_diag_t{
   rule_diag_t(){grow_prop = 0; prune_prop = 0; grow_rej = 0; prune_rej = 0; aa_prop = 0; aa_rej = 0; cat_prop = 0; cat_rej = 0; }
   void reset(){grow_prop = 0; prune_prop = 0; grow_rej = 0; prune_rej = 0; aa_prop = 0; aa_rej = 0; cat_prop = 0; cat_rej = 0;}
 };
-
+*/
 // class holding data dimensions and pointers to the covariate data
 class data_info{
 public:

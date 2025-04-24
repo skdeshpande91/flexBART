@@ -72,7 +72,8 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   std::vector<hi_lo_map> nesting;
   std::vector<edge_map> nest_graph_in;
   std::vector<edge_map> nest_graph_out;
-  parse_nesting(nesting, nest_graph_in, nest_graph_out, p_cont, cov_ensm, cat_levels, nest_list);
+  std::vector<std::map<int, std::set<int>>> nest_graph_components;
+  parse_nesting(nesting, nest_graph_in, nest_graph_out, nest_graph_components, p_cont, cov_ensm, cat_levels, nest_list);
   // END: build graph encoding nesting relationships b/w categorical predictors
   
   // BEGIN: create splitting probabilities
@@ -165,10 +166,11 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     tree_pi_vec[r].nest_v = nest_v;
     tree_pi_vec[r].nest_v_option = nest_v_option;
     tree_pi_vec[r].nest_c = nest_c;
-    tree_pi_vec[r].nest_in = &(nest_in[r]);
-    tree_pi_vec[r].nest_out = &(nest_out[r]);
-    // initialize things that are specific to the ensemble
-    tree_pi_vec[r].theta = &(theta[r]);
+    tree_pi_vec[r].nest_in = &(nest_graph_in[r]);
+    tree_pi_vec[r].nest_out = &(nest_graph_out[r]);
+    tree_pi_vec[r].nest_components = &(nest_graph_components[r]);
+    
+    tree_pi_vec[r].theta = &(theta[r]); // only use theta if nest_v_option = false
     tree_pi_vec[r].var_count = &(var_count[r]);
     tree_pi_vec[r].rule_count = &(rule_count[r]);
     
@@ -191,7 +193,6 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   int sample_index = 0;
   int accept = 0;
   int total_accept = 0; // counts how many trees we change in each iteration
-  rule_diag_t rule_diag;
   // END: initialize stuff for main MCMC loop
   
   double tmp_mu; // for holding the value of mu when we're doing the backfitting
@@ -273,15 +274,6 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   arma::cube var_count_samples(total_draws, p, R); // how many times was a variable used in each iteration
 
   arma::mat total_accept_samples(total_draws, R);
-  arma::mat grow_proposed_samples(total_draws, R); // how many grow proposals in this iteration
-  arma::mat grow_rejected_samples(total_draws, R); // how many grow proposals rejected in this iteration
-  arma::mat prune_proposed_samples(total_draws, R); // how many prune proposals in this iteration
-  arma::mat prune_rejected_samples(total_draws, R); // how many prune proposals rejected in this iteration
-  arma::mat aa_proposed_samples(total_draws, R); // how many axis-aligned rules proposed in this iteration
-  arma::mat aa_rejected_samples(total_draws, R); // how many axis-aligned rules rejected in this iteration
-  arma::mat cat_proposed_samples(total_draws, R); // how many categorical rules proposed in this iteration
-  arma::mat cat_rejected_samples(total_draws, R); // how many categorical rules rejected in this iteration
-
   Rcpp::List tree_draws(nd);
   // END: create output containers
   
@@ -320,7 +312,6 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     
     // BEGIN: update all regression trees
     for(int r = 0; r < R; ++r){
-      rule_diag.reset();
       total_accept = 0;
       
       // BEGIN: loop over all trees in a single ensmble
@@ -352,7 +343,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         // END: remove fit of a single tree (testing). Only occurs post-warmup
 
         // BEGIN: update the tree
-        update_tree(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, rule_diag, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
+        update_tree(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
         total_accept += accept;
         // END: update the tree
         // BEGIN: restore fit of updated tree (training)
@@ -403,14 +394,6 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
 
       // BEGIN: save diagnostic information
       total_accept_samples(iter, r) = total_accept; // how many trees changed in this iteration
-      grow_proposed_samples(iter, r) = rule_diag.grow_prop;
-      grow_rejected_samples(iter, r) = rule_diag.grow_rej;
-      prune_proposed_samples(iter, r) = rule_diag.prune_prop;
-      prune_rejected_samples(iter, r) = rule_diag.prune_rej;
-      aa_proposed_samples(iter, r) = rule_diag.aa_prop;
-      aa_rejected_samples(iter, r) = rule_diag.aa_rej;
-      cat_proposed_samples(iter, r) = rule_diag.cat_prop;
-      cat_rejected_samples(iter, r) = rule_diag.cat_rej;
       // END: save diagnostic information
     } // closes loop over the ensembles
     // END: update all regression trees
@@ -517,14 +500,6 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   results["varcount"] = var_count_samples;
   
   results["total_accept"] = total_accept_samples;
-  results["grow_proposed"] = grow_proposed_samples;
-  results["grow_rejected"] = grow_rejected_samples;
-  results["prune_proposed"] = prune_proposed_samples;
-  results["prune_rejected"] = prune_rejected_samples;
-  results["aa_proposed"] = aa_proposed_samples;
-  results["aa_rejected"] = aa_rejected_samples;
-  results["cat_proposed"] = cat_proposed_samples;
-  results["cat_rejected"] = cat_rejected_samples;
   if(save_trees) results["trees"] = tree_draws;
   return results;
   

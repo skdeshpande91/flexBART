@@ -158,7 +158,7 @@ void draw_mu(tree &t, suff_stat &ss, int &r, double &sigma, data_info &di, tree_
 
 
 
-void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   
   std::vector<int> bn_nid_vec; // vector to hold the id's of all of the bottom nodes in the tree
@@ -217,12 +217,6 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, ru
   suff_stat prop_ss_train;
   compute_suff_stat_grow(ss_train, prop_ss_train, nx_nid, rule, t, di_train); // figure out which training observations from nx move to nxl and nxr
   
-  suff_stat prop_ss_test;
-  if(di_test.n > 0){
-    compute_suff_stat_grow(ss_test, prop_ss_test, nx_nid, rule, t, di_test); // figure out which testing observation from nx more to nxl and nxr
-  }
-
-  
   int nxl_nid = 2*nx_nid; // id for the left child of nx
   int nxr_nid = 2*nx_nid+1; // id for right child of nx
   
@@ -242,11 +236,9 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, ru
     ++(*tree_pi.rule_count); // increment running count of total number of splitting rules
     if(!rule.is_cat){
       ++(tree_pi.var_count->at(rule.v_aa)); // in our bookkeeping, continuous variables come first
-      ++(rule_diag.aa_prop);
     } else {
       int v_raw = rule.v_cat + di_train.p_cont;
       ++(tree_pi.var_count->at(v_raw));
-      ++(rule_diag.cat_prop);
     }
    
     // we need to update ss, the sufficient statistic object
@@ -269,6 +261,8 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, ru
     ss_train.insert(std::pair<int,std::vector<int>>(nxr_nid, nxr_it->second)); // add element for nxr in sufficient stat map
     ss_train.erase(nx_nid); // remove element for nx in sufficient stat map
     if(di_test.n > 0){
+      suff_stat prop_ss_test;
+      compute_suff_stat_grow(ss_test, prop_ss_test, nx_nid, rule, t, di_test); // figure out which testing observation from nx more to nxl and nxr
       nxl_it = prop_ss_test.find(nxl_nid);
       nxr_it = prop_ss_test.find(nxr_nid);
       if(nxl_it == prop_ss_test.end() || nxr_it == prop_ss_test.end()){
@@ -288,18 +282,10 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, ru
     accept = 1;
   } else{
     accept = 0;
-    if(!rule.is_cat){
-      ++rule_diag.aa_prop;
-      ++rule_diag.aa_rej;
-    } else{
-      ++rule_diag.cat_prop;
-      ++rule_diag.cat_rej;
-    }
-    // don't do anything with rule counters or variable splitting counters etc.
   }
 }
 
-void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   // first we randomly select a nog node
   tree::npv nogs_vec; // vector of pointers to nodes w/ no grandchildren
@@ -335,13 +321,11 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, r
   
   // likelihood ratio
   suff_stat prop_ss_train;
-  suff_stat prop_ss_test;
   int nx_nid = nx->get_nid(); // id for nx
   int nxl_nid = nxl->get_nid(); // id for nxl
   int nxr_nid = nxr->get_nid(); // id for nxr
   
   compute_suff_stat_prune(ss_train, prop_ss_train, nxl_nid, nxr_nid, nx_nid, t, di_train); // create a sufficient statistic map for the new tree
-  if(di_test.n > 0) compute_suff_stat_prune(ss_test, prop_ss_test, nxl_nid, nxr_nid, nx_nid, t, di_test);
   
   double nxl_lil = compute_lil(ss_train, nxl_nid, r, sigma, di_train, tree_pi);
   double nxr_lil = compute_lil(ss_train, nxr_nid, r, sigma, di_train, tree_pi);
@@ -385,6 +369,8 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, r
     }
     
     if(di_test.n > 0){
+      suff_stat prop_ss_test;
+      compute_suff_stat_prune(ss_test, prop_ss_test, nxl_nid, nxr_nid, nx_nid, t, di_test);
       nx_it = prop_ss_test.find(nx_nid);
       if(nx_it == prop_ss_test.end()){
         // did not find nx_nid in the keys of prop_ss_test
@@ -402,19 +388,18 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, r
     }
     t.death(nx_nid); // actually perform the death
   } else{
-    ++(rule_diag.prune_rej);
     accept = 0;
   }
 }
 
-void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, rule_diag_t &rule_diag, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   accept = 0; // initialize indicator of MH acceptance to 0 (reject)
   double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
   if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
   
-  if(gen.uniform() < PBx) grow_tree(t, ss_train, ss_test, accept, rule_diag, r, sigma, di_train, di_test,tree_pi, gen);
-  else prune_tree(t, ss_train, ss_test, accept, rule_diag, r, sigma, di_train, di_test, tree_pi, gen);
+  if(gen.uniform() < PBx) grow_tree(t, ss_train, ss_test, accept, r, sigma, di_train, di_test,tree_pi, gen);
+  else prune_tree(t, ss_train, ss_test, accept, r, sigma, di_train, di_test, tree_pi, gen);
 
   // by this point, the decision tree has been updated so we can draw new jumps.
   draw_mu(t, ss_train, r, sigma,di_train, tree_pi, gen);
