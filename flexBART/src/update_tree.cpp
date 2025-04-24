@@ -158,7 +158,7 @@ void draw_mu(tree &t, suff_stat &ss, int &r, double &sigma, data_info &di, tree_
 
 
 
-void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void grow_tree_unnested(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   
   std::vector<int> bn_nid_vec; // vector to hold the id's of all of the bottom nodes in the tree
@@ -211,7 +211,7 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, in
   
   // we now are ready to draw a decision rule
   rule_t rule;
-  draw_rule(rule, t, nx_nid, di_train, tree_pi, gen); // draw the actual rule
+  draw_rule_unnested(rule, t, nx_nid, di_train, tree_pi, gen); // draw the actual rule
 
   // at this point we have the proposed rule and are ready to update our sufficient statistic map
   suff_stat prop_ss_train;
@@ -284,6 +284,135 @@ void grow_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, in
     accept = 0;
   }
 }
+
+
+void grow_tree_nested(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+{
+  
+  std::vector<int> bn_nid_vec; // vector to hold the id's of all of the bottom nodes in the tree
+  for(suff_stat_it ss_it = ss_train.begin(); ss_it != ss_train.end(); ++ss_it) bn_nid_vec.push_back(ss_it->first);
+  
+  int ni = floor(gen.uniform() * bn_nid_vec.size()); // randomly pick the index of the node from which we will grow
+  int nx_nid = bn_nid_vec[ni]; // id of the node from which we are growing.
+  tree::tree_p nx = t.get_ptr(nx_nid); // pointer to the node from which we are growing. refer to this node as nx
+  tree::tree_cp nxp = nx->get_p(); // pointer to parent of nx in tree
+  
+  // we are ready to compute the log transition ratio:
+  double q_grow_old = tree_pi.prob_b; // transition prob. of growing old tree into new tree
+  double q_prune_new = 1.0 - tree_pi.prob_b; // transition prob. of pruning new true into old tree
+  
+  int nleaf_old = t.get_nbots(); // number of leaves in old tree
+  int nnog_old = t.get_nnogs(); // number of nodes in old tree with no grandchildren (nog node)
+  int nnog_new = nnog_old; // number of nodes in new tree with no grandchildren
+  
+  if(nxp == 0){
+    // nx is the root node so transition always propose growing it
+    q_grow_old = 1.0; //
+    nnog_new = 1; // nx has no grandchildren in new tree
+  } else if(nxp->is_nog()){
+    // parent of nx has no grandchildren in old tree
+    // in new tree nxp has grandchildren but nx does not
+    // hence nnog_new = nnod_old
+    nnog_new = nnog_old;
+  } else{
+    // parent of nx has grandchildren in old tree and will continue to do so in new tree
+    // nx has no grandchildren in the new tree
+    nnog_new = 1 + nnog_old;
+  }
+  
+  // numerator of transition ratio: P(uniformly pick a nog node in new tree) * P(decide to prune new tree)
+  // denominator of transition rate: P(uniformly pick a leaf node in old tree) * P(decide to grow old tree)
+  
+  double log_trans_ratio = (log(q_prune_new) - log( (double) nnog_new)) - (log(q_grow_old) - log( (double) nleaf_old));
+
+  // for prior ratio:
+  // numerator: p(grow at nx) * (1 - p(grow at nxl)) * (1 - p(grow at nxr))
+  // denominator: (1 - p(grow at nx))
+  // we need 1 - P(grow at nx in old tree) = 1 - alpha(1 + depth(nx))^(-beta) in denominator
+  // we need P(grow at nx in new) (1 - P(grow at nxl in Tnew))(1 - P(grow at nxr in Tnew)) in numerator
+  
+  double p_grow_nx = tree_pi.alpha/pow(1.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nx
+  double p_grow_nxl = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nxl. remember depth of nxl is 1 + depth of nx
+  double p_grow_nxr = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nxr. remember depth of nxr is 1 + depth of nx
+  
+  double log_prior_ratio = log(p_grow_nx) + log(1.0 - p_grow_nxl) + log(1.0 - p_grow_nxr) - log(1.0 - p_grow_nx);
+  
+  // we now are ready to draw a decision rule
+  rule_t rule;
+  draw_rule_nested(rule, t, nx_nid, di_train, tree_pi, gen); // draw the actual rule
+
+  // at this point we have the proposed rule and are ready to update our sufficient statistic map
+  suff_stat prop_ss_train;
+  compute_suff_stat_grow(ss_train, prop_ss_train, nx_nid, rule, t, di_train); // figure out which training observations from nx move to nxl and nxr
+  
+  int nxl_nid = 2*nx_nid; // id for the left child of nx
+  int nxr_nid = 2*nx_nid+1; // id for right child of nx
+  
+  double nxl_lil = compute_lil(prop_ss_train, nxl_nid, r, sigma, di_train, tree_pi); // nxl's contribution to log marginal likelihood of new tree
+  double nxr_lil = compute_lil(prop_ss_train, nxr_nid, r, sigma, di_train, tree_pi); // nxr's contribution to log marginal likelihood of new tree
+  double nx_lil = compute_lil(ss_train, nx_nid, r, sigma, di_train, tree_pi); // nx's contribution to log marginal likelihood of old tree
+  
+  // likelihood ratio also needs to include some constants from prior on jumps condition on tree
+  // in GROW move, the new tree has one extra leaf so there's an additional factor of tau^(-1) * exp(-mu0^2/2tau^2) from leaf prior in the numerator
+  double log_like_ratio = nxl_lil + nxr_lil - nx_lil - 1.0 * log(tree_pi.tau) - 0.5 * pow(tree_pi.mu0/tree_pi.tau,2.0);
+  
+  double log_alpha = log_like_ratio + log_prior_ratio + log_trans_ratio; // MH ratio
+  if(log_alpha > 0) log_alpha = 0.0; // if MH ratio greater than 1, we set it equal to 1. this is almost never needed
+  if(gen.log_uniform() <= log_alpha){
+    // accept the transition!
+    
+    ++(*tree_pi.rule_count); // increment running count of total number of splitting rules
+    if(!rule.is_cat){
+      ++(tree_pi.var_count->at(rule.v_aa)); // in our bookkeeping, continuous variables come first
+    } else {
+      int v_raw = rule.v_cat + di_train.p_cont;
+      ++(tree_pi.var_count->at(v_raw));
+    }
+   
+    // we need to update ss, the sufficient statistic object
+    // this accounting is checked in test_grow_tree();
+
+    suff_stat_it nxl_it = prop_ss_train.find(nxl_nid); // iterator at element for nxl in the proposed suff_stat map
+    suff_stat_it nxr_it = prop_ss_train.find(nxr_nid); // iterator at element for nxr in the proposed suff_stat map
+    
+    if(nxl_it == prop_ss_train.end() || nxr_it == prop_ss_train.end()){
+      // couldn't find a key in prop_ss_train equal to nxl_nid or nxr_nid
+      Rcpp::Rcout << "[grow_tree]: sufficient stat map for training data not updated correctly in grow move!" << std::endl;
+      Rcpp::Rcout << "  left child id = " << nxl_nid << "  right child = " << nxr_nid << std::endl;
+      Rcpp::Rcout << "  available ids in map:";
+      for(suff_stat_it it = prop_ss_train.begin(); it != prop_ss_train.end(); ++it) Rcpp::Rcout << " " << it->first;
+      Rcpp::Rcout << std::endl;
+      Rcpp::stop("missing id for either left or right child in proposed suff_stat_map!");
+    }
+    
+    ss_train.insert(std::pair<int,std::vector<int>>(nxl_nid, nxl_it->second)); // add element for nxl in sufficient stat map
+    ss_train.insert(std::pair<int,std::vector<int>>(nxr_nid, nxr_it->second)); // add element for nxr in sufficient stat map
+    ss_train.erase(nx_nid); // remove element for nx in sufficient stat map
+    if(di_test.n > 0){
+      suff_stat prop_ss_test;
+      compute_suff_stat_grow(ss_test, prop_ss_test, nx_nid, rule, t, di_test); // figure out which testing observation from nx more to nxl and nxr
+      nxl_it = prop_ss_test.find(nxl_nid);
+      nxr_it = prop_ss_test.find(nxr_nid);
+      if(nxl_it == prop_ss_test.end() || nxr_it == prop_ss_test.end()){
+        // couldn't find a key in prop_ss_train equal to nxl_nid or nxr_nid
+        Rcpp::Rcout << "[grow_tree]: sufficient stat map for testing data not updated correctly in grow move!" << std::endl;
+        Rcpp::Rcout << "  left child id = " << nxl_nid << "  right child = " << nxr_nid << std::endl;
+        Rcpp::Rcout << "  available ids in map:";
+        for(suff_stat_it it = prop_ss_test.begin(); it != prop_ss_test.end(); ++it) Rcpp::Rcout << " " << it->first;
+        Rcpp::Rcout << std::endl;
+        Rcpp::stop("missing id for either left or right child in proposed suff_stat_map!");
+      }
+      ss_test.insert(std::pair<int,std::vector<int>>(nxl_nid, nxl_it->second));
+      ss_test.insert(std::pair<int,std::vector<int>>(nxr_nid, nxr_it->second));
+      ss_test.erase(nx_nid);
+    }
+    t.birth(nx_nid, rule); // actually do the birth
+    accept = 1;
+  } else{
+    accept = 0;
+  }
+}
+
 
 void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
@@ -392,13 +521,27 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, i
   }
 }
 
-void update_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void update_tree_unnested(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
   accept = 0; // initialize indicator of MH acceptance to 0 (reject)
   double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
   if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
   
-  if(gen.uniform() < PBx) grow_tree(t, ss_train, ss_test, accept, r, sigma, di_train, di_test,tree_pi, gen);
+  if(gen.uniform() < PBx) grow_tree_unnested(t, ss_train, ss_test, accept, r, sigma, di_train, di_test,tree_pi, gen);
+  else prune_tree(t, ss_train, ss_test, accept, r, sigma, di_train, di_test, tree_pi, gen);
+
+  // by this point, the decision tree has been updated so we can draw new jumps.
+  draw_mu(t, ss_train, r, sigma,di_train, tree_pi, gen);
+}
+
+
+void update_tree_nested(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+{
+  accept = 0; // initialize indicator of MH acceptance to 0 (reject)
+  double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
+  if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
+  
+  if(gen.uniform() < PBx) grow_tree_nested(t, ss_train, ss_test, accept, r, sigma, di_train, di_test,tree_pi, gen);
   else prune_tree(t, ss_train, ss_test, accept, r, sigma, di_train, di_test, tree_pi, gen);
 
   // by this point, the decision tree has been updated so we can draw new jumps.

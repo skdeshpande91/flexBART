@@ -1,5 +1,6 @@
-parse_formula <- function(frmla, vars){
+parse_formula <- function(frmla, train_data){
   
+  vars <- colnames(train_data)
   ###############################
   # Get the outcome name & check that it's valid
   ###############################
@@ -83,7 +84,29 @@ parse_formula <- function(frmla, vars){
   for (i in 1:R) {
     cov_ensm[, i] <- rownames(cov_ensm) %in% ensm_terms[[i]]
   }
-
+  
+  ###############################
+  # Critical that continuous variables precede categorical variables
+  ###############################
+  is_cat <- 
+    sapply(train_data[,covariate_names], 
+           FUN = function(x){return( (is.factor(x) | is.character(x)))})
+  p_cont <- sum(1-is_cat)
+  cont_names <- NULL
+  if(p_cont > 0) cont_names <- covariate_names[!is_cat]
+  
+  p_cat <- sum(is_cat)
+  cat_names <- NULL
+  if(p_cat > 0) cat_names <- covariate_names[is_cat]
+  
+  if(R == 1){
+    cov_ensm <- matrix(cov_ensm[c(cont_names, cat_names),], 
+                       nrow = p, ncol = 1,
+                       dimnames = list(c(cont_names, cat_names), c()))
+  } else{
+    cov_ensm <- cov_ensm[c(cont_names, cat_names),]
+  }
+  
   out <- list()
   out[["outcome_name"]] <- outcome_name
   out[["cov_ensm"]] <- cov_ensm

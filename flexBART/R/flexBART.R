@@ -1,109 +1,307 @@
-flexBART <- function(Y_train,
-                     X_cont_train = matrix(0, nrow = 1, ncol = 1),
-                     X_cat_train = matrix(0, nrow = 1, ncol = 1),
-                     X_cont_test = matrix(0, nrow = 1, ncol = 1),
-                     X_cat_test = matrix(0L, nrow = 1, ncol = 1),
-                     unif_cuts = rep(TRUE, times = ncol(X_cont_train)),
-                     cutpoints_list = NULL,
-                     cat_levels_list = NULL,
-                     sparse = FALSE,
-                     M = 200,
-                     nd = 1000, burn = 1000, thin = 1,
-                     save_samples = TRUE,
-                     save_trees = TRUE, verbose = TRUE, print_every = floor( (nd*thin + burn))/10)
+flexBART <- function(formula, 
+                     train_data,
+                     adjacency_list = NULL, 
+                     test_data = NULL,
+                     inform_sigma = FALSE, ...)
 {
-  y_mean <- mean(Y_train)
-  y_sd <- stats::sd(Y_train)
-  std_Y_train <- (Y_train - y_mean)/y_sd # standardize the output
-  tau <- (max(std_Y_train) - min(std_Y_train))/(2 * 2 * sqrt(M)) # CGM10 prior sd on all leaf parameters
-  nu <- 3
-  lambda <- stats::qchisq(0.1, df = nu)/nu
+  ###############################
+  # Capture additional arguments
+  ###############################
+  usr_args <- list(...)
+  usr_names <- names(usr_args)
   
-  p_cont <- 0
-  p_cat <- 0
-  cont_names <- c()
-  cat_names <- c()
+  ###############################
+  # Parse the formula
+  ###############################
+  if(class(formula) != "formula"){
+    frmla <- stats::formula(formula)
+  } else{
+    frmla <- formula
+  }
+  tmp_form <- parse_formula(frmla, train_data)
+  outcome_name <- tmp_form$outcome_name
+  cov_ensm <- tmp_form$cov_ensm
   
-  if(length(X_cont_train) > 1){
-    p_cont <- ncol(X_cont_train)
-    if(is.null(colnames(X_cont_train))){
-      cont_names <- paste0("X", 1:p_cont)
-    } else{
-      cont_names <- colnames(X_cont_train)
+  ###############################
+  # Prepare the data to be passed to 
+  # actual sampler
+  ###############################
+  tmp_data <- 
+    prepare_data(train_data = train_data,
+                 outcome_name = outcome_name, 
+                 cov_ensm = cov_ensm, 
+                 test_data = test_data,...)
+  # It will be useful to have problem dimensions readily accessible
+  R <- tmp_data$training_info$R
+  n_train <- length(tmp_data$training_info$std_Y)
+  p_cont <- tmp_data$data_info$p_cont
+  p_cat <- tmp_data$data_info$p_cat
+  p <- tmp_data$data_info$p
+  n_test <- 0
+  if(length(tmp_data$testing_info$Z) > 1) n_test <- nrow(tmp_data$testing_info$Z)
+  
+  ###############################
+  # Parse hyperparameters
+  ###############################
+  y_range <- 
+    max(tmp_data$training_info$std_Y) - min(tmp_data$training_info$std_Y)
+  
+  if(is.null(tmp_data$training_info$nest_list)){
+    # no nesting structure detected
+    nest_v <- FALSE
+    nest_v_option <- 3 # ignored
+    nest_c <- FALSE
+  } else{
+    # we found nesting structure
+    # if user didn't provide nest_v, nest_v_option, or nest_c, 
+    # we need to use default value
+    # should warn the user:
+    if(!"nest_v" %in% usr_names){
+      warning("[flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
+      nest_v <- TRUE
+    }
+    if(! "nest_v_option" %in% usr_names){
+      warning("[flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v_option=3")
+      nest_v_option <- 3
+    }
+    if(! "nest_c" %in% usr_names){
+      warning("[flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
+      nest_c <- TRUE
+    }
+  }
+  
+  if("sigest" %in% usr_names){
+    # user has supplied an initial estimate of sigma
+    # check that it is less than 1; if it isn't, then we need to divide by sd(y)
+    sigest <- usr_args[["sig_est"]]
+    if(sigest < 0){
+      message(paste("[flexBART]: supplied sigest =", sigest))
+      stop("[flexBART]: estimate of residual sd must be positive!")
+    }
+    if(sigest > 1){
+      cat(paste("[flexBART]: supplied sigest = ", sigest, "greater than 1 \n"))
+      message(paste("[flexBART]: Internally, flexBART operates on standardized outcome scale. Dividing by outcome sd \n"))
+      sigest <- sigest/tmp_data$training_info$y_sd
     }
   } else{
-    cont_names <- c()
-  }
-  
-  if(length(X_cat_train) > 1){
-    p_cat <- ncol(X_cat_train)
-    if(is.null(colnames(X_cat_train))){
-      cat_names <- paste0("X", (p_cont + 1):(p_cont + p_cat))
+    if(inform_sigma){
+      cat("[flexBART]: no initial estimate of sigma provided. Initializing using LASSO \n")
+      sigest <- 
+        get_sigma(tmp_data$training_info)
     } else{
-      cat_names <- colnames(X_cat_train)
-    }
-  } else{
-    cat_names <- c()
-  }
-  
-  pred_names <- c(cont_names, cat_names)
-  
-  fit <- .flexBART_fit(Y_train = std_Y_train,
-                       tX_cont_train = t(X_cont_train),
-                       tX_cat_train = t(X_cat_train),
-                       tX_cont_test = t(X_cont_test),
-                       tX_cat_test = t(X_cat_test),
-                       unif_cuts = unif_cuts,
-                       cutpoints_list = cutpoints_list,
-                       cat_levels_list = cat_levels_list,
-                       edge_mat_list = NULL,
-                       graph_split = rep(FALSE, times = ncol(X_cat_train)),
-                       graph_cut_type = 0,
-                       sparse = sparse, a_u = 0.5, b_u = 1,
-                       mu0 = 0, tau = tau, 
-                       lambda = lambda, nu = nu,
-                       M = M, nd = nd, burn = burn, thin = thin,
-                       save_samples = save_samples,
-                       save_trees = save_trees, verbose = verbose, 
-                       print_every = print_every)
-  
-  yhat_train_mean <- y_mean + y_sd * fit$fit_train_mean
-  if(save_samples){
-    yhat_train_samples <- y_mean + y_sd * fit$fit_train
-  }
-  if(!is.null(fit$fit_test_mean)){
-    yhat_test_mean <- y_mean + y_sd * fit$fit_test_mean
-    if(save_samples){
-      yhat_test_samples <- y_mean + y_sd * fit$fit_test
+      sigest <- 1
     }
   }
-  sigma_samples <- y_sd * fit$sigma
+  
+  hyper <- 
+    parse_hyper(R = R,
+                y_range = y_range,
+                nest_v = nest_v, nest_v_option, nest_c = nest_c, 
+                sigest = sigest, ...)
+  
+  ###############################
+  # Set control parameters
+  ###############################  
+  control <- parse_controls(...)
+  
+  if(control$verbose){
+    message(paste("[flexBART]: initializing sigma =", round(hyper$sigest, digits = 6), "on standardized scale"))
+  }
+  
+  ###############################
+  # Create containers for storing things
+  ###############################  
+  total_draws <- control$nd * control$thin + control$burn
+  total_samples <- control$nd * control$n.chains
+  
+  # Container for sigma samples:
+  # all_sigma could be useful for assessing convergence
+  # sigma_samples will get passed to predict to do posterior predictive sampling
+  all_sigma <- array(NA, dim = c(total_draws, control$n.chains))
+  sigma_samples <- rep(NA, times = total_samples)
+  
+  # Containers for posterior mean of total fit & each beta
+  yhat_train_mean <-rep(0, times = n_train)
+  if(R > 1) raw_beta_train_mean <- array(0, dim = c(n_train, R))
+  if(n_test > 0){
+    yhat_test_mean <- rep(0, times = n_test)
+    if(R > 1) raw_beta_test_mean <- array(0, dim = c(n_test, R))
+  }
+  # Containers for posterior samples
+  if(control$save_samples){
+    yhat_train_samples <- array(NA, dim = c(total_samples, n_train))
+    if(R > 1) raw_beta_train_samples <- array(NA, dim =c(total_samples, n_train, R))
+    if(n_test > 0){
+      yhat_test_samples <- array(NA, dim = c(total_samples, n_test))
+      if(R > 1) raw_beta_test_samples <- array(NA, dim = c(total_samples, n_test, R))
+    }
+  }
+  varcounts_samples <- 
+    array(NA, dim = c(total_samples, p, R), 
+          dimnames = list(c(), c(tmp_data$data_info$cont_names, tmp_data$data_info$cat_names), c()))
+  # container for timing
+  timing <- rep(NA, times = control$n.chains)
+  if(control$verbose){
+    cat("n_train =", n_train, "n_test =", n_test, "\n")
+    cat("R =", R, "p_cont =", p_cont, "p_cat =", p_cat, "\n")
+    cat("Number of trees: ", hyper$M_vec, "\n")
+  }
+  if(control$save_trees){
+    tree_list <- list()
+  }
+  
+  for(chain_num in 1:control$n.chains){
+    if(control$verbose){
+      cat("Starting chain", chain_num, "at", as.character(round(Sys.time())), "\n")
+    }
+    tmp_time <-
+      system.time(
+        fit <-
+          ._vcbart_fit(Y_train = tmp_data$training_info$std_Y,
+                       tZ_train = t(tmp_data$training_info$Z),
+                       tX_cont_train = t(tmp_data$training_info$X_cont),
+                       tX_cat_train = t(tmp_data$training_info$X_cat),
+                       sigest = hyper$sigest, 
+                       cov_ensm = cov_ensm,
+                       cutpoints_list = tmp_data$training_info$cutpoints,
+                       cat_levels_list = tmp_data$training_info$cat_levels_list,
+                       edge_mat_list = tmp_data$training_info$edge_mat_list,
+                       nest_list = tmp_data$training_info$nest_list,
+                       tZ_test = t(tmp_data$testing_info$Z),
+                       tX_cont_test = t(tmp_data$testing_info$X_cont),
+                       tX_cat_test = t(tmp_data$testing_info$X_cat),
+                       M_vec = hyper$M_vec,
+                       alpha_vec = hyper$alpha_vec, beta_vec = hyper$beta_vec,
+                       mu0 = hyper$mu0_vec, tau = hyper$tau_vec,
+                       graph_cut_type = hyper$graph_cut_type,
+                       nest_v = hyper$nest_v, nest_v_option = hyper$nest_v_option,
+                       nest_c = hyper$nest_c,
+                       sparse = FALSE, a_u = hyper$a_u, b_u = hyper$b_u,
+                       nu = hyper$nu,lambda = hyper$lambda, 
+                       nd = control$nd, burn = control$burn, thin = control$thin,
+                       save_samples = control$save_samples, save_trees = control$save_trees,
+                       verbose = control$verbose, print_every = control$print_every))
+    
+    start_index <- (chain_num-1)*control$nd + 1
+    end_index <- chain_num*control$nd
+    
+    all_sigma[,chain_num] <- fit$sigma
+    sigma_samples[start_index:end_index] <- fit$sigma[-(1:control$burn)]
+    
+    yhat_train_mean <- yhat_train_mean + fit$fit_train_mean/control$n.chains
+    if(R > 1) raw_beta_train_mean <- raw_beta_train_mean + fit$beta_train_mean/control$n.chains
+    
+    if(n_test > 0){
+      yhat_test_mean <- 
+        yhat_test_mean + fit$fit_test_mean/control$n.chains
+      if(R > 1){
+        raw_beta_test_mean <- 
+          raw_beta_test_mean + fit$beta_test_mean/control$n.chains
+      }
+    }
+    if(control$save_samples){
+      yhat_train_samples[start_index:end_index,] <- fit$fit_train
+      if(R > 1) raw_beta_train_samples[start_index:end_index,,] <- fit$beta_train
+      if(n_test > 0){
+        yhat_test_samples[start_index:end_index,] <- fit$fit_test
+        if(R > 1) raw_beta_test_samples[start_index:end_index,,] <- fit$beta_test
+      }
+    }
+    varcounts_samples[start_index:end_index,,] <- fit$varcount[-(1:control$burn),,]
+    if(control$save_trees){
+      tree_list <- c(tree_list, fit$trees)
+    }
+    timing[chain_num] <- tmp_time["elapsed"]
+    if(control$verbose){
+      cat("Ending chain", chain_num, "at", as.character(round(Sys.time())), "\n")
+      
+    }
+  }
+  ###############################
+  # We have to rescale the posterior samples
+  # For notational compactness, will keep a copy
+  # of the relevant things
+  ###############################  
+  y_mean <- tmp_data$training_info$y_mean
+  y_sd <- tmp_data$training_info$y_sd
+  z_mean <- tmp_data$training_info$z_mean
+  z_sd <- tmp_data$training_info$z_sd
+  z_col_id <- tmp_data$training_info$z_col_id
+  
+  
+  yhat_train_mean <- y_mean + y_sd * yhat_train_mean
+  if(R > 1){
+    beta_train_mean <- 
+      rescale_beta_mean(raw_beta_train_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
+  }
+  
+  if(n_test > 0){
+    yhat_test_mean <- y_mean + y_sd * yhat_test_mean
+    if(R > 1){
+      beta_test_mean <- 
+        rescale_beta_mean(raw_beta_test_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
+    }
+  }
+  if(control$save_samples){
+    yhat_train_samples <- y_mean + y_sd * yhat_train_samples
+    if(R > 1){
+      beta_train_samples <- 
+        rescale_beta(raw_beta_train_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
+    }
+    if(n_test > 0){
+      yhat_test_samples <- y_mean + y_sd * yhat_test_samples
+      if(R > 1){
+        beta_test_samples <- 
+          rescale_beta(raw_beta_test_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
+      }
+    }
+  }
   
   results <- list()
   results[["y_mean"]] <- y_mean
   results[["y_sd"]] <- y_sd
+  results[["z_mean"]] <- z_mean
+  results[["z_sd"]] <- z_sd
+  results[["z_col_id"]] <- z_col_id
   results[["yhat.train.mean"]] <- yhat_train_mean
-  if(save_samples) results[["yhat.train"]] <- yhat_train_samples
-  if(!is.null(fit$fit_test_mean)){
+  if(R > 1){
+    results[["beta.train.mean"]] <- beta_train_mean
+    results[["raw_beta.train.mean"]] <- raw_beta_train_mean
+  }
+  if(n_test > 0){
     results[["yhat.test.mean"]] <- yhat_test_mean
-    if(save_samples) results[["yhat.test"]] <- yhat_test_samples
+    if(R > 1){
+      results[["beta.test.mean"]] <- beta_test_mean
+      results[["raw_beta.test.mean"]] <- raw_beta_test_mean
+    }
   }
-  results[["sigma"]] <- y_sd * fit$sigma
   
-  varcounts <- fit$var_count
-  if(length(pred_names) != ncol(varcounts)){
-    warning("There was an issue tracking variable names. Not naming columns of varcounts object")
-  } else{
-    colnames(varcounts) <- pred_names
+  if(control$save_samples){
+    results[["yhat.train"]] <- yhat_train_samples
+    if(R > 1){
+      results[["beta.train"]] <- beta_train_samples
+      results[["raw_beta.train"]] <- raw_beta_train_samples
+    }
+    if(n_test > 0){
+      results[["yhat.test"]] <- yhat_test_samples
+      if(R > 1){
+        results[["beta.test"]] <- beta_test_samples
+        results[["raw_beta.test"]] <- raw_beta_test_samples
+      }
+    }
   }
-  results[["varcounts"]] <- varcounts
-  results[["diag"]] <- 
-    list(total_accept = fit$total_accept,
-         aa_proposed = fit$aa_proposed,
-         aa_rejected = fit$aa_rejected,
-         cat_proposed = fit$cat_proposed,
-         cat_rejected = fit$cat_rejected)
+  results[["initial_sigma"]] <- sigest
+  results[["sigma"]] <- sigma_samples * y_sd
+  results[["all_sigma"]] <- all_sigma * y_sd
+  results[["varcounts"]] <- varcounts_samples
+  results[["timing"]] <- timing
+
+  if(control$save_trees){
+    results[["trees"]] <- fit$trees 
+  }
   
-  if(save_trees) results[["trees"]] <- fit$trees
   return(results)
+  
 }
+                     
+    

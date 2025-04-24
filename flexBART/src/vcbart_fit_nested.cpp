@@ -21,7 +21,6 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
                       int graph_cut_type,
                       bool nest_v, int nest_v_option,
                       bool nest_c,
-                      bool sparse, double a_u, double b_u,
                       double nu, double lambda,
                       int nd, int burn, int thin,
                       bool save_samples,
@@ -55,7 +54,8 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   int n_test = 0;
   if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
   // END: get dimensions of testing data
- 
+
+
   // BEGIN: set cutpoints & categorical levels + parse network structure
   std::vector<std::set<double>> cutpoints;
   if(p_cont > 0) parse_cutpoints(cutpoints, p_cont, cutpoints_list);
@@ -76,29 +76,10 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   parse_nesting(nesting, nest_graph_in, nest_graph_out, nest_graph_components, p_cont, cov_ensm, cat_levels, nest_list);
   // END: build graph encoding nesting relationships b/w categorical predictors
   
-  // BEGIN: create splitting probabilities
+  // BEGIN: create var and rule counts
   std::vector<std::vector<int>> var_count(R, std::vector<int>(p, 0));
   std::vector<int> rule_count(R, 0);
-  std::vector<std::vector<double>> theta(R, std::vector<double>(p, 0.0));
-  std::vector<double> u(R);
-  
-  for(int r = 0; r < R; ++r){
-    int n_avail_vars = 0;
-    for(int j = 0; j < p; ++j){
-      if(cov_ensm(j,r) == 1){
-        theta[r][j] = 1.0;
-        ++n_avail_vars;
-      }
-    } // closes loop over variables
-    if(n_avail_vars == 0){
-      Rcpp::Rcout << "Ensemble r = " << r << " no covariates detected!" << std::endl;
-      Rcpp::stop("At least one covariate needed for each ensemble!");
-    } else{
-      for(int j = 0; j < p; ++j) theta[r][j] /= (double) n_avail_vars;
-      u[r] = 1.0/(1.0 + (double) n_avail_vars);
-    }
-  } // closes loop over ensembles
-  // END: create splitting probabilities
+  // END: create var and rule counts
 
 
   // BEGIN: initializing containers for residuals and fit
@@ -170,7 +151,6 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     tree_pi_vec[r].nest_out = &(nest_graph_out[r]);
     tree_pi_vec[r].nest_components = &(nest_graph_components[r]);
     
-    tree_pi_vec[r].theta = &(theta[r]); // only use theta if nest_v_option = false
     tree_pi_vec[r].var_count = &(var_count[r]);
     tree_pi_vec[r].rule_count = &(rule_count[r]);
     
@@ -343,7 +323,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         // END: remove fit of a single tree (testing). Only occurs post-warmup
 
         // BEGIN: update the tree
-        update_tree(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
+        update_tree_nested(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
         total_accept += accept;
         // END: update the tree
         // BEGIN: restore fit of updated tree (training)
@@ -379,22 +359,10 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
       } // closes loop over all of the trees in this ensemble
       // END: loop over all trees in a single ensmble
       
-      // BEGIN: update selection probabilities
-      if(sparse){
-        update_theta_u_subset(theta[r], u[r], var_count[r], a_u, b_u, gen);
-        for(int j = 0; j < p; j++){
-          var_count_samples(iter,j, r) = var_count[r][j];
-        }
-      } else{
-        for(int j = 0; j < p; j++) var_count_samples(iter, j,r) = var_count[r][j];
-      }
-      // END: update selection probabilities
-      
-      // BEGIN: save group & variable counts
-
-      // BEGIN: save diagnostic information
+      // BEGIN: save varcounts & accept
+      for(int j = 0; j < p; ++j) var_count_samples(iter, j, r) = var_count[r][j];
       total_accept_samples(iter, r) = total_accept; // how many trees changed in this iteration
-      // END: save diagnostic information
+      // END: save varcounts & accept
     } // closes loop over the ensembles
     // END: update all regression trees
     

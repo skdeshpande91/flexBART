@@ -1,12 +1,15 @@
 Package: flexBART
 Type: Package
 Title: A More Flexible BART Model
-Version: 1.2.0
-Date: 2024-11-14
+Version: 2.0.0
+Date: 2025-05-01
 Authors@R: c(
-  person(given = "Sameer K.", family = "Deshpande", role = c("aut", "cre"), email = "sameer.deshpande@wisc.edu"))
+  person(given = "Sameer K.", family = "Deshpande", role = c("aut", "cre"), email = "sameer.deshpande@wisc.edu"),
+  person(given = "Cecilia", family = "Balocchi", role = c("aut"), email = "cecilia.balocchi@ed.ac.uk"),
+  person(given = "George", family = "Perrett", role = c("aut"), email = "gp77@nyu.edu"),
+  person(given = "Jennifer", family = "Hill", role = c("aut"), email = "jennifer.hill@nyu.edu"))
 Description: A more flexible implementation of BART that accomodates structured categorical variables.
 License: GPL (>= 3)
-LinkingTo: Rcpp, RcppArmadillo
-Imports: Rcpp
+LinkingTo: Rcpp (>=1.0.12), RcppArmadillo (>=14.4)
+Imports: Rcpp (>=1.0.12), glmnet (>= 4.0)
 Suggests: igraph, BART
