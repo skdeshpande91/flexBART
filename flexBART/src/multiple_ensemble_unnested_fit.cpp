@@ -1,7 +1,7 @@
 #include "update_tree.h"
 #include "data_parsing_funs.h"
 #include "funs.h"
-// [[Rcpp::export("._vcbart_fit_unnested")]]
+// [[Rcpp::export("._multi_unnested_fit")]]
 Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
                       Rcpp::NumericMatrix tZ_train,
                       Rcpp::NumericMatrix tX_cont_train,
@@ -92,16 +92,17 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
 
 
   // BEGIN: initializing containers for residuals and fit
-  double* allfit_train = new double[n_train];
-  double* beta_fit_train = new double[n_train * R];
+  //double* allfit_train = new double[n_train];
+  //double* beta_fit_train = new double[n_train * R];
   double* residual = new double[n_train];
   
-  int tmp_n_test = 1;
-  if(n_test > 0) tmp_n_test = n_test;
-  double* allfit_test = new double[tmp_n_test];
-  double* beta_fit_test = new double[tmp_n_test * R];
+  //int tmp_n_test = 1;
+  //if(n_test > 0) tmp_n_test = n_test;
+  //double* allfit_test = new double[tmp_n_test];
+  //double* beta_fit_test = new double[tmp_n_test * R];
   
   //BEGIN: initialize containers
+  /*
   for(int i = 0; i < n_train; ++i){
     allfit_train[i] = 0.0;
     for(int r = 0; r < R; ++r) beta_fit_train[r + i * R] = 0.0;
@@ -112,6 +113,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
       for(int r = 0; r < R; ++r) beta_fit_test[r + i * R] = 0.0;
     }
   }
+   */
   // END: initializeing containers for residuals and fit
   
   // BEGIN: creating data info object for training data
@@ -194,6 +196,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   
 
   // BEGIN: initialize suff_stat_maps and populate residuals
+  for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i];
   for(int r = 0; r < R; ++r){
     for(int m = 0; m < M_vec[r]; ++m){
       // do an initial tree traversal
@@ -206,27 +209,16 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
         if(l_it->second.size() > 0){
           for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-            allfit_train[*it] += di_train.z[r + (*it)*R] * tmp_mu;
-            beta_fit_train[r + (*it) * R] += tmp_mu;
-          } // closes loop over training obs in leaf
+            residual[r + (*it) * R] -= di_train.z[r + (*it)*R] * tmp_mu; // remove initial fit of each tree from residual
+          }
         } // closes if checking leaf has training obs
       } // closes loop over leafs
       
-      if(n_test > 0){
-        tree_traversal(ss_test_vec[r][m], t_vec[r][m], di_test);
-        for(suff_stat_it l_it = ss_test_vec[r][m].begin(); l_it != ss_test_vec[r][m].end(); ++l_it){
-          if(l_it->second.size() > 0){
-            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-              allfit_test[*it] += di_test.z[r + (*it)*R] * tmp_mu;
-              beta_fit_test[r + (*it) * R] += tmp_mu;
-            } // closes loop over testing obs in leaf
-          } // closes if checking leaf has testing obs
-        } // closes loop over leafs
-      } // closes if checking for testing data
+      if(n_test > 0) tree_traversal(ss_test_vec[r][m], t_vec[r][m], di_test);
     } // closes loop over trees in ensemble
   } // closes loop over ensembles
-  for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - allfit_train[i];
-  // BEGIN: initialize suff_stat_maps and populate residuals
+  //for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - allfit_train[i];
+  
 
   // BEGIN: create output containers
   arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
@@ -275,24 +267,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
       }
     }
-    
-    if(iter == burn && (n_test > 0)){
-      // first sampling iteration, populate allfit_test and beta_fit_test
-      for(int r = 0; r < R; ++r){
-        for(int m = 0; m < M_vec[r]; ++m){
-          for(suff_stat_it l_it = ss_test_vec[r][m].begin(); l_it != ss_test_vec[r][m].end(); ++l_it){
-            tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get value of mu in leaf
-            if(l_it->second.size() > 0){
-              for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-                allfit_test[*it] += di_test.z[r + (*it) * R] * tmp_mu;
-                beta_fit_test[r + (*it) * R] += tmp_mu;
-              } // closes loop over observations in leaf
-            } // closes if checking that leaf is non-empty
-          } // closes loop over leafs in the tree
-        } // closes loop over trees in the ensemble
-      } // closes loop over ensembles
-    } // finish populating allfit_test and beta_fit_test in first sampling iteration after warmup
-    
+  
     // BEGIN: update all regression trees
     for(int r = 0; r < R; ++r){
       total_accept = 0;
@@ -304,29 +279,14 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
           tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
           if(l_it->second.size() > 0){
             for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-              allfit_train[*it] -= di_train.z[r + (*it) * R] * tmp_mu; // adjust the value of allfit
+              //allfit_train[*it] -= di_train.z[r + (*it) * R] * tmp_mu; // adjust the value of allfit
               //beta_fit_train[r + (*it) * R] -= tmp_mu;
               residual[*it] += di_train.z[r + (*it) * R] * tmp_mu;
             }
           }
         } // closes loop over all leafs removing fit
         // END: remove fit of a single tree (training)
-        /*
-        // SKD: this step is a bit redundant: we can just update the tree
-        // BEGIN: remove fit of a single tree (testing). Only occurs post-warmup
-        if(iter >= burn && n_test > 0){
-          for(suff_stat_it l_it = ss_test_vec[r][m].begin(); l_it != ss_test_vec[r][m].end(); ++l_it){
-            tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
-            if(l_it->second.size() > 0){
-              for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-                allfit_test[*it] -= di_test.z[r + (*it) * R] * tmp_mu;
-                beta_fit_test[r + (*it) * R] -= tmp_mu;
-              }
-            }
-          }
-        } // closes loop removing fit from test
-        // END: remove fit of a single tree (testing). Only occurs post-warmup
-*/
+        
         // BEGIN: update the tree
         update_tree_unnested(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
         total_accept += accept;
@@ -336,40 +296,18 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
           tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
           if(l_it->second.size() > 0){
             for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-              // add fit of m-th tree back to allfit and subtract it from the value of the residual
-              allfit_train[*it] += di_train.z[r + (*it) * R] * tmp_mu;
-              //beta_fit_train[r + (*it) * R] += tmp_mu;
               residual[*it] -= di_train.z[r + (*it) * R] * tmp_mu;
             }
           }
         } // closes loop restoring fit for training
         // END: restore fit of updated tree (training)
-        
-        /*
-        // BEGIN: restore fit of updated tree (testing). Only occurs post-warmup
-        if(iter >= burn && n_test > 0){
-          for(suff_stat_it l_it = ss_test_vec[r][m].begin(); l_it != ss_test_vec[r][m].end(); ++l_it){
-            tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
-            if(l_it->second.size() > 0){
-              for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-                // add fit of m-th tree back to allfit and subtract it from the value of the residual
-                allfit_test[*it] += di_test.z[r + (*it) * R] * tmp_mu;
-                beta_fit_test[r + (*it) * R] += tmp_mu;
-              }
-            }
-          } // closes loop restoring fit for training
-        }// closes check to see if we need to update testing data fits
-        // END: restore fit of updated tree (testing). Only occurs post-warmup
-        */
-
       } // closes loop over all of the trees in this ensemble
       // END: loop over all trees in a single ensmble
-      
       // BEGIN: update selection probabilities & save var_count & accept
       if(sparse) update_theta_u_subset(theta[r], u[r], var_count[r], a_u, b_u, gen);
       for(int j = 0; j < p; ++j) var_count_samples(iter, j, r) = var_count[r][j];
       total_accept_samples(iter, r) = total_accept; // how many trees changed in this iteration
-
+    
     } // closes loop over the ensembles
     // END: update all regression trees
     
@@ -399,66 +337,80 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
       }
       // END: write tree to string
       
-      // BEGIN: save samples and/or posterior means (training)
       if(save_samples){
         for(int i = 0; i < n_train; ++i){
-          fit_train(sample_index,i) = allfit_train[i];
-          fit_train_mean(i) += allfit_train[i];
-          //for(int r = 0; r < R; ++r){
-            //beta_train(sample_index, i, r) = beta_fit_train[r + i*R];
-            //beta_train_mean(i, r) += beta_fit_train[r + i * R];
-          //}
+          fit_train(sample_index,i) = Y_train[i] - residual[i];
+          fit_train_mean(i) += Y_train[i] - residual[i];
         }
-      } else{
-        for(int i = 0; i < n_train; ++i){
-          fit_train_mean(i) += allfit_train[i];
-          //for(int r = 0; r < R; ++r){
-            //beta_train_mean(i, r) += beta_fit_train[r + i * R];
-          //}
-        }
-      }
-      // END: save samples and/or posterior means (training)
-      
-      // BEGIN: save samples and/or posterior means (testing)
-      if(n_test > 0){
-        // reset the values
-        for(int i = 0; i < n_test; ++i){
-          allfit_test[i] = 0.0;
-          for(int r = 0; r < R; ++r) beta_fit_test[r + i*R] = 0.0;
-        }
+        // now compute beta_train
         for(int r = 0; r < R; ++r){
           for(int m = 0; m < M_vec[r]; ++m){
-            for(suff_stat_it ss_it = ss_test_vec[r][m].begin(); ss_it != ss_test_vec[r][m].end(); ++ss_it){
+            for(suff_stat_it ss_it = ss_train_vec[r][m].begin(); ss_it != ss_train_vec[r][m].end(); ++ss_it){
               tmp_mu = t_vec[r][m].get_ptr(ss_it->first)->get_mu();
               if(ss_it->second.size() > 0){
                 for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-                  allfit_test[*it] += di_test.z[r + (*it) * R] * tmp_mu;
-                  //beta_fit_test[r + (*it) * R] += tmp_mu;
+                  beta_train(sample_index, *it, r) += tmp_mu;
+                  beta_train_mean(*it,r) += tmp_mu;
                 }
               }
             }
           }
         }
-        
-        
-        if(save_samples){
-          for(int i = 0; i < n_test; ++i){
-            fit_test(sample_index,i) = allfit_test[i];
-            fit_test_mean(i) += allfit_test[i];
-            //for(int r = 0; r < R; ++r){
-            //  beta_test(sample_index, i, r) = beta_fit_test[r + i*R];
-            //  beta_test_mean(i, r) += beta_fit_test[r + i * R];
-            //}
-          }
-        } else{
-          for(int i = 0; i < n_test; ++i){
-            fit_test_mean(i) += allfit_test[i];
-            //for(int r = 0; r < R; ++r){
-             // beta_test_mean(i, r) += beta_fit_test[r + i * R];
-            //}
+      } else{
+        for(int i = 0; i < n_train; ++i){
+          fit_train_mean(i) += Y_train[i] - residual[i];
+        }
+        for(int r = 0; r < R; ++r){
+          for(int m = 0; m < M_vec[r]; ++m){
+            for(suff_stat_it ss_it = ss_train_vec[r][m].begin(); ss_it != ss_train_vec[r][m].end(); ++ss_it){
+              tmp_mu = t_vec[r][m].get_ptr(ss_it->first)->get_mu();
+              if(ss_it->second.size() > 0){
+                for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+                  beta_train_mean(*it,r) += tmp_mu;
+                }
+              }
+            }
           }
         }
       }
+      
+      if(n_test > 0){
+        if(save_samples){
+          for(int r = 0; r < R; ++r){
+            for(int m = 0; m < M_vec[r]; ++m){
+              for(suff_stat_it ss_it = ss_test_vec[r][m].begin(); ss_it != ss_test_vec[r][m].end(); ++ss_it){
+                tmp_mu = t_vec[r][m].get_ptr(ss_it->first)->get_mu();
+                if(ss_it->second.size() > 0){
+                  for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+                    int i = *it;
+                    fit_test(sample_index, i) += di_test.z[r + i*R] * tmp_mu;
+                    fit_test_mean(i) += di_test.z[r + i*R] * tmp_mu;
+                    beta_test(sample_index,i,r) += tmp_mu;
+                    beta_test_mean(i,r) += tmp_mu;
+                  }
+                }
+              }
+            }
+          }
+        } else{
+          for(int r = 0; r < R; ++r){
+            for(int m = 0; m < M_vec[r]; ++m){
+              for(suff_stat_it ss_it = ss_test_vec[r][m].begin(); ss_it != ss_test_vec[r][m].end(); ++ss_it){
+                tmp_mu = t_vec[r][m].get_ptr(ss_it->first)->get_mu();
+                if(ss_it->second.size() > 0){
+                  for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+                    int i = *it;
+                    fit_test(sample_index, i) += di_test.z[r + i*R] * tmp_mu;
+                    fit_test_mean(i) += di_test.z[r + i*R] * tmp_mu;
+                    beta_test(sample_index,i,r) += tmp_mu;
+                    beta_test_mean(i,r) += tmp_mu;
+                  }
+                }
+              }
+            }
+          }
+        }
+      } // closes if checking whether we have testing observations
       // END: save samples and/or posterior means (testing)
     } // closes if that checks whether we should save anything in this iteration
     // END: save post-warmup samples
@@ -473,22 +425,21 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     beta_test_mean /= ( (double) nd);
   }
   // END: rescale posterior means
-  
-  
+
   // BEGIN: save output
   Rcpp::List results;
   results["fit_train_mean"] = fit_train_mean;
-  //results["beta_train_mean"] = beta_train_mean;
+  results["beta_train_mean"] = beta_train_mean;
   if(save_samples){
     results["fit_train"] = fit_train;
-    //results["beta_train"] = beta_train;
+    results["beta_train"] = beta_train;
   }
   if(n_test > 0){
     results["fit_test_mean"] = fit_test_mean;
-    //results["beta_test_mean"] = beta_test_mean;
+    results["beta_test_mean"] = beta_test_mean;
     if(save_samples){
       results["fit_test"] = fit_test;
-      //results["beta_test"] = beta_test;
+      results["beta_test"] = beta_test;
     }
   }
   results["sigma"] = sigma_samples;

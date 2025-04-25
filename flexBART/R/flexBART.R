@@ -122,10 +122,10 @@ flexBART <- function(formula,
   
   # Containers for posterior mean of total fit & each beta
   yhat_train_mean <-rep(0, times = n_train)
-  if(R > 1) raw_beta_train_mean <- array(0, dim = c(n_train, R))
+  #if(R > 1) raw_beta_train_mean <- array(0, dim = c(n_train, R))
   if(n_test > 0){
     yhat_test_mean <- rep(0, times = n_test)
-    if(R > 1) raw_beta_test_mean <- array(0, dim = c(n_test, R))
+    #if(R > 1) raw_beta_test_mean <- array(0, dim = c(n_test, R))
   }
   # Containers for posterior samples
   if(control$save_samples){
@@ -220,22 +220,22 @@ flexBART <- function(formula,
     sigma_samples[start_index:end_index] <- fit$sigma[-(1:control$burn)]
     
     yhat_train_mean <- yhat_train_mean + fit$fit_train_mean/control$n.chains
-    if(R > 1) raw_beta_train_mean <- raw_beta_train_mean + fit$beta_train_mean/control$n.chains
+    #if(R > 1) raw_beta_train_mean <- raw_beta_train_mean + fit$beta_train_mean/control$n.chains
     
     if(n_test > 0){
       yhat_test_mean <- 
         yhat_test_mean + fit$fit_test_mean/control$n.chains
-      if(R > 1){
-        raw_beta_test_mean <- 
-          raw_beta_test_mean + fit$beta_test_mean/control$n.chains
-      }
+      #if(R > 1){
+      #  raw_beta_test_mean <- 
+      #    raw_beta_test_mean + fit$beta_test_mean/control$n.chains
+      #}
     }
     if(control$save_samples){
       yhat_train_samples[start_index:end_index,] <- fit$fit_train
-      if(R > 1) raw_beta_train_samples[start_index:end_index,,] <- fit$beta_train
+      #if(R > 1) raw_beta_train_samples[start_index:end_index,,] <- fit$beta_train
       if(n_test > 0){
         yhat_test_samples[start_index:end_index,] <- fit$fit_test
-        if(R > 1) raw_beta_test_samples[start_index:end_index,,] <- fit$beta_test
+        #if(R > 1) raw_beta_test_samples[start_index:end_index,,] <- fit$beta_test
       }
     }
     varcounts_samples[start_index:end_index,,] <- fit$varcount[-(1:control$burn),,]
@@ -261,30 +261,30 @@ flexBART <- function(formula,
   
   
   yhat_train_mean <- y_mean + y_sd * yhat_train_mean
-  if(R > 1){
-    beta_train_mean <- 
-      rescale_beta_mean(raw_beta_train_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
-  }
+  #if(R > 1){
+  #  beta_train_mean <- 
+  #    rescale_beta_mean(raw_beta_train_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
+  #}
   
   if(n_test > 0){
     yhat_test_mean <- y_mean + y_sd * yhat_test_mean
-    if(R > 1){
-      beta_test_mean <- 
-        rescale_beta_mean(raw_beta_test_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
-    }
+    #if(R > 1){
+    #  beta_test_mean <- 
+    #    rescale_beta_mean(raw_beta_test_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
+    #}
   }
   if(control$save_samples){
     yhat_train_samples <- y_mean + y_sd * yhat_train_samples
-    if(R > 1){
-      beta_train_samples <- 
-        rescale_beta(raw_beta_train_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
-    }
+    #if(R > 1){
+    #  beta_train_samples <- 
+    #    rescale_beta(raw_beta_train_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
+    #}
     if(n_test > 0){
       yhat_test_samples <- y_mean + y_sd * yhat_test_samples
-      if(R > 1){
-        beta_test_samples <- 
-          rescale_beta(raw_beta_test_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
-      }
+      #if(R > 1){
+      #  beta_test_samples <- 
+      #    rescale_beta(raw_beta_test_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
+      #}
     }
   }
   
@@ -295,30 +295,30 @@ flexBART <- function(formula,
   results[["z_sd"]] <- z_sd
   results[["z_col_id"]] <- z_col_id
   results[["yhat.train.mean"]] <- yhat_train_mean
-  if(R > 1){
-    results[["beta.train.mean"]] <- beta_train_mean
-    results[["raw_beta.train.mean"]] <- raw_beta_train_mean
-  }
+  #if(R > 1){
+  #  results[["beta.train.mean"]] <- beta_train_mean
+  #  results[["raw_beta.train.mean"]] <- raw_beta_train_mean
+  #}
   if(n_test > 0){
     results[["yhat.test.mean"]] <- yhat_test_mean
-    if(R > 1){
-      results[["beta.test.mean"]] <- beta_test_mean
-      results[["raw_beta.test.mean"]] <- raw_beta_test_mean
-    }
+    #if(R > 1){
+    #  results[["beta.test.mean"]] <- beta_test_mean
+    #  results[["raw_beta.test.mean"]] <- raw_beta_test_mean
+    #}
   }
   
   if(control$save_samples){
     results[["yhat.train"]] <- yhat_train_samples
-    if(R > 1){
-      results[["beta.train"]] <- beta_train_samples
-      results[["raw_beta.train"]] <- raw_beta_train_samples
-    }
+    #if(R > 1){
+    #  results[["beta.train"]] <- beta_train_samples
+    #  results[["raw_beta.train"]] <- raw_beta_train_samples
+    #}
     if(n_test > 0){
       results[["yhat.test"]] <- yhat_test_samples
-      if(R > 1){
-        results[["beta.test"]] <- beta_test_samples
-        results[["raw_beta.test"]] <- raw_beta_test_samples
-      }
+      #if(R > 1){
+      #  results[["beta.test"]] <- beta_test_samples
+      #  results[["raw_beta.test"]] <- raw_beta_test_samples
+      #}
     }
   }
   results[["initial_sigma"]] <- sigest
