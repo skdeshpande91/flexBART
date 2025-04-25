@@ -142,9 +142,9 @@ flex_time <-
   system.time(
     flex_fit <- flexBART::flexBART(Y_train =friedman_train[,"Y"],
                                    X_cont_train = tmp_data$training_info$X_cont,
-                                   X_cat_train = matrix(tmp_data$training_info$X_cat),
+                                   X_cat_train = tmp_data$training_info$X_cat,
                                    X_cont_test = tmp_data$testing_info$X_cont,
-                                   X_cat_test = matrix(tmp_data$testing_info$X_cat),
+                                   X_cat_test = tmp_data$testing_info$X_cat,
                                    cat_levels_list = tmp_data$training_info$cat_levels_list,
                                    sparse = hyper$sparse))
 
