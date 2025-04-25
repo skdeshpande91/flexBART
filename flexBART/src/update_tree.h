@@ -3,9 +3,10 @@
 
 #include "rule_funs.h"
 
-void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat, int &nx_nid, rule_t &rule, tree &t, data_info &di);
-
-void compute_suff_stat_prune(suff_stat &orig_suff_stat, suff_stat &new_suff_stat, int &nl_nid, int &nr_nid, int &np_nid, tree &t, data_info &di);
+//void compute_ss_grow(suff_stat &ss, int &nx_nid, rule_t &rule, data_info &di);
+//void compute_ss_prune(suff_stat &ss, int &nxl_nid, int &nxr_nid, int& nx_nid, rule_t &rule, data_info &di);
+void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat, int &nx_nid, rule_t &rule, data_info &di);
+void compute_suff_stat_prune(suff_stat &orig_suff_stat, suff_stat &new_suff_stat, int &nl_nid, int &nr_nid, int &np_nid, data_info &di);
 
 double compute_lil(suff_stat &ss, int &nid, int &r, double &sigma, data_info &di, tree_prior_info &tree_pi);
 
