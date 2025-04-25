@@ -1,30 +1,28 @@
 #include "update_tree.h"
 #include "data_parsing_funs.h"
 #include "funs.h"
-// [[Rcpp::export("._multi_unnested_fit")]]
-Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
-                      Rcpp::NumericMatrix tZ_train,
-                      Rcpp::NumericMatrix tX_cont_train,
-                      Rcpp::IntegerMatrix tX_cat_train,
-                      double sigest,
-                      Rcpp::IntegerMatrix cov_ensm,
-                      Rcpp::Nullable<Rcpp::List> cutpoints_list,
-                      Rcpp::Nullable<Rcpp::List> cat_levels_list,
-                      Rcpp::Nullable<Rcpp::List> edge_mat_list,
-                      Rcpp::NumericMatrix tZ_test,
-                      Rcpp::NumericMatrix tX_cont_test,
-                      Rcpp::IntegerMatrix tX_cat_test,
-                      Rcpp::IntegerVector M_vec,
-                      Rcpp::NumericVector alpha_vec, Rcpp::NumericVector beta_vec,
-                      Rcpp::NumericVector mu0_vec, Rcpp::NumericVector tau_vec,
-                      int graph_cut_type,
-                      bool sparse, double a_u, double b_u,
-                      double nu, double lambda,
-                      int nd, int burn, int thin,
-                      bool save_samples,
-                      bool save_trees,
-                      bool verbose,
-                      int print_every)
+// [[Rcpp::export("._multi_nested_fit")]]
+Rcpp::List fit(Rcpp::NumericVector Y_train,
+               Rcpp::IntegerMatrix cov_ensm,
+               Rcpp::NumericMatrix tZ_train,
+               Rcpp::NumericMatrix tX_cont_train,
+               Rcpp::IntegerMatrix tX_cat_train,
+               Rcpp::NumericMatrix tZ_test,
+               Rcpp::NumericMatrix tX_cont_test,
+               Rcpp::IntegerMatrix tX_cat_test,
+               Rcpp::Nullable<Rcpp::List> cutpoints_list,
+               Rcpp::Nullable<Rcpp::List> cat_levels_list,
+               Rcpp::Nullable<Rcpp::List> edge_mat_list,
+               Rcpp::Nullable<Rcpp::List> nest_list,
+               Rcpp::IntegerVector M_vec,
+               Rcpp::NumericVector alpha_vec, Rcpp::NumericVector beta_vec,
+               Rcpp::NumericVector mu0_vec, Rcpp::NumericVector tau_vec,
+               int graph_cut_type,
+               bool nest_v, int nest_v_option, bool nest_c,
+               double sigest, double nu, double lambda,
+               int nd, int burn, int thin,
+               bool save_samples,bool save_trees,
+               bool verbose, int print_every)
 
 {
   Rcpp::RNGScope scope;
@@ -40,12 +38,9 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
   int R = tZ_train.rows(); // how many ensembles
   int p_cont = 0;
   int p_cat = 0;
-  if(tX_cont_train.size() > 1){
-    p_cont = tX_cont_train.rows(); // how many continuous covariates
-  }
-  if(tX_cat_train.size() > 1){
-    p_cat = tX_cat_train.rows(); // how many categorical covariates
-  }
+  if(tX_cont_train.size() > 1) p_cont = tX_cont_train.rows(); // how many continuous covariates
+  
+  if(tX_cat_train.size() > 1) p_cat = tX_cat_train.rows(); // how many categorical covariates
   int p = p_cont + p_cat;
   // END: get dimensions of training data;
   // BEGIN: get dimensions of testing data
@@ -65,56 +60,23 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     parse_graphs(edges, p_cat, edge_mat_list);
   }
   // END: set cutpoints & categorical levels + parse network structure
+  
+  // BEGIN: build graph encoding nesting relationships b/w categorical predictors
+  std::vector<hi_lo_map> nesting;
+  std::vector<edge_map> nest_graph_in;
+  std::vector<edge_map> nest_graph_out;
+  std::vector<std::map<int, std::set<int>>> nest_graph_components;
+  parse_nesting(nesting, nest_graph_in, nest_graph_out, nest_graph_components, p_cont, cov_ensm, cat_levels, nest_list);
+  // END: build graph encoding nesting relationships b/w categorical predictors
 
-  // BEGIN: create splitting probabilities
+  // BEGIN: create var and rule counts.
   std::vector<std::vector<int>> var_count(R, std::vector<int>(p, 0));
   std::vector<int> rule_count(R, 0);
-  std::vector<std::vector<double>> theta(R, std::vector<double>(p, 0.0));
-  std::vector<double> u(R);
-  
-  for(int r = 0; r < R; ++r){
-    int n_avail_vars = 0;
-    for(int j = 0; j < p; ++j){
-      if(cov_ensm(j,r) == 1){
-        theta[r][j] = 1.0;
-        ++n_avail_vars;
-      }
-    } // closes loop over variables
-    if(n_avail_vars == 0){
-      Rcpp::Rcout << "Ensemble r = " << r << " no covariates detected!" << std::endl;
-      Rcpp::stop("At least one covariate needed for each ensemble!");
-    } else{
-      for(int j = 0; j < p; ++j) theta[r][j] /= (double) n_avail_vars;
-      u[r] = 1.0/(1.0 + (double) n_avail_vars);
-    }
-  } // closes loop over ensembles
-  // END: create splitting probabilities
+  // END: create var and rule counts
 
-
-  // BEGIN: initializing containers for residuals and fit
-  //double* allfit_train = new double[n_train];
-  //double* beta_fit_train = new double[n_train * R];
+  // BEGIN: initializing containers for residuals
   double* residual = new double[n_train];
-  
-  //int tmp_n_test = 1;
-  //if(n_test > 0) tmp_n_test = n_test;
-  //double* allfit_test = new double[tmp_n_test];
-  //double* beta_fit_test = new double[tmp_n_test * R];
-  
-  //BEGIN: initialize containers
-  /*
-  for(int i = 0; i < n_train; ++i){
-    allfit_train[i] = 0.0;
-    for(int r = 0; r < R; ++r) beta_fit_train[r + i * R] = 0.0;
-  }
-  if(n_test > 0){
-    for(int i = 0; i < n_test; ++i){
-      allfit_test[i] = 0.0;
-      for(int r = 0; r < R; ++r) beta_fit_test[r + i * R] = 0.0;
-    }
-  }
-   */
-  // END: initializeing containers for residuals and fit
+  // END: intialize container for residual
   
   // BEGIN: creating data info object for training data
   data_info di_train;
@@ -153,9 +115,14 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
       tree_pi_vec[r].cat_levels = &cat_levels;
       tree_pi_vec[r].edges = &edges;
       tree_pi_vec[r].graph_cut_type = graph_cut_type;
+      tree_pi_vec[r].nesting = &nesting;
+      tree_pi_vec[r].nest_v = nest_v;
+      tree_pi_vec[r].nest_v_option = nest_v_option;
+      tree_pi_vec[r].nest_c = nest_c;
+      tree_pi_vec[r].nest_in = &(nest_graph_in[r]);
+      tree_pi_vec[r].nest_out = &(nest_graph_out[r]);
+      tree_pi_vec[r].nest_components = &(nest_graph_components[r]);
     }
-    
-    tree_pi_vec[r].theta = &(theta[r]); // only use theta if nest_v_option = false
     tree_pi_vec[r].var_count = &(var_count[r]);
     tree_pi_vec[r].rule_count = &(rule_count[r]);
     
@@ -208,16 +175,14 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
       for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
         tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
         if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-            residual[r + (*it) * R] -= di_train.z[r + (*it)*R] * tmp_mu; // remove initial fit of each tree from residual
-          }
+          // since residual initialized at Y, must remove fit of each tree
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[r + (*it) * R] -= di_train.z[r + (*it)*R] * tmp_mu;
         } // closes if checking leaf has training obs
       } // closes loop over leafs
       
       if(n_test > 0) tree_traversal(ss_test_vec[r][m], t_vec[r][m], di_test);
     } // closes loop over trees in ensemble
   } // closes loop over ensembles
-  //for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - allfit_train[i];
   
 
   // BEGIN: create output containers
@@ -278,36 +243,30 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
           tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
           if(l_it->second.size() > 0){
-            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-              //allfit_train[*it] -= di_train.z[r + (*it) * R] * tmp_mu; // adjust the value of allfit
-              //beta_fit_train[r + (*it) * R] -= tmp_mu;
-              residual[*it] += di_train.z[r + (*it) * R] * tmp_mu;
-            }
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] += di_train.z[r + (*it) * R] * tmp_mu;
           }
         } // closes loop over all leafs removing fit
         // END: remove fit of a single tree (training)
         
         // BEGIN: update the tree
-        update_tree_unnested(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
+        update_tree_nested(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen);
         total_accept += accept;
         // END: update the tree
+        
         // BEGIN: restore fit of updated tree (training)
         for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
           tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
           if(l_it->second.size() > 0){
-            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-              residual[*it] -= di_train.z[r + (*it) * R] * tmp_mu;
-            }
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= di_train.z[r + (*it) * R] * tmp_mu;
           }
         } // closes loop restoring fit for training
         // END: restore fit of updated tree (training)
       } // closes loop over all of the trees in this ensemble
       // END: loop over all trees in a single ensmble
-      // BEGIN: update selection probabilities & save var_count & accept
-      if(sparse) update_theta_u_subset(theta[r], u[r], var_count[r], a_u, b_u, gen);
+      // BEGIN: save var_count & accept
       for(int j = 0; j < p; ++j) var_count_samples(iter, j, r) = var_count[r][j];
-      total_accept_samples(iter, r) = total_accept; // how many trees changed in this iteration
-    
+      total_accept_samples(iter, r) = total_accept;
+      // END: save var_count and accept
     } // closes loop over the ensembles
     // END: update all regression trees
     
@@ -345,10 +304,10 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         // now compute beta_train
         for(int r = 0; r < R; ++r){
           for(int m = 0; m < M_vec[r]; ++m){
-            for(suff_stat_it ss_it = ss_train_vec[r][m].begin(); ss_it != ss_train_vec[r][m].end(); ++ss_it){
-              tmp_mu = t_vec[r][m].get_ptr(ss_it->first)->get_mu();
-              if(ss_it->second.size() > 0){
-                for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+            for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
+              tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
+              if(l_it->second.size() > 0){
+                for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
                   beta_train(sample_index, *it, r) += tmp_mu;
                   beta_train_mean(*it,r) += tmp_mu;
                 }
@@ -362,10 +321,10 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         }
         for(int r = 0; r < R; ++r){
           for(int m = 0; m < M_vec[r]; ++m){
-            for(suff_stat_it ss_it = ss_train_vec[r][m].begin(); ss_it != ss_train_vec[r][m].end(); ++ss_it){
-              tmp_mu = t_vec[r][m].get_ptr(ss_it->first)->get_mu();
-              if(ss_it->second.size() > 0){
-                for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+            for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
+              tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
+              if(l_it->second.size() > 0){
+                for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
                   beta_train_mean(*it,r) += tmp_mu;
                 }
               }
@@ -378,10 +337,10 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         if(save_samples){
           for(int r = 0; r < R; ++r){
             for(int m = 0; m < M_vec[r]; ++m){
-              for(suff_stat_it ss_it = ss_test_vec[r][m].begin(); ss_it != ss_test_vec[r][m].end(); ++ss_it){
-                tmp_mu = t_vec[r][m].get_ptr(ss_it->first)->get_mu();
-                if(ss_it->second.size() > 0){
-                  for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+              for(suff_stat_it l_it = ss_test_vec[r][m].begin(); l_it != ss_test_vec[r][m].end(); ++l_it){
+                tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
+                if(l_it->second.size() > 0){
+                  for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
                     int i = *it;
                     fit_test(sample_index, i) += di_test.z[r + i*R] * tmp_mu;
                     fit_test_mean(i) += di_test.z[r + i*R] * tmp_mu;
@@ -395,10 +354,10 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
         } else{
           for(int r = 0; r < R; ++r){
             for(int m = 0; m < M_vec[r]; ++m){
-              for(suff_stat_it ss_it = ss_test_vec[r][m].begin(); ss_it != ss_test_vec[r][m].end(); ++ss_it){
-                tmp_mu = t_vec[r][m].get_ptr(ss_it->first)->get_mu();
-                if(ss_it->second.size() > 0){
-                  for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+              for(suff_stat_it l_it = ss_test_vec[r][m].begin(); l_it != ss_test_vec[r][m].end(); ++l_it){
+                tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
+                if(l_it->second.size() > 0){
+                  for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
                     int i = *it;
                     fit_test(sample_index, i) += di_test.z[r + i*R] * tmp_mu;
                     fit_test_mean(i) += di_test.z[r + i*R] * tmp_mu;
