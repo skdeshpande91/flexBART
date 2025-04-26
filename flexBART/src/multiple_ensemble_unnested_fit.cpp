@@ -1,4 +1,4 @@
-#include "update_tree.h"
+#include "update_tree_fast.h"
 #include "data_parsing_funs.h"
 #include "funs.h"
 // [[Rcpp::export("._multi_unnested_fit")]]

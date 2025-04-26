@@ -67,6 +67,12 @@ public:
   }
 };
 
+
+struct jump_post{
+  double P;
+  double Theta;
+  jump_post(){P = 1.0; Theta = 0.0;}
+};
 // structure for diagnostics tracking how often we propose/reject certain types of rules
 /*
 struct rule_diag_t{

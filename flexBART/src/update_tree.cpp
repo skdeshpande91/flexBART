@@ -62,7 +62,7 @@ void compute_ss_grow(suff_stat &ss, int &nx_nid, rule_t &rule, data_info &di)
     Rcpp::stop("[compute_ss_grow]: couldn't find parent nx or already had children nxl & nxr in ss");
   } // closes if/else checking that ss is valid.
 }
-*/
+
 
 
 void compute_suff_stat_grow(suff_stat &orig_suff_stat, suff_stat &new_suff_stat, int &nx_nid, rule_t &rule, data_info &di)
@@ -162,7 +162,7 @@ void compute_ss_prune(suff_stat &ss, int &nxl_nid, int &nxr_nid, int &nx_nid, da
     Rcpp::stop("[compute_ss_prune]: did not find left or right node or already had parent in ss");
   } // closes if/else checking that ss is valid
 }
-*/
+
 
 void compute_suff_stat_prune(suff_stat &orig_suff_stat, suff_stat &new_suff_stat, int &nl_nid, int &nr_nid, int &np_nid, data_info &di)
 {
@@ -328,15 +328,7 @@ void grow_tree_unnested(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &a
       int v_raw = rule.v_cat + di_train.p_cont;
       ++(tree_pi.var_count->at(v_raw));
     }
-    /*
-    // we are accepting the grow move, so we can eliminate the element for nx in ss_train
-    ss_train.erase(nx_nid);
-    if(di_test.n > 0){
-      compute_ss_grow(ss_test, nx_nid, rule, di_test);
-      // at this point, ss_test has elements for nx, nxl, and nxr
-      ss_test.erase(nx_nid);
-    }
-   */
+    
 
     
     suff_stat_it nxl_it = prop_ss_train.find(nxl_nid); // iterator at element for nxl in the proposed suff_stat map
@@ -470,17 +462,7 @@ void grow_tree_nested(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &acc
       ++(tree_pi.var_count->at(v_raw));
     }
    
-    // we need to update ss, the sufficient statistic object
-    /*
-    // we are accepting the grow move, so we can eliminate the element for nx in ss_train
-    ss_train.erase(nx_nid);
-    
-    if(di_test.n > 0){
-      compute_ss_grow(ss_test, nx_nid, rule, di_test);
-      // at this point, ss_test has elements for nx, nxl, and nxr
-      ss_test.erase(nx_nid);
-    }
-     */
+
 
     suff_stat_it nxl_it = prop_ss_train.find(nxl_nid); // iterator at element for nxl in the proposed suff_stat map
     suff_stat_it nxr_it = prop_ss_train.find(nxr_nid); // iterator at element for nxr in the proposed suff_stat map
@@ -592,18 +574,7 @@ void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, i
       int v_raw = di_train.p_cont + nx->get_v_cat();
       --(tree_pi.var_count->at(v_raw));
     }
-/*
-    // need to adjust ss
-    // ss_train contains element for nxl and nxr and these need to be removed
-    ss_train.erase(nxl_nid);
-    ss_train.erase(nxr_nid);
-        
-    if(di_test.n > 0){
-      compute_ss_prune(ss_test, nxl_nid, nxr_nid, nx_nid, di_train);
-      ss_test.erase(nxl_nid);
-      ss_test.erase(nxr_nid);
-    }
-*/
+
     
     suff_stat_it nx_it = prop_ss_train.find(nx_nid); // iterator at element for nx in suff stat map for new tree
     if(nx_it == prop_ss_train.end()){
@@ -673,3 +644,4 @@ void update_tree_nested(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &a
   // by this point, the decision tree has been updated so we can draw new jumps.
   draw_mu(t, ss_train, r, sigma,di_train, tree_pi, gen);
 }
+*/
