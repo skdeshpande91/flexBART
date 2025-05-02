@@ -1,4 +1,4 @@
-get_sigma <- function(trinfo){
+get_sigma <- function(trinfo, dinfo){
  
   if(length(trinfo$X_cat) == 1){
     # only continuous covariates supplied

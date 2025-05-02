@@ -12,15 +12,6 @@ public:
   friend std::string write_tree(tree &t, tree_prior_info &tree_pi, set_str_conversion &set_str);
   friend void read_tree(tree &t, std::string &tree_string, set_str_conversion &set_str);
   
-  friend void compute_jump_posterior_single(std::map<int, jump_post> &jp_map, tree &t, suff_stat &ss, double &sigma, data_info &di, tree_prior_info &tree_pi);
-  friend void compute_jump_posterior_multi(std::map<int, jump_post> &jp_map, tree &t, suff_stat &ss, int &r, double &sigma, data_info &di, tree_prior_info &tree_pi);
-
-  friend void draw_mu_single(tree &t, suff_stat &ss, std::map<int, jump_post> &jp_map, data_info &di, RNG &gen);
-  friend void draw_mu_multi(tree &t, suff_stat &ss, std::map<int, jump_post> &jp_map, int &r, data_info &di, RNG &gen);
-
-  friend void compute_ss_grow_single(suff_stat &ss, std::map<int, jump_post> &jp_map, int &nx_nid, rule_t &rule, double &sigma, data_info &di, tree_prior_info &tree_pi);
-  friend void compute_ss_grow_multi(suff_stat &ss, std::map<int, jump_post> &jp_map, int &nx_nid, rule_t &rule, int &r, double &sigma, data_info &di, tree_prior_info &tree_pi);
-  
   friend void grow_tree_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, jump_post> &jp_map, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
   friend void grow_tree_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, jump_post> &jp_map, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
 
@@ -29,7 +20,6 @@ public:
 
   friend void update_tree_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
   friend void update_tree_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
-
 
   //------------------------------
   //typedefs

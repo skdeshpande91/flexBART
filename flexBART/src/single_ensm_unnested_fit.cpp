@@ -182,44 +182,32 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   
   arma::vec sigma_samples(total_draws);
   arma::vec total_accept_samples(total_draws);
-  arma::mat var_count_samples(total_draws, p); // always useful to see how often we're splitting on variables in the ensemble
+  //arma::mat var_count_samples(total_draws, p); // always useful to see how often we're splitting on variables in the ensemble
+  arma::mat var_count_samples(nd, p);
   
   Rcpp::List tree_draws(nd);
   // END: create output containers
   
-  // main MCMC loop starts here
-  int r = 0; // for this function only, assume there is only one
-  for(int iter = 0; iter < total_draws; iter++){
-    if(verbose){
-    // remember that R is 1-indexed
-      if( (iter < burn) && (iter % print_every == 0)){
-        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
-        Rcpp::checkUserInterrupt();
-      } else if(((iter> burn) && (iter%print_every == 0)) || (iter == burn) ){
-        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
-        Rcpp::checkUserInterrupt();
-      } else if( iter == total_draws-1){
-        Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
-        Rcpp::checkUserInterrupt();
-      }
+  
+  int r = 0;
+  for(int iter = 0; iter < burn; ++iter){
+    if( iter % print_every == 0 ){
+      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
+      Rcpp::checkUserInterrupt();
     }
-    
-    // loop over trees
     total_accept = 0;
     for(int m = 0; m < M; ++m){
       for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
         // loop over the bottom nodes in m-th tree
         tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
         for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-          // remove fit of m-th tree from allfit: allfit[i] -= tmp_mu
-          // for partial residual: we could compute Y - allfit (now that allfit has fit of m-th tree removed)
-          // numerically this is exactly equal to adding tmp_mu to the value of residual
-          //allfit_train[*it] -= tmp_mu; // adjust the value of allfit
           residual[*it] += tmp_mu;
         }
       } // this whole loop is O(n)
       
-      update_tree_unnested(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, r, sigma, di_train, di_test, tree_pi, gen); // update the tree
+      //update_tree_unnested(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, r, sigma, di_train, di_test, tree_pi, gen); // update the tree
+      update_tree_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
+
       total_accept += accept;
     
       // now we need to update the value of allfit
@@ -227,8 +215,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
         if(ss_it->second.size() > 0){
           for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-            // add fit of m-th tree back to allfit and subtract it from the value of the residual
-            //allfit_train[*it] += tmp_mu;
             residual[*it] -= tmp_mu;
           }
         }
@@ -246,14 +232,59 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     // save information for the diagnostics
     total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
     if(sparse) update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
-    for(int j = 0; j < p; ++j) var_count_samples(iter,j) = var_count[j];
-        
-    if( (iter >= burn) && ( (iter - burn)%thin == 0)){
+    //for(int j = 0; j < p; ++j) var_count_samples(iter,j) = var_count[j];
+  } // closes burn-in
+  
+  for(int iter = burn; iter < total_draws; ++iter){
+    if( (iter%print_every == 0) || (iter == burn) ){
+      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
+      Rcpp::checkUserInterrupt();
+    } else if(iter == total_draws-1){
+      Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
+      Rcpp::checkUserInterrupt();
+    }
+    for(int m = 0; m < M; ++m){
+      // 2 MAY: pick up from this point //
+      for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
+        // loop over the bottom nodes in m-th tree
+        tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
+        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+          residual[*it] += tmp_mu;
+        }
+      } // this whole loop is O(n)
+      
+      update_tree_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
+      total_accept += accept;
+    
+      // now we need to update the value of allfit
+      for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
+        tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
+        if(ss_it->second.size() > 0){
+          for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+            residual[*it] -= tmp_mu;
+          }
+        }
+      } // this loop is also O(n)
+    } // closes loop over all of the trees
+    // ready to update sigma
+    total_sq_resid = 0.0;
+    for(int i = 0; i < n_train; i++) total_sq_resid += pow(residual[i], 2.0); // sum of squared residuals
+    
+    scale_post = lambda * nu + total_sq_resid;
+    nu_post = nu + ( (double) n_train);
+    sigma = sqrt(scale_post/gen.chi_square(nu_post));
+    sigma_samples(iter) = sigma;
+    
+    // save information for the diagnostics
+    total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
+    if(sparse) update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
+    
+    if( (iter - burn)%thin == 0 ){
       sample_index = (int) ( (iter-burn)/thin);
+      for(int j = 0; j < p; ++j) var_count_samples(sample_index,j) = var_count[j];
+
       // time to write each tree as a string
       if(save_trees){
-        // Option 1 in coatless' answer:
-        // https://stackoverflow.com/questions/37502121/assigning-rcpp-objects-into-an-rcpp-list-yields-duplicates-of-the-last-element
         Rcpp::CharacterVector tree_string_vec(M);
         for(int m = 0; m < M; ++m) tree_string_vec[m] = write_tree(t_vec[m], tree_pi, set_str);
         tree_draws[sample_index] = tree_string_vec; // dump a character vector holding each tree's draws into an element of an Rcpp::List
@@ -280,10 +311,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
                 for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
                   fit_test(sample_index, *it) += tmp_mu;
                   fit_test_mean(*it) += tmp_mu;
-                }
-              }
-            }
-          }
+                } // closes loop over observations in leaf
+              } // closes if checking that leaf is non-empty
+            } // closes if/else checking whether we're saving samples or just posterior mean
+          } // closes loop over trees
         } else{
           for(int m = 0; m < M; ++m){
             for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
@@ -291,17 +322,15 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
               if(ss_it->second.size() > 0){
                 for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
                   fit_test_mean(*it) += tmp_mu;
-                }
-              }
-            }
-          }
-        }
-      }
-      
-
+                } // closes loop over observations in leaf
+              } // closes if checking that leaf is non-empty
+            } // closes loop over tree leafs
+          } // closes loop over tres
+        } // closes if/else checking whether we're saving samples or just posterior mean
+      } // close if checking that there are test set observations
     } // closes if that checks whether we should save anything in this iteration
-  } // closes the main MCMC for loop
-
+  } // closes post-burn-in loop
+  
   fit_train_mean /= ( (double) nd);
   if(n_test > 0) fit_test_mean /= ( (double) nd);
   
