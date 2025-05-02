@@ -1,22 +1,24 @@
 #include "update_tree_fast.h"
 #include "data_parsing_funs.h"
 #include "funs.h"
-// [[Rcpp::export(".single_unnested_fit")]]
+// [[Rcpp::export(".single_fit")]]
 Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
-                        Rcpp::NumericMatrix tZ_train,
+                        Rcpp::IntegerMatrix cov_ensm,
                         Rcpp::NumericMatrix tX_cont_train,
                         Rcpp::IntegerMatrix tX_cat_train,
-                        Rcpp::NumericMatrix tZ_test,
                         Rcpp::NumericMatrix tX_cont_test,
                         Rcpp::IntegerMatrix tX_cat_test,
                         Rcpp::Nullable<Rcpp::List> cutpoints_list,
                         Rcpp::Nullable<Rcpp::List> cat_levels_list,
                         Rcpp::Nullable<Rcpp::List> edge_mat_list,
+                        Rcpp::Nullable<Rcpp::List> nest_list,
                         int graph_cut_type,
                         bool sparse, double a_u, double b_u,
-                        double mu0, double tau,
-                        double sigest, double lambda, double nu,
+                        bool nest_v, int nest_v_option, bool nest_c,
                         int M,
+                        double alpha, double beta,
+                        double mu0, double tau,
+                        double sigest, double nu, double lambda,
                         int nd, int burn, int thin,
                         bool save_samples,
                         bool save_trees,
@@ -28,16 +30,19 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   set_str_conversion set_str; // for converting sets of integers into strings
   
   // BEGIN: get dimensions of training data
-  int n_train = tZ_train.cols(); // how many training observations
-  int R = tZ_train.rows(); // how many ensembles
-  if(R != 1) Rcpp::stop("[flexBART_fit]: this function assumes R = 1");
+  int n_train = Y_train.size(); // how many training observations
+  int R = cov_ensm.cols();// or could hardcode to 1
+  //int R = tZ_train.rows(); // how many ensembles
+  //if(R != 1) Rcpp::stop("[flexBART_fit]: this function assumes R = 1");
   int p_cont = 0;
   int p_cat = 0;
   if(tX_cont_train.size() > 1) p_cont = tX_cont_train.rows();
   if(tX_cat_train.size() > 1) p_cat = tX_cat_train.rows();
   int p = p_cont + p_cat;
   int n_test = 0;
-  if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
+  if(p_cont > 0 && tX_cont_test.size() > 0) n_test = tX_cont_test.cols();
+  else if(p_cat > 0 && tX_cat_test.size() > 0) n_test = tX_cat_test.cols();
+  //if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
   // END: get dimensions of testing data
   
   // BEGIN: set cutpoints & categorical levels + parse network structure
@@ -51,6 +56,14 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     parse_graphs(edges, p_cat, edge_mat_list);
   }
   // END: set cutpoints & categorical levels + parse network structure
+  
+  // BEGIN: build graph encoding nesting relationships b/w categorical predictors
+  std::vector<hi_lo_map> nesting;
+  std::vector<edge_map> nest_graph_in;
+  std::vector<edge_map> nest_graph_out;
+  std::vector<std::map<int, std::set<int>>> nest_graph_components;
+  parse_nesting(nesting, nest_graph_in, nest_graph_out, nest_graph_components, p_cont, cov_ensm, cat_levels, nest_list);
+  // END: build graph encoding nesting relationships b/w categorical predictors
 
   // BEGIN: create splitting probabilities
   // declare stuff for variable selection
@@ -61,17 +74,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   // END: create splitting probabilities
   
   // BEGIN: initialize containers for residuals and fit
-  //double* allfit_train = new double[n_train];
   double* residual = new double[n_train];
-  //int tmp_n_test = 1;
-  //if(n_test > 0) tmp_n_test = n_test;
-  //double* allfit_test = new double[tmp_n_test];
-  //std::vector<double> allfit_test;
-  //if(n_test > 0) allfit_test.resize(n_test);
-  //for(int i = 0; i < n_train; ++i) allfit_train[i] = 0.0;
-  //if(n_test > 0){
-  //  for(int i = 0; i < n_test; ++i) allfit_test[i] = 0.0;
-  //}
   // END: initialize containers for residuals and fit
   
   
@@ -82,7 +85,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   di_train.p_cat = p_cat;
   di_train.p = p;
   di_train.R = R;
-  di_train.z = tZ_train.begin();
   if(p_cont > 0) di_train.x_cont = tX_cont_train.begin();
   if(p_cat > 0) di_train.x_cat = tX_cat_train.begin();
   di_train.rp = residual;
@@ -97,7 +99,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     di_test.R = R;
     if(p_cont > 0) di_test.x_cont = tX_cont_test.begin();
     if(p_cat > 0)  di_test.x_cat = tX_cat_test.begin();
-    di_test.z = tZ_test.begin();
   }
   // END: create data_info objects for training & testing
  
@@ -106,6 +107,9 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   tree_pi.theta = &theta;
   tree_pi.var_count = &var_count;
   tree_pi.rule_count = &rule_count;
+  tree_pi.nest_v = nest_v;
+  tree_pi.nest_v_option = nest_v_option;
+  tree_pi.nest_c = nest_c;
   
   if(p_cont > 0) tree_pi.cutpoints = &cutpoints;
   
@@ -113,7 +117,13 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     tree_pi.cat_levels = &cat_levels;
     tree_pi.edges = &edges;
     tree_pi.graph_cut_type = graph_cut_type;
+    tree_pi.nesting = &nesting;
+    tree_pi.nest_in = &(nest_graph_in[0]);
+    tree_pi.nest_out = &(nest_graph_out[0]);
+    tree_pi.nest_components = &(nest_graph_components[0]);
   }
+  tree_pi.alpha = alpha;
+  tree_pi.beta = beta;
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;
   // END: create tree prior info object
@@ -191,7 +201,8 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   
   int r = 0;
   for(int iter = 0; iter < burn; ++iter){
-    if( iter % print_every == 0 ){
+    if(iter == 0) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Warmup" << std::endl;
+    else if( iter % print_every == 0 ){
       Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
       Rcpp::checkUserInterrupt();
     }
@@ -205,9 +216,7 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
         }
       } // this whole loop is O(n)
       
-      //update_tree_unnested(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, r, sigma, di_train, di_test, tree_pi, gen); // update the tree
       update_tree_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
-
       total_accept += accept;
     
       // now we need to update the value of allfit

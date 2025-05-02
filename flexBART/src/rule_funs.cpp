@@ -186,7 +186,37 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
   } // closes if/else checking that anc_v is empty or not
 }
 
+void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen)
+{
+  rule.clear();
+  int v_raw = 0;
+  if(tree_pi.nest_v){
+    std::vector<double> nest_theta;
+    compute_nested_theta(nest_theta, t, nid, di.p_cont, di.p_cat, tree_pi);
+    v_raw = gen.categorical(nest_theta);
+  } else{
+    v_raw = gen.categorical(tree_pi.theta);
+  }
+  if(v_raw < di.p_cont){
+    rule.is_cat = false;
+    rule.v_aa = v_raw;
+    draw_aa_cutpoint(rule, t, nid, di, tree_pi, gen);
+  } else{
+    rule.is_cat = true;
+    rule.v_cat = v_raw - di.p_cont;
+    std::set<int> avail_levels;
+    if(tree_pi.nest_c){
+      t.get_ptr(nid)->get_rg_nested_cat(avail_levels, rule.v_cat, tree_pi);
+    } else{
+      t.get_ptr(nid)->get_rg_cat(avail_levels, rule.v_cat);
+    }
+    if(avail_levels.size() <= 1) avail_levels = tree_pi.cat_levels->at(rule.v_cat);
+    partition_levels(rule, avail_levels, tree_pi, gen);
+  }
+  
+}
 
+/*
 void draw_rule_unnested(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen)
 {
   rule.clear();
@@ -260,7 +290,7 @@ void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &
 
   }
 }
-
+*/
 /*
 void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &tree_pi, RNG &gen){
   rule.clear();

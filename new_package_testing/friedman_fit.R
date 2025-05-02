@@ -10,13 +10,15 @@ source("../flexBART/R/parse_controls.R")
 source("../flexBART/R/parse_hyper.R")
 source("../flexBART/R/get_sigma.R")
 
-sourceCpp("../flexBART/src/single_ensm_unnested_fit.cpp")
-sourceCpp("../flexBART/src/multiple_ensemble_unnested_fit.cpp")
+sourceCpp("../flexBART/src/single_ensm_fit.cpp")
+sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
+#sourceCpp("../flexBART/src/single_ensm_unnested_fit.cpp")
+#sourceCpp("../flexBART/src/multiple_ensemble_unnested_fit.cpp")
 
 
-rmse_train <- c(single = NA, multi = NA, dbarts = NA, bart = NA, flex = NA)
-rmse_test <- c(single = NA, multi = NA, dbarts = NA, bart = NA, flex = NA)
-timing <- c(single = NA, multi = NA, dbarts = NA, bart = NA, flex = NA)
+rmse_train <- c(single = NA, multi = NA, dbarts = NA, bart = NA)
+rmse_test <- c(single = NA, multi = NA, dbarts = NA, bart = NA)
+timing <- c(single = NA, multi = NA, dbarts = NA, bart = NA)
 
 
 
@@ -43,7 +45,7 @@ sigest <-
 hyper <- 
   parse_hyper(R = R,
               y_range = y_range,
-              sigest = sigest, M = 200, sparse = FALSE)
+              sigest = sigest, M = 200, sparse = TRUE)
 
 
 control <- parse_controls()
@@ -58,24 +60,33 @@ y_sd <- tmp_data$training_info$y_sd
 single_time <-
   system.time(
     single_fit <- 
-      .single_unnested_fit(Y_train = tmp_data$training_info$std_Y,
-                           tZ_train = t(tmp_data$training_info$Z),
-                           tX_cont_train = t(tmp_data$training_info$X_cont),
-                           tX_cat_train = t(tmp_data$training_info$X_cat),
-                           tZ_test = t(tmp_data$testing_info$Z),
-                           tX_cont_test = t(tmp_data$testing_info$X_cont),
-                           tX_cat_test = t(tmp_data$testing_info$X_cat),
-                           cutpoints_list = tmp_data$training_info$cutpoints,
-                           cat_levels_list = tmp_data$training_info$cat_levels_list,
-                           edge_mat_list = tmp_data$training_info$edge_mat_list,
-                           graph_cut_type = hyper$graph_cut_type,
-                           sparse = hyper$sparse, a_u = hyper$a_u, b_u = hyper$b_u,
-                           mu0 = hyper$mu0_vec[1], tau = hyper$tau_vec[1],
-                           sigest = hyper$sigest, lambda = hyper$lambda, nu = hyper$nu,
-                           M = hyper$M_vec[1],
-                           nd = control$nd, burn = control$burn, thin = control$thin,
-                           save_samples = control$save_samples, save_trees = control$save_trees,
-                           verbose = control$verbose, print_every = control$print_every))
+      .single_fit(Y_train = tmp_data$training_info$std_Y,
+                  cov_ensm = cov_ensm,
+                  tX_cont_train = t(tmp_data$training_info$X_cont),
+                  tX_cat_train = t(tmp_data$training_info$X_cat),
+                  tX_cont_test = t(tmp_data$testing_info$X_cont),
+                  tX_cat_test = t(tmp_data$testing_info$X_cat),
+                  cutpoints_list = tmp_data$training_info$cutpoints,
+                  cat_levels_list = tmp_data$training_info$cat_levels_list,
+                  edge_mat_list = tmp_data$training_info$edge_mat_list,
+                  nest_list = tmp_data$training_info$nest_list,
+                  graph_cut_type = hyper$graph_cut_type,
+                  sparse = hyper$sparse, 
+                  a_u = hyper$a_u, b_u = hyper$b_u,
+                  nest_v = hyper$nest_v,
+                  nest_v_option = hyper$nest_v_option,
+                  nest_c = hyper$nest_c,
+                  mu0 = hyper$mu0_vec[1],
+                  tau = hyper$tau_vec[1],
+                  M = hyper$M_vec[1],
+                  alpha = hyper$alpha_vec[1],
+                  beta = hyper$beta_vec[1],
+                  sigest = hyper$sigest,
+                  nu = hyper$nu,
+                  lambda = hyper$lambda,
+                  nd = control$nd, burn = control$burn, thin = control$thin,
+                  save_samples = control$save_samples, save_trees = control$save_trees,
+                  verbose = control$verbose, print_every = control$print_every))
 
 muhat_single_train <- y_mean + y_sd * single_fit$fit_train_mean
 muhat_single_test <- y_mean + y_sd * single_fit$fit_test_mean
@@ -88,27 +99,32 @@ timing["single"] <- single_time["elapsed"]
 multi_time <-
   system.time(
     multi_fit <- 
-      ._multi_unnested_fit(Y_train = tmp_data$training_info$std_Y,
-                           tZ_train = t(tmp_data$training_info$Z),
-                           tX_cont_train = t(tmp_data$training_info$X_cont),
-                           tX_cat_train = t(tmp_data$training_info$X_cat),
-                           sigest = hyper$sigest,
-                           cov_ensm = cov_ensm,
-                           cutpoints_list = tmp_data$training_info$cutpoints,
-                           cat_levels_list = tmp_data$training_info$cat_levels_list,
-                           edge_mat_list = tmp_data$training_info$edge_mat_list,
-                           tZ_test = t(tmp_data$testing_info$Z),
-                           tX_cont_test = t(tmp_data$testing_info$X_cont),
-                           tX_cat_test = t(tmp_data$testing_info$X_cat),
-                           M_vec = hyper$M_vec,
-                           alpha_vec = hyper$alpha_vec, beta_vec = hyper$beta_vec,
-                           mu0_vec = hyper$mu0_vec, tau_vec = hyper$tau_vec,
-                           graph_cut_type = hyper$graph_cut_type,
-                           sparse = hyper$sparse, a_u = hyper$a_u, b_u = hyper$b_u,
-                           nu = hyper$nu,lambda = hyper$lambda, 
-                           nd = control$nd, burn = control$burn, thin = control$thin,
-                           save_samples = control$save_samples, save_trees = control$save_trees,
-                           verbose = control$verbose, print_every = control$print_every))
+      ._multi_fit(Y_train = tmp_data$training_info$std_Y,
+                  cov_ensm = cov_ensm,
+                  tZ_train = t(tmp_data$training_info$Z),
+                  tX_cont_train = t(tmp_data$training_info$X_cont),
+                  tX_cat_train = t(tmp_data$training_info$X_cat),
+                  tZ_test = t(tmp_data$testing_info$Z),
+                  tX_cont_test = t(tmp_data$testing_info$X_cont),
+                  tX_cat_test = t(tmp_data$testing_info$X_cat),
+                  cutpoints_list = tmp_data$training_info$cutpoints,
+                  cat_levels_list = tmp_data$training_info$cat_levels_list,
+                  edge_mat_list = tmp_data$training_info$edge_mat_list,
+                  nest_list = tmp_data$training_info$nest_list,
+                  graph_cut_type = hyper$graph_cut_type,
+                  sparse = hyper$sparse, 
+                  a_u = hyper$a_u, b_u = hyper$b_u,
+                  nest_v = hyper$nest_v,
+                  nest_v_option = hyper$nest_v_option,
+                  nest_c = hyper$nest_c,
+                  M_vec = hyper$M_vec,
+                  alpha_vec = hyper$alpha_vec, beta_vec = hyper$beta_vec,
+                  mu0_vec = hyper$mu0_vec, tau_vec = hyper$tau_vec,
+                  sigest = hyper$sigest,
+                  nu = hyper$nu,lambda = hyper$lambda, 
+                  nd = control$nd, burn = control$burn, thin = control$thin,
+                  save_samples = control$save_samples, save_trees = control$save_trees,
+                  verbose = control$verbose, print_every = control$print_every))
 
 muhat_multi_train <- y_mean + y_sd * multi_fit$fit_train_mean
 muhat_multi_test <- y_mean + y_sd * multi_fit$fit_test_mean
@@ -134,22 +150,10 @@ bart_time <-
     bart_fit <- BART::wbart(x.train = friedman_train[,colnames(friedman_train) != "Y"],
                             y.train = friedman_train[,"Y"],
                             x.test = friedman_test[,colnames(friedman_test) != "Y"],
+                            sparse = TRUE,
                             ndpost = 1000, nskip = 1000))
 
 rmse_train["bart"] <- sqrt( mean( (mu_train - bart_fit$yhat.train.mean)^2 ))
 rmse_test["bart"] <- sqrt( mean( (mu_test - bart_fit$yhat.test.mean)^2 ))
 timing["bart"] <- bart_time["elapsed"]
 
-flex_time <-
-  system.time(
-    flex_fit <- flexBART::flexBART(Y_train =friedman_train[,"Y"],
-                                   X_cont_train = tmp_data$training_info$X_cont,
-                                   X_cat_train = tmp_data$training_info$X_cat,
-                                   X_cont_test = tmp_data$testing_info$X_cont,
-                                   X_cat_test = tmp_data$testing_info$X_cat,
-                                   cat_levels_list = tmp_data$training_info$cat_levels_list,
-                                   sparse = hyper$sparse))
-
-rmse_train["flex"] <- sqrt( mean( (mu_train - flex_fit$yhat.train.mean)^2 ))
-rmse_test["flex"] <- sqrt( mean( (mu_test - flex_fit$yhat.test.mean)^2 ))
-timing["flex"] <- flex_time["elapsed"]    
