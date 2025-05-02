@@ -12,8 +12,6 @@ source("../flexBART/R/get_sigma.R")
 
 sourceCpp("../flexBART/src/single_ensm_fit.cpp")
 sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
-#sourceCpp("../flexBART/src/single_ensm_unnested_fit.cpp")
-#sourceCpp("../flexBART/src/multiple_ensemble_unnested_fit.cpp")
 
 
 rmse_train <- c(single = NA, multi = NA, dbarts = NA, bart = NA)
