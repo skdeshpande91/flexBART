@@ -42,7 +42,7 @@ sigest <-
 hyper <- 
   parse_hyper(R = R,
               y_range = y_range,
-              sigest = sigest, M = 200, sparse = FALSE)
+              sigest = sigest, M = 50, sparse = FALSE)
 
 control <- parse_controls(save_samples = FALSE, save_trees = FALSE)
 
