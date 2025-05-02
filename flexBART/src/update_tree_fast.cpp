@@ -4,6 +4,7 @@ void compute_jump_posterior(std::map<int, jump_post> &jp_map, suff_stat &ss, int
 {
   // reminder posterior of jump is N(P^-1 Theta, P^-1)
   int i = 0;
+  double z = 0.0;
   jp_map.clear();
   for(suff_stat_it l_it = ss.begin(); l_it != ss.end(); ++l_it){
     jp_map.insert(std::pair<int, jump_post>(l_it->first, jump_post()));
@@ -13,8 +14,9 @@ void compute_jump_posterior(std::map<int, jump_post> &jp_map, suff_stat &ss, int
     if(l_it->second.size() > 0){
       for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
         i = *it;
-        jp_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-        jp_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
+        z = di.z[r + i*di.R];
+        jp_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
+        jp_it->second.Theta += z * di.rp[i]/pow(sigma, 2.0);
       } // closes loop over observations in leaf
     } // closes if checking that there are elements in the leaf
   } // closes loop over leaf/ss_map elements
@@ -38,114 +40,13 @@ void draw_mu(tree &t, std::map<int, jump_post> &jp_map, RNG &gen)
   }
 }
 
-// new version that update jump posterior values and ss map for new leaf nodes in the same loop
-void compute_ss_grow(suff_stat &ss, stuff_stat &tmp_ss, std::map<int, jump_post> &jp_map, int &nx_nid, rule_t &rule, int &r, double &sigma, data_info &di, tree_prior_info &tree_pi)
-{
-  tmp_ss.clear();
-  jp_map.clear();
-  
-  int i = 0;
-  int nxl_nid = 2*nx_nid;
-  int nxr_nid = 2*nx_nid+1;
-  
-  // check that our data structures have element for nx but not for nxl or nxr (the proposed children)
-  if(ss.count(nx_nid) == 0 || ss.count(nxl_nid) == 1 || ss.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_train]: something is wrong with ss_train");
-  
-  // if we get to here, data structure are fine
-  
-  // add elements to ss and jp_map for nxl
-  tmp_ss.insert(std::pair<int, std::vector<int>>(nxl_nid, std::vector<int>()));
-  suff_stat_it nxl_it = tmp_ss.find(nxl_nid); // points to nxl's element in ss
 
-  jp_map.insert(std::pair<int, jump_post>(nxl_nid, jump_post()));
-  std::map<int, jump_post>::iterator jpl_it = jp_map.find(nxl_nid); // points to nxl's element in jp_map
-  jpl_it->second.P = 1.0/pow(tree_pi.tau, 2.0); // prior leaf precision
-  jpl_it->second.Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0); // contribution from prior leaf
-  
-  // add elements to ss and jp_map for nxr
-  tmp_ss.insert(std::pair<int, std::vector<int>>(nxr_nid, std::vector<int>()));
-  suff_stat_it nxr_it = tmp_ss.find(nxr_nid); // points to nxr's element in ss
-
-  jp_map.insert(std::pair<int, jump_post>(nxr_nid, jump_post()));
-  std::map<int, jump_post>::iterator jpr_it = jp_map.find(nxr_nid); // points to nxr's element in jp_map
-  jpr_it->second.P = 1.0/pow(tree_pi.tau, 2.0); // prior leaf precision
-  jpr_it->second.Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0); // contribution from prior leaf
-  
-  
-  for(suff_stat_it l_it = ss.begin(); l_it != ss.end(); ++l_it){
-    if(l_it->first == nx_nid){
-      if(l_it->second.size() > 0){
-        if(!rule.is_cat){
-          double* xx_cont = 0;
-          for(std::vector<int>::iterator it = l_it->second.begin(); it != l_it->second.end(); ++it){
-            i = *it;
-            xx_cont = di.x_cont + i*di.p_cont;
-            if(xx_cont[rule.v_aa] < rule.c){
-              nxl_it->second.push_back(i);
-              jpl_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-              jpl_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
-            } else if(xx_cont[rule.v_aa] >= rule.c){
-              nxr_it->second.push_back(i);
-              jpr_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-              jpr_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
-            } else{
-              Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont[rule.v_aa] << " cutpoint = " << rule.c << std::endl;
-              Rcpp::stop("[compute_ss_grow_train]: could not assign observation to left or right child in axis-aligned split!");
-            }
-          } // closes loop over observations in nx
-        } else{
-          int* xx_cat = 0;
-          for(std::vector<int>::iterator it = l_it->second.begin(); it != l_it->second.end(); ++it){
-            i = *it;
-            xx_cat = di.x_cat + i*di.p_cat;
-            int l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
-            int r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
-            if(l_count != r_count){
-              if(l_count == 1){
-                nxl_it->second.push_back(i);
-                jpl_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-                jpl_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
-              } else{
-                nxr_it->second.push_back(i);
-                jpr_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-                jpr_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
-              }
-            } else{
-              Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_cat] << std::endl;
-              Rcpp::Rcout << "left values:";
-              for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-              Rcpp::Rcout << std::endl;
-              
-              Rcpp::Rcout << "right values:";
-              for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-              Rcpp::Rcout << std::endl;
-
-              Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
-            } // closes if/else checking whether observation i goes to nxl or nxr
-          } // closes loop over observations in nx
-        } // closes if/else checking whether rule is axis-aligned or categorical
-      } // closes if checking that leaf is non-empty
-    } else{
-      // we're not in a leaf being modified, so let's just posterior jump parameters
-      jp_map.insert(std::pair<int, jump_post>(l_it->first, jump_post()));
-      std::map<int, jump_post>::iterator jp_it = jp_map.find(l_it->first);
-      jp_it->second.P = 1.0/pow(tree_pi.tau, 2.0); // prior leaf precision
-      jp_it->second.Theta = tree_pi.mu0/pow(tree_pi.tau, 2.0); // contribution from prior leaf
-      if(l_it->second.size() > 0){
-        for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-          i = *it;
-          jp_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-          jp_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
-        } // closes loop over observations in leaf
-      } // closes if checking that there are elements in the leaf
-    } // closes if/else checking whether we're at the node being grown
-  }
-}
 
 // in-place modification of ss in grow move + computing posterior parameters for new children
 void compute_ss_grow(suff_stat &ss, std::map<int, jump_post> &jp_map, int &nx_nid, rule_t &rule, int &r, double &sigma, data_info &di, tree_prior_info &tree_pi)
 {
   int i = 0;
+  double z = 0.0;
   int nxl_nid = 2*nx_nid;
   int nxr_nid = 2*nx_nid+1;
   
@@ -176,42 +77,48 @@ void compute_ss_grow(suff_stat &ss, std::map<int, jump_post> &jp_map, int &nx_ni
 
   if(nx_it->second.size() > 0){
     if(!rule.is_cat){
-      double* xx_cont = 0;
+      //double* xx_cont = 0;
+      double xx_cont = 0.0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        xx_cont = di.x_cont + i*di.p_cont;
-        if(xx_cont[rule.v_aa] < rule.c){
+        z = di.z[r + i*di.R];
+        //xx_cont = di.x_cont + i*di.p_cont;
+        xx_cont = *(di.x_cont + i*di.p_cont + rule.v_aa);
+        if(xx_cont < rule.c){
           nxl_it->second.push_back(i);
-          jpl_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-          jpl_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
-        } else if(xx_cont[rule.v_aa] >= rule.c){
+          jpl_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
+          jpl_it->second.Theta += z * di.rp[i]/pow(sigma, 2.0);
+        } else if(xx_cont >= rule.c){
           nxr_it->second.push_back(i);
-          jpr_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-          jpr_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
+          jpr_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
+          jpr_it->second.Theta += z * di.rp[i]/pow(sigma, 2.0);
         } else{
-          Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont[rule.v_aa] << " cutpoint = " << rule.c << std::endl;
+          Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont << " cutpoint = " << rule.c << std::endl;
           Rcpp::stop("[compute_ss_grow_train]: could not assign observation to left or right child in axis-aligned split!");
         }
       } // closes loop over observations in nx
     } else{
-      int* xx_cat = 0;
+      //int* xx_cat = 0;
+      int xx_cat = 0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        xx_cat = di.x_cat + i*di.p_cat;
-        int l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
-        int r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
+        z = di.z[r + i*di.R];
+        //xx_cat = di.x_cat + i*di.p_cat;
+        xx_cat = *(di.x_cat + i*di.p_cat + rule.v_cat);
+        int l_count = rule.l_vals.count(xx_cat);
+        int r_count = rule.r_vals.count(xx_cat);
         if(l_count != r_count){
           if(l_count == 1){
             nxl_it->second.push_back(i);
-            jpl_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-            jpl_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
+            jpl_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
+            jpl_it->second.Theta += z * di.rp[i]/pow(sigma, 2.0);
           } else{
             nxr_it->second.push_back(i);
-            jpr_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-            jpr_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
+            jpr_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
+            jpr_it->second.Theta += z * di.rp[i]/pow(sigma, 2.0);
           }
         } else{
-          Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_cat] << std::endl;
+          Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat << std::endl;
           Rcpp::Rcout << "left values:";
           for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
           Rcpp::Rcout << std::endl;
@@ -251,26 +158,30 @@ void compute_ss_grow(suff_stat &ss, int &nx_nid, rule_t &rule, data_info &di)
 
   if(nx_it->second.size() > 0){
     if(!rule.is_cat){
-      double* xx_cont = 0;
+      //double* xx_cont = 0;
+      double xx_cont = 0.0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        xx_cont = di.x_cont + i*di.p_cont;
-        if(xx_cont[rule.v_aa] < rule.c){
+        //xx_cont = di.x_cont + i*di.p_cont;
+        xx_cont = *(di.x_cont + i*di.p_cont + rule.v_aa);
+        if(xx_cont < rule.c){
           nxl_it->second.push_back(i);
-        } else if(xx_cont[rule.v_aa] >= rule.c){
+        } else if(xx_cont >= rule.c){
           nxr_it->second.push_back(i);
         } else{
-          Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont[rule.v_aa] << " cutpoint = " << rule.c << std::endl;
+          Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont << " cutpoint = " << rule.c << std::endl;
           Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!");
         }
       } // closes loop over observations in nx
     } else{
-      int* xx_cat = 0;
+      //int* xx_cat = 0;
+      int xx_cat = 0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        xx_cat = di.x_cat + i*di.p_cat;
-        int l_count = rule.l_vals.count(xx_cat[rule.v_cat]);
-        int r_count = rule.r_vals.count(xx_cat[rule.v_cat]);
+        //xx_cat = di.x_cat + i*di.p_cat;
+        xx_cat = *(di.x_cat + i*di.p_cat + rule.v_cat);
+        int l_count = rule.l_vals.count(xx_cat);
+        int r_count = rule.r_vals.count(xx_cat);
         if(l_count != r_count){
           if(l_count == 1){
             nxl_it->second.push_back(i);
@@ -278,7 +189,7 @@ void compute_ss_grow(suff_stat &ss, int &nx_nid, rule_t &rule, data_info &di)
             nxr_it->second.push_back(i);
           }
         } else{
-          Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat[rule.v_cat] << std::endl;
+          Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat << std::endl;
           Rcpp::Rcout << "left values:";
           for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
           Rcpp::Rcout << std::endl;
@@ -298,6 +209,7 @@ void compute_ss_grow(suff_stat &ss, int &nx_nid, rule_t &rule, data_info &di)
 void compute_ss_prune(suff_stat &ss, std::map<int, jump_post> &jp_map, int &nxl_nid, int &nxr_nid, int &nx_nid, int &r, double &sigma, data_info &di, tree_prior_info &tree_pi)
 {
   int i = 0;
+  double z = 0.0;
   // check that our data structures have element for nxl and nxr but not for nx
   if(ss.count(nxl_nid) == 0 || ss.count(nxr_nid) == 0 || ss.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune]: something's wrong with ss_train");
   if(jp_map.count(nxl_nid) == 0 || jp_map.count(nxr_nid) == 0 || jp_map.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune]: something's wrong with jp_map");
@@ -317,17 +229,19 @@ void compute_ss_prune(suff_stat &ss, std::map<int, jump_post> &jp_map, int &nxl_
   if(nxl_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxl_it->second.begin(); it != nxl_it->second.end(); ++it){
       i = *it;
+      z = di.z[r + i*di.R];
       nx_it->second.push_back(i);
-      jp_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-      jp_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
+      jp_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
+      jp_it->second.Theta += z * di.rp[i]/pow(sigma, 2.0);
     } // closes loop over observations in nxl
   } // closes if checking that nxl is non-empty
   if(nxr_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxr_it->second.begin(); it != nxr_it->second.end(); ++it){
       i = *it;
+      z = di.z[r + i*di.R];
       nx_it->second.push_back(i);
-      jp_it->second.P += pow(di.z[r + i*di.R], 2.0)/pow(sigma, 2.0);
-      jp_it->second.Theta += di.z[r + i*di.R] * di.rp[i]/pow(sigma, 2.0);
+      jp_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
+      jp_it->second.Theta += z * di.rp[i]/pow(sigma, 2.0);
     } // closes loop over observations in nxr
   } // closes if checking that nxr is non-empty
 }

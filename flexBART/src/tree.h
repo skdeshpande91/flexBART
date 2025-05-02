@@ -16,7 +16,8 @@ public:
 
   friend void prune_tree(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, jump_post> &jp_map, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
   friend void update_tree_unnested(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen);
-
+  //friend void compute_jump_posterior(std::map<int, jump_post> &jp_map, suff_stat &ss, tree &t, int &r, double &sigma, data_info &di, tree_prior_info &tree_pi);
+  
   //------------------------------
   //typedefs
   typedef tree* tree_p;

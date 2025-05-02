@@ -38,7 +38,8 @@ tmp_data <- prepare_data(train_data = train_data,
 R <- ncol(cov_ensm)
 y_range <- 
   max(tmp_data$training_info$std_Y) - min(tmp_data$training_info$std_Y)
-sigest <- 1
+sigest <- 
+  get_sigma(tmp_data$training_info)
 hyper <- 
   parse_hyper(R = R,
               y_range = y_range,
@@ -122,6 +123,7 @@ dbart_time <-
     dbart_fit <- dbarts::bart(x.train = friedman_train[,colnames(friedman_train) != "Y"],
                               y.train = friedman_train[,"Y"],
                               x.test = friedman_test[,colnames(friedman_test) != "Y"],
+                              numcut = 100,
                               ndpost = 1000, nskip = 1000, keeptrees = TRUE))
 rmse_train["dbarts"] <- sqrt( mean( (mu_train - dbart_fit$yhat.train.mean)^2 ))
 rmse_test["dbarts"] <- sqrt( mean( (mu_test - dbart_fit$yhat.test.mean)^2 ))
