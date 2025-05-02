@@ -76,20 +76,28 @@ parse_formula <- function(frmla, train_data){
   ###############################
   cov_ensm <- matrix(0, nrow = p, ncol = R)
   rownames(cov_ensm) <- covariate_names
-  colnames(cov_ensm) <- rep(NA, R)
+  colnames(cov_ensm) <- rep(NA_character_, R)
   if(length(z_names) > 0){
     colnames(cov_ensm)[((R-length(z_names))+1):ncol(cov_ensm)] <- z_names
   }
   
-  for (i in 1:R) {
+  for(i in 1:R) {
     cov_ensm[, i] <- rownames(cov_ensm) %in% ensm_terms[[i]]
   }
   
   ###############################
   # Critical that continuous variables precede categorical variables
   ###############################
+  
+  if(p == 1){
+    tmp_df <- data.frame(train_data[,covariate_names[1]])
+    colnames(tmp_df) <- covariate_names[1]
+  } else{
+    tmp_df <- train_data[,covariate_names]
+  }
+  
   is_cat <- 
-    sapply(train_data[,covariate_names], 
+    sapply(tmp_df, 
            FUN = function(x){return( (is.factor(x) | is.character(x)))})
   p_cont <- sum(1-is_cat)
   cont_names <- NULL
@@ -102,7 +110,7 @@ parse_formula <- function(frmla, train_data){
   if(R == 1){
     cov_ensm <- matrix(cov_ensm[c(cont_names, cat_names),], 
                        nrow = p, ncol = 1,
-                       dimnames = list(c(cont_names, cat_names), c()))
+                       dimnames = list(c(cont_names, cat_names), colnames(cov_ensm)))
   } else{
     cov_ensm <- cov_ensm[c(cont_names, cat_names),]
   }

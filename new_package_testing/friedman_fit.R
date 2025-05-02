@@ -41,7 +41,8 @@ R <- ncol(cov_ensm)
 y_range <- 
   max(tmp_data$training_info$std_Y) - min(tmp_data$training_info$std_Y)
 sigest <- 
-  get_sigma(tmp_data$training_info)
+  get_sigma(tmp_data$training_info,
+            tmp_data$data_info)
 hyper <- 
   parse_hyper(R = R,
               y_range = y_range,

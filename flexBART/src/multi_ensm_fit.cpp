@@ -363,7 +363,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     // END: update sigma
     
     // BEGIN: save post-warmup samples
-    if( (iter >= burn) && ( (iter - burn)%thin == 0)){
+    if( (iter - burn)%thin == 0 ){
       sample_index = (int) ( (iter-burn)/thin);
       for(int r = 0; r < R; ++r){
         for(int j = 0; j < p; ++j) var_count_samples(sample_index,j,r) = var_count[r][j];
@@ -445,9 +445,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
                 if(ss_it->second.size() > 0){
                   for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
                     int i = *it;
-                    fit_test(sample_index, i) += di_test.z[r + i*R] * tmp_mu;
                     fit_test_mean(i) += di_test.z[r + i*R] * tmp_mu;
-                    beta_test(sample_index,i,r) += tmp_mu;
                     beta_test_mean(i,r) += tmp_mu;
                   }
                 }

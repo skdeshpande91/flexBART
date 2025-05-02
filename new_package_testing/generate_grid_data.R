@@ -47,4 +47,7 @@ test_data <- data.frame(X1 = factor(0:(n-1), levels = 0:(n-1)))
 adjacency_list <- list(X1 = A)
 
 
-
+full_model_mat <-
+  dbarts::makeModelMatrixFromDataFrame(data.frame(X1 = full_data[,"X1"]))
+train_model_mat <- full_model_mat[train_index,]
+test_model_mat <- unique(full_model_mat)
