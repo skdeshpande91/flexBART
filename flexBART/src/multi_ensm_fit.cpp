@@ -486,7 +486,7 @@ Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train,
     }
   }
   results["sigma"] = sigma_samples;
-  results["varcount"] = var_count_samples;
+  results["var_count"] = var_count_samples;
   
   results["total_accept"] = total_accept_samples;
   if(save_trees) results["trees"] = tree_draws;

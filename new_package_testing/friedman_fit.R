@@ -9,9 +9,26 @@ source("../flexBART/R/prepare_data.R")
 source("../flexBART/R/parse_controls.R")
 source("../flexBART/R/parse_hyper.R")
 source("../flexBART/R/get_sigma.R")
+source("../flexBART/R/flexBART.R")
 
 sourceCpp("../flexBART/src/single_ensm_fit.cpp")
 sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
+
+pkgfit <-
+  flexBART(formula = Y~bart(.),
+           train_data = friedman_train,
+           test_data = friedman_test,
+           inform_sigma = TRUE, sparse = TRUE, M = 200, 
+           n.chains = 4)
+
+par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0))
+plot(mu_test, test$yhat.test.mean,
+     pch = 16, cex = 0.5, 
+     xlab = "Actual", ylab = "Predicted")
+
+var_probs <- 
+  apply(test$varcounts >= 1, MAR = c(2,3), FUN = mean)
+which(var_probs[,1] >= 0.5)
 
 
 rmse_train <- c(single = NA, multi = NA, dbarts = NA, bart = NA)

@@ -114,6 +114,33 @@ source("../flexBART/R/get_sigma.R")
 sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
 sourceCpp("../flexBART/src/rescale_beta.cpp")
 
+source("../flexBART/R/flexBART.R")
+
+
+fit <-
+  flexBART(formula = Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.),
+           train_data = train_data,
+           test_data = test_data,
+           M_vec = c(50, 50, 50),
+           inform_sigma = TRUE,
+           sparse = TRUE,
+           n.chains = 4)
+
+plot(beta0_test, fit$beta.test.mean[,1], 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Predicted")
+plot(beta1_test, fit$beta.test.mean[,2], 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Predicted")
+plot(beta2_test, fit$beta.test.mean[,3], 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Predicted")
+
+
+var_probs <- 
+  apply(fit$varcounts >= 1, MAR = c(2,3), FUN = mean)
+
+
 frmla <- Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.)
 tmp_form <- parse_formula(frmla, train_data)
 outcome_name <- tmp_form$outcome_name
