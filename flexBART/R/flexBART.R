@@ -30,7 +30,8 @@ flexBART <- function(formula,
     prepare_data(train_data = train_data,
                  outcome_name = outcome_name, 
                  cov_ensm = cov_ensm, 
-                 test_data = test_data,...)
+                 test_data = test_data,
+                 adjacency_list = adjacency_list,...)
   # It will be useful to have problem dimensions readily accessible
   R <- tmp_data$training_info$R
   n_train <- length(tmp_data$training_info$std_Y)
@@ -99,16 +100,19 @@ flexBART <- function(formula,
                 y_range = y_range,
                 nest_v = nest_v, nest_v_option, nest_c = nest_c, 
                 sigest = sigest, ...)
-  
   ###############################
   # Set control parameters
   ###############################  
   control <- parse_controls(...)
   
   if(control$verbose){
-    message(paste("[flexBART]: initial sigma (after standardization) =", 
-                  round(hyper$sigest, digits = 6)))
+    cat("[flexBART]: initial sigma (after standardization) =", 
+                  round(hyper$sigest, digits = 6))
+    if(!is.null(adjacency_list)){
+      cat("[flexBART]: graph_cut_type = ", hyper$graph_cut_type, "\n")
+    }
   }
+  
   
   ###############################
   # Create containers for storing things

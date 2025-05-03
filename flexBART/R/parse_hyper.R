@@ -102,9 +102,9 @@ validate_flexBART_hyper <- function(hyper)
   # Check additional parameters
   ###############################
   
-  if(!hyper$graph_cut_type %in% c(0L, 1L, 2L, 3L)){
+  if(!hyper$graph_cut_type %in% c(1L, 2L, 3L, 4L)){
     message(paste("[validate_flexBART_hyper]: supplied graph_cut_type =", hyper$graph_cut_type))
-    stop("[validate_flexBART_hyper]: graph_cut_type must be 0L, 1L, 2L, or 3L")
+    stop("[validate_flexBART_hyper]: graph_cut_type must be 1L, 2L, 3L, or 4L")
   }
   
   if(!hyper$nest_v_option %in% c(0L, 1L, 2L, 3L)){
@@ -279,7 +279,7 @@ parse_hyper <- function(R, y_range,...){
   # Check whether user supplied anything else
   ###############################
   param_names <- 
-    c("graph_cut_option", "nest_v", "nest_v_option", "nest_c",
+    c("graph_cut_type", "nest_v", "nest_v_option", "nest_c",
       "sparse", "a_u", "b_u")
   for(param in param_names){
     if(param %in% usr_names){

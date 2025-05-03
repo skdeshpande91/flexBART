@@ -13,150 +13,133 @@ source("../flexBART/R/get_sigma.R")
 
 sourceCpp("../flexBART/src/single_ensm_fit.cpp")
 sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
+source("../flexBART/R/flexBART.R")
 
 source("generate_grid_data.R")
-
-frmla <- Y ~ bart(X1)
-tmp_form <- parse_formula(frmla, train_data)
-
-outcome_name <- tmp_form$outcome_name
-cov_ensm <- tmp_form$cov_ensm
 adjacency_list <- list(X1 = A)
 
-
-tmp_data <- 
-  prepare_data(train_data = train_data,
-               outcome_name = outcome_name, 
-               cov_ensm = cov_ensm, 
-               test_data = test_data,
-               adjacency_list = adjacency_list)
-
-
-R <- ncol(tmp_data$training_info$Z)
-y_range <- 
-  max(tmp_data$training_info$std_Y) - min(tmp_data$training_info$std_Y)
-
-sigest <- 
-  get_sigma(tmp_data$training_info, 
-            tmp_data$data_info)
-hyper <- 
-  parse_hyper(R = R,
-              y_range = y_range,
-              sigest = sigest, M = 50, sparse = FALSE)
-
-control <- parse_controls(save_samples = FALSE, save_trees = FALSE)
+rmse_train <- 
+  c(noadj = NA, gs1 = NA, gs2 = NA, gs3 = NA, gs4 = NA, dbart = NA, bart = NA)
+rmse_test <- 
+  c(noadj = NA, gs1 = NA, gs2 = NA, gs3 = NA, gs4 = NA, dbart = NA, bart = NA)
+timing <- 
+  c(noadj = NA, gs1 = NA, gs2 = NA, gs3 = NA, gs4 = NA, dbart = NA, bart = NA)
 
 
-y_mean <- tmp_data$training_info$y_mean
-y_sd <- tmp_data$training_info$y_sd
-
-rmse_train <- c(single = NA, multi = NA, dbarts = NA, bart = NA)
-rmse_test <- c(single = NA, multi = NA, dbarts = NA, bart = NA)
-timing <- c(single = NA, multi = NA, dbarts = NA, bart = NA)
-
-###############################
-# New single ensemble fit
-
-single_time <-
-  system.time(
-    single_fit <- 
-      .single_fit(Y_train = tmp_data$training_info$std_Y,
-                  cov_ensm = cov_ensm,
-                  tX_cont_train = t(tmp_data$training_info$X_cont),
-                  tX_cat_train = t(tmp_data$training_info$X_cat),
-                  tX_cont_test = t(tmp_data$testing_info$X_cont),
-                  tX_cat_test = t(tmp_data$testing_info$X_cat),
-                  cutpoints_list = tmp_data$training_info$cutpoints,
-                  cat_levels_list = tmp_data$training_info$cat_levels_list,
-                  edge_mat_list = tmp_data$training_info$edge_mat_list,
-                  nest_list = tmp_data$training_info$nest_list,
-                  graph_cut_type = hyper$graph_cut_type,
-                  sparse = hyper$sparse, 
-                  a_u = hyper$a_u, b_u = hyper$b_u,
-                  nest_v = hyper$nest_v,
-                  nest_v_option = hyper$nest_v_option,
-                  nest_c = hyper$nest_c,
-                  mu0 = hyper$mu0_vec[1],
-                  tau = hyper$tau_vec[1],
-                  M = hyper$M_vec[1],
-                  alpha = hyper$alpha_vec[1],
-                  beta = hyper$beta_vec[1],
-                  sigest = hyper$sigest,
-                  nu = hyper$nu,
-                  lambda = hyper$lambda,
-                  nd = control$nd, burn = control$burn, thin = control$thin,
-                  save_samples = control$save_samples, save_trees = control$save_trees,
-                  verbose = control$verbose, print_every = control$print_every))
-
-muhat_single <- y_mean + y_sd * single_fit$fit_test_mean
-
-rmse_train["single"] <- sqrt( mean( (mu[train_vertices] - muhat_single[train_vertices])^2 ))
-rmse_test["single"] <- sqrt( mean( (mu[test_vertices] - muhat_single[test_vertices])^2 ))
-timing["single"] <- single_time["elapsed"]
-
-multi_time <-
-  system.time(
-    multi_fit <- 
-      ._multi_fit(Y_train = tmp_data$training_info$std_Y,
-                  cov_ensm = cov_ensm,
-                  tZ_train = t(tmp_data$training_info$Z),
-                  tX_cont_train = t(tmp_data$training_info$X_cont),
-                  tX_cat_train = t(tmp_data$training_info$X_cat),
-                  tZ_test = t(tmp_data$testing_info$Z),
-                  tX_cont_test = t(tmp_data$testing_info$X_cont),
-                  tX_cat_test = t(tmp_data$testing_info$X_cat),
-                  cutpoints_list = tmp_data$training_info$cutpoints,
-                  cat_levels_list = tmp_data$training_info$cat_levels_list,
-                  edge_mat_list = tmp_data$training_info$edge_mat_list,
-                  nest_list = tmp_data$training_info$nest_list,
-                  graph_cut_type = hyper$graph_cut_type,
-                  sparse = hyper$sparse, 
-                  a_u = hyper$a_u, b_u = hyper$b_u,
-                  nest_v = hyper$nest_v,
-                  nest_v_option = hyper$nest_v_option,
-                  nest_c = hyper$nest_c,
-                  M_vec = hyper$M_vec,
-                  alpha_vec = hyper$alpha_vec, beta_vec = hyper$beta_vec,
-                  mu0_vec = hyper$mu0_vec, tau_vec = hyper$tau_vec,
-                  sigest = hyper$sigest,
-                  nu = hyper$nu,lambda = hyper$lambda, 
-                  nd = control$nd, burn = control$burn, thin = control$thin,
-                  save_samples = control$save_samples, save_trees = control$save_trees,
-                  verbose = control$verbose, print_every = control$print_every))
-
-muhat_multi <- y_mean + y_sd * multi_fit$fit_test_mean
-
-rmse_train["multi"] <- 
-  sqrt( mean( (mu[train_vertices] - muhat_multi[train_vertices])^2 ))
-rmse_test["multi"] <- 
-  sqrt( mean( (mu[test_vertices] - muhat_multi[test_vertices])^2 ))
-timing["multi"] <- multi_time["elapsed"]
 
 
-dbart_time <-
-  system.time(
-    dbart_fit <- dbarts::bart(x.train = train_model_mat,
+fit_gs1 <-
+  flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 1,
+           n.chains = 4)
+
+rmse_train["gs1"] <-
+  sqrt(mean( (fit_gs1$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["gs1"] <-
+  sqrt(mean( (fit_gs1$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["gs1"] <- sum(fit_gs1$timing)
+
+fit_gs2 <-
+  flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 2,
+           n.chains = 4)
+rmse_train["gs2"] <-
+  sqrt(mean( (fit_gs2$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["gs2"] <-
+  sqrt(mean( (fit_gs2$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["gs2"] <- sum(fit_gs2$timing)
+
+
+
+fit_gs3 <-
+  flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 3,
+           n.chains = 4)
+rmse_train["gs3"] <-
+  sqrt(mean( (fit_gs3$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["gs3"] <-
+  sqrt(mean( (fit_gs3$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["gs3"] <- sum(fit_gs3$timing)
+
+fit_gs4 <-
+  flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 4,
+           n.chains = 4)
+rmse_train["gs4"] <-
+  sqrt(mean( (fit_gs4$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["gs4"] <-
+  sqrt(mean( (fit_gs4$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["gs4"] <- sum(fit_gs4$timing)
+
+
+fit_noadj <-
+  flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           n.chains = 4)
+rmse_train["noadj"] <-
+  sqrt(mean( (fit_noadj$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["noadj"] <-
+  sqrt(mean( (fit_noadj$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["noadj"] <- sum(fit_noadj$timing)
+
+
+##########
+tmp_bart <- matrix(nrow = n, ncol = 4)
+tmp_time <- 0
+for(cix in 1:4){
+  bart_time <-
+    system.time(
+      bart_fit <- BART::wbart(x.train = train_data[,colnames(train_data) != "Y"],
                               y.train = train_data[,"Y"],
-                              x.test = test_model_mat,
-                              ndpost = 1000, nskip = 1000, keeptrees = TRUE))
-rmse_train["dbarts"] <- 
-  sqrt( mean( (mu[train_vertices] - dbart_fit$yhat.test.mean[train_vertices])^2 ))
-rmse_test["dbarts"] <- 
-  sqrt( mean( (mu[test_vertices] - dbart_fit$yhat.test.mean[test_vertices])^2 ))
-timing["dbarts"] <- dbart_time["elapsed"]
-
-bart_time <-
-  system.time(
-    bart_fit <- BART::wbart(x.train = train_data[,colnames(train_data) != "Y"],
-                            y.train = train_data[,"Y"],
-                            x.test = test_data[,colnames(test_data) != "Y"],
-                            sparse = TRUE,
-                            ndpost = 1000, nskip = 1000))
-
+                              x.test = test_data[,colnames(test_data) != "Y"],
+                              sparse = TRUE,
+                              ndpost = 1000, nskip = 1000))
+  tmp_bart[,cix] <- bart_fit$yhat.test.mean
+  tmp_time <- tmp_time + bart_time["elapsed"]
+}
+tmp_bart <- rowMeans(tmp_bart)
 rmse_train["bart"] <- 
-  sqrt( mean( (mu[train_vertices] - bart_fit$yhat.test.mean[train_vertices])^2 ))
+  sqrt(mean( (tmp_bart[train_vertices] - mu[train_vertices])^2 ))
 rmse_test["bart"] <- 
-  sqrt( mean( (mu[test_vertices] - bart_fit$yhat.test.mean[test_vertices])^2 ))
-timing["bart"] <- bart_time["elapsed"]
+  sqrt(mean( (tmp_bart[test_vertices] - mu[test_vertices])^2 ))
+timing["bart"] <- tmp_time
+
+tmp_dbart <- matrix(nrow = n, ncol = 4)
+tmp_time <- 0
+for(cix in 1:4){
+  dbart_time <-
+    system.time(
+      dbart_fit <- dbarts::bart(x.train = train_model_mat,
+                                y.train = train_data[,"Y"],
+                                x.test = test_model_mat,
+                                ndpost = 1000, nskip = 1000, keeptrees = TRUE))
+  
+  tmp_dbart[,cix] <- dbart_fit$yhat.test.mean
+  tmp_time <- tmp_time + dbart_time["elapsed"]
+}
+tmp_dbart <- rowMeans(tmp_dbart)
+rmse_train["dbart"] <- 
+  sqrt(mean( (tmp_dbart[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["dbart"] <- 
+  sqrt(mean( (tmp_dbart[test_vertices] - mu[test_vertices])^2 ))
+timing["dbart"] <- tmp_time
 
 
