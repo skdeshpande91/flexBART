@@ -142,4 +142,58 @@ rmse_test["dbart"] <-
   sqrt(mean( (tmp_dbart[test_vertices] - mu[test_vertices])^2 ))
 timing["dbart"] <- tmp_time
 
+#########################
+mu_lim <- 
+  c(-1,1) * 
+  max(abs(c(mu, fit_noadj$yhat.test.mean, 
+            fit_gs1$yhat.test.mean, fit_gs2$yhat.test.mean,
+            fit_gs3$yhat.test.mean, fit_gs4$yhat.test.mean,
+            tmp_bart, tmp_dbart)))
+
+g_noadj <- g
+g_gs1 <- g
+g_gs2 <- g
+g_gs3 <- g
+g_gs4 <- g
+g_bart <- g
+g_dbart <- g
+
+scaled_mu <- scales::rescale(mu, to = c(0,1), from = mu_lim)
+scaled_noadj <-
+  scales::rescale(fit_noadj$yhat.test.mean, to = c(0,1), from = mu_lim)
+scaled_gs1 <- 
+  scales::rescale(fit_gs1$yhat.test.mean, to = c(0,1), from = mu_lim)
+scaled_gs2 <- 
+  scales::rescale(fit_gs2$yhat.test.mean, to = c(0,1), from = mu_lim)
+scaled_gs3 <- 
+  scales::rescale(fit_gs3$yhat.test.mean, to = c(0,1), from = mu_lim)
+scaled_gs4 <- 
+  scales::rescale(fit_gs4$yhat.test.mean, to = c(0,1), from = mu_lim)
+
+scaled_bart <- scales::rescale(tmp_bart, to = c(0,1), from = mu_lim)
+scaled_dbart <- scales::rescale(tmp_dbart, to = c(0,1), from = mu_lim)
+
+V(g)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
+V(g_noadj)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_noadj)/255)
+V(g_gs1)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_gs1)/255)
+V(g_gs2)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_gs2)/255)
+V(g_gs3)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_gs3)/255)
+V(g_gs4)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_gs4)/255)
+V(g_bart)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_bart)/255)
+V(g_dbart)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_dbart)/255)
+
+par(mar = c(1,1,1,1), mgp = c(1.8, 0.5, 0), mfrow = c(3,3))
+plot(g, layout = layout_on_grid, vertex.label = NA, main = "Truth")
+plot(g_noadj, layout = layout_on_grid, vertex.label = NA,main = "noadj")
+plot(g_gs1, layout = layout_on_grid, vertex.label = NA,main = "gs1")
+plot(g_gs2, layout = layout_on_grid, vertex.label = NA,main = "gs2")
+plot(g_gs3, layout = layout_on_grid, vertex.label = NA,main = "gs3")
+plot(g_gs4, layout = layout_on_grid, vertex.label = NA,main = "gs4")
+plot(g_bart, layout = layout_on_grid, vertex.label = NA,main = "bart")
+plot(g_dbart, layout = layout_on_grid, vertex.label = NA,main = "dbart")
+
+
+
+
+
 

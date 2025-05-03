@@ -2,7 +2,7 @@ flexBART <- function(formula,
                      train_data,
                      adjacency_list = NULL, 
                      test_data = NULL,
-                     inform_sigma = FALSE, ...)
+                     inform_sigma = TRUE, ...)
 {
   ###############################
   # Capture additional arguments
