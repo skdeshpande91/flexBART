@@ -22,17 +22,11 @@ void draw_tree(tree &t, data_info &di, tree_prior_info &tree_pi, RNG &gen)
     prev_max_depth = max_depth;
     bnv.clear();
     t.get_bots(bnv); // get the bottom nodes of the tree (could be done more efficiently but not super important)
-    
-    //Rcpp::Rcout << "Starting round " << counter;
-    //Rcpp::Rcout << "  tree size = " << t.get_treesize();
-    
     for(tree::npv_it l_it = bnv.begin(); l_it != bnv.end(); ++l_it){
       dnx = (*l_it)->get_depth(); // remember l_it is a pointer to an element in bnv, which is itself a pointer, hence the need for (*)->
       if(dnx > max_depth) max_depth = dnx; // the node we're at is deeper than the maximum depth of the tree in the previous iteration
     }
-    
-    //Rcpp::Rcout << "  max depth = " << max_depth << std::endl;
-    
+        
     if( (max_depth < prev_max_depth) || (max_depth > 1 + prev_max_depth) ){
       // each time through the loop we can only grow the deepest leaf nodes
       // we should *never* encounter this condition but it's here to be safe
@@ -43,17 +37,13 @@ void draw_tree(tree &t, data_info &di, tree_prior_info &tree_pi, RNG &gen)
       break;
     } else {
       grow = false;
-      //Rcpp::Rcout << "max_depth = " << max_depth << " prev_max_depth = " << prev_max_depth << std::endl;
       for(tree::npv_it l_it = bnv.begin(); l_it != bnv.end(); ++l_it){
         dnx = (*l_it)->get_depth();
         nx_nid = (*l_it)->get_nid();
-        //Rcpp::Rcout << "trying node " << (*l_it)->get_nid() << "at depth " << dnx << std::endl;
         if(dnx == max_depth){
           // current node nx is at the maximum depth, we will try to grow the tree from nx
           PGnx = tree_pi.alpha/pow(1.0 + (double) dnx, tree_pi.beta);
           double tmp_unif = gen.uniform();
-          //Rcpp::Rcout << "  node " << (*l_it)->get_nid() << " PGnx = " << PGnx << " tmp_unif = " << tmp_unif;
-
           if(tmp_unif < PGnx){
             //Rcpp::Rcout << " can grow...";
             grow = true;

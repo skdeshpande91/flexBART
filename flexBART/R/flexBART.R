@@ -1,6 +1,5 @@
 flexBART <- function(formula, 
                      train_data,
-                     adjacency_list = NULL, 
                      test_data = NULL,
                      inform_sigma = TRUE, ...)
 {
@@ -30,8 +29,7 @@ flexBART <- function(formula,
     prepare_data(train_data = train_data,
                  outcome_name = outcome_name, 
                  cov_ensm = cov_ensm, 
-                 test_data = test_data,
-                 adjacency_list = adjacency_list,...)
+                 test_data = test_data,...)
   # It will be useful to have problem dimensions readily accessible
   R <- tmp_data$training_info$R
   n_train <- length(tmp_data$training_info$std_Y)
@@ -107,7 +105,7 @@ flexBART <- function(formula,
   
   if(control$verbose){
     cat("[flexBART]: initial sigma (after standardization) =", 
-                  round(hyper$sigest, digits = 6))
+                  round(hyper$sigest, digits = 6), "\n")
     if(!is.null(adjacency_list)){
       cat("[flexBART]: graph_cut_type = ", hyper$graph_cut_type, "\n")
     }

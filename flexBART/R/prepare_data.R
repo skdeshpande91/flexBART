@@ -2,7 +2,6 @@ prepare_data <- function(train_data,
                          outcome_name,
                          cov_ensm, 
                          test_data = NULL,
-                         adjacency_list = NULL,
                          ...)
 {
   
@@ -24,13 +23,13 @@ prepare_data <- function(train_data,
   if("n_unik_diffs" %in% usr_names) n_unik_diffs <- usr_args[["n_unik_diffs"]]
   
   # are there adjacency matrices describing structure of categorial levels
-  #adjacency_list <- NULL
-  #tmp_adj <- pmatch(usr_names, table = "adjacency_list", duplicates.ok = FALSE)
-  #if(!is.null(adjacency_list)){
-  #  ix <- which(!is.na())
-  #  tmp_name <- usr_names[[ix]]
-  #  adjacency_list <- usr_args[[tmp_name]]
-  #}
+  adjacency_list <- NULL
+  tmp_adj <- pmatch(usr_names, table = "adjacency_list", duplicates.ok = FALSE)
+  if(any(!is.na(tmp_adj))){
+    ix <- which(!is.na(tmp_adj))
+    tmp_name <- usr_names[[ix]]
+    adjacency_list <- usr_args[[tmp_name]]
+  }
   
   ###############################
   # Get the problem dimensions
@@ -138,7 +137,6 @@ prepare_data <- function(train_data,
       if(!all(names(adjacency_list) %in% dinfo$cat_names)){
         stop("[preprocess]: all names of adjacency_list must be categorical variable names")
       }
-      cat("parsing adjacency information!")
       trinfo$edge_mat_list <- 
         parse_adjacency(adjacency_list, dinfo)
     } # closes if checking if there are any network-structured predictors
