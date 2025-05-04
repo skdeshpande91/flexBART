@@ -15,45 +15,43 @@ source("../flexBART/R/rflexBART.R")
 
 source("generate_nested_example.R")
 
+tmp_data <- unique(train_data[,c("Classroom", "School", "District")])
 
 draw_nonest <-
-  rflexBART(train_data = train_data,
+  rflexBART(train_data = tmp_data,
             nd = 1000,
             verbose = TRUE,
             nest_v = FALSE, nest_c = FALSE)
 
 draw_nest0 <- 
-  rflexBART(train_data = train_data,
+  rflexBART(train_data = tmp_data,
             nd = 10000,
             verbose = TRUE,
             nest_v = TRUE, nest_v_option = 0, nest_c = TRUE)
 
 draw_nest1 <- 
-  rflexBART(train_data = train_data,
+  rflexBART(train_data = tmp_data,
             nd = 10000,
             verbose = TRUE,
             nest_v = TRUE, nest_v_option = 1, nest_c = TRUE)
 
 draw_nest2 <- 
-  rflexBART(train_data = train_data,
+  rflexBART(train_data = tmp_data,
             nd = 10000,
             verbose = TRUE,
             nest_v = TRUE, nest_v_option = 2, nest_c = TRUE)
 
 draw_nest3 <- 
-  rflexBART(train_data = train_data,
+  rflexBART(train_data = tmp_data,
             nd = 10000,
             verbose = TRUE,
             nest_v = TRUE, nest_v_option = 3, nest_c = TRUE)
 
+range(draw_nonest$kernel - draw_nest0$kernel)
 range(draw_nest0$kernel - draw_nest1$kernel)
 range(draw_nest0$kernel - draw_nest2$kernel)
 range(draw_nest0$kernel - draw_nest3$kernel)
-
 range(draw_nest1$kernel - draw_nest2$kernel)
 
 
-draw0 <-
-  rflexBART(train_data = train_data,
-            nd = 1000,
-            verbose = TRUE)
+
