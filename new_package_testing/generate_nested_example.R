@@ -26,14 +26,12 @@ train_data$Blkgrp <- factor(train_data$Blkgrp, levels = 0:49)
 train_data$Tract <- factor(train_data$Tract, levels = 0:4)
 train_data$Race <- factor(train_data$Race, levels = 0:2)
 
-cov_ensm <- 
-  matrix(0, nrow = ncol(train_data), ncol = 4,
-         dimnames = list(colnames(train_data), rep(NA, times = 4)))
-cov_ensm[c("Classroom", "School", "District"),1] <- 1
-cov_ensm[c("Blkgrp", "Tract"),2] <- 1
-cov_ensm[c("X1", "X2", "Classroom", "District", "Blkgrp"), 3] <- 1
-cov_ensm[,4] <- 1
+#cov_ensm <- 
+#  matrix(0, nrow = ncol(train_data), ncol = 4,
+#         dimnames = list(colnames(train_data), rep(NA, times = 4)))
+#cov_ensm[c("Classroom", "School", "District"),1] <- 1
+#cov_ensm[c("Blkgrp", "Tract"),2] <- 1
+#cov_ensm[c("X1", "X2", "Classroom", "District", "Blkgrp"), 3] <- 1
+#cov_ensm[,4] <- 1
 
-train_data$Y <- rnorm(n, mean = 0, sd = 1)
-
-#K1 <- c(120, 24, 4, 50, 5, 3)
+#train_data$Y <- rep(0, times = n)

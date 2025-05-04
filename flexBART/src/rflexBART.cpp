@@ -84,15 +84,13 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
     tree_pi.cat_levels = &cat_levels;
     tree_pi.edges = &edges;
     tree_pi.graph_cut_type = graph_cut_type;
-    tree_pi.nesting = &nesting;
-    tree_pi.nest_in = &(nest_graph_in[0]);
-    tree_pi.nest_out = &(nest_graph_out[0]);
-    tree_pi.nest_components = &(nest_graph_components[0]);
   }
+  tree_pi.nesting = &nesting;
+  tree_pi.nest_in = &(nest_graph_in[0]);
+  tree_pi.nest_out = &(nest_graph_out[0]);
+  tree_pi.nest_components = &(nest_graph_components[0]);
   tree_pi.alpha = alpha;
   tree_pi.beta = beta;
-  tree_pi.mu0 = mu0;
-  tree_pi.tau = tau;
   // END: create tree prior info object
   
   //

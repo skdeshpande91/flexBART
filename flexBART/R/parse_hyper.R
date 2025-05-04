@@ -233,7 +233,7 @@ parse_hyper <- function(R, y_range,...){
   } else{
     ix <- which(!is.na(tmp_tau))
     tmp_name <- usr_names[[ix]]
-    usr_tau <- usr_args[[which(is.na(tmp_tau))]]
+    usr_tau <- usr_args[[tmp_name]]
     if(length(usr_tau) == 1) hyper$tau_vec <- rep(usr_tau, times = R)
     else if(length(usr_tau) == R) hyper$tau_vec <- usr_tau
     else{

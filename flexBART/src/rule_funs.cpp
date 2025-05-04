@@ -9,7 +9,7 @@ void draw_aa_cutpoint(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior
   tree::tree_p nx = t.get_ptr(nid); // at what node are we proposing this rule.
   if(tree_pi.cutpoints->at(rule.v_aa).size() > 0){
     // draw the cutpoint from the supplied cutpoints
-    std::set<double> cutpoints = tree_pi.cutpoints->at(rule.v_raw);
+    std::set<double> cutpoints = tree_pi.cutpoints->at(rule.v_aa);
     c_lower = *(cutpoints.begin()); // returns smallest element in set
     c_upper = *(cutpoints.rbegin()); // reverse iterator, returns largest value in set
     nx->get_rg_aa(rule.v_raw, c_lower, c_upper);
@@ -24,6 +24,10 @@ void draw_aa_cutpoint(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior
       Rcpp::Rcout << "[draw_rule]: attempting to select a cutpoint from given set" << std::endl;
       Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << cutpoints.count(c_lower) << std::endl;
       Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << cutpoints.count(c_upper) << std::endl;
+      
+      Rcpp::Rcout << "rule.v_aa = " << rule.v_aa << std::endl;
+      t.print();
+      
       Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");
     }
     // we want to draw from the cutpoints exclusive of c_lower & c_upper;
@@ -191,7 +195,7 @@ void draw_rule(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior_info &
   rule.clear();
   int v_raw = 0;
   if(tree_pi.nest_v){
-    std::vector<double> nest_theta;
+    std::vector<double> nest_theta(di.p, 0.0);
     compute_nested_theta(nest_theta, t, nid, di.p_cont, di.p_cat, tree_pi);
     v_raw = gen.categorical(nest_theta);
   } else{

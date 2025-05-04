@@ -10,11 +10,12 @@ rflexBART <- function(train_data,
   ###############################
   usr_args <- list(...)
   usr_names <- names(usr_args)
+  
   n <- nrow(train_data)
   if("Y_flexBART" %in% colnames(train_data)){
     stop("Y_flexBART is a protected variable name. Re-name this covariate")
   }
-  train_data <- cbind(_Y_flexBART = rep(NA, times = n), train_data)
+  train_data <- cbind(Y_flexBART = rep(0, times = n), train_data)
   frmla <- Y_flexBART~bart(.)
   tmp_form <- parse_formula(frmla, train_data)
   outcome_name <- tmp_form$outcome_name
@@ -50,14 +51,23 @@ rflexBART <- function(train_data,
   hyper <- 
     parse_hyper(R = 1,
                 y_range = 0,
-                nest_v = nest_v, nest_v_option, nest_c = nest_c,...)
-  if(!is.null(adjacency_list)){
-    cat("[flexBART]: graph_cut_type = ", hyper$graph_cut_type, "\n")
+                nest_v = nest_v, nest_v_option, nest_c = nest_c,
+                tau_vec = c(1), mu0_vec = c(0),...)
+  if(verbose){
+    if(!is.null(tmp_data$training_info$edge_mat_list)){
+      cat("[flexBART]: graph_cut_type = ", hyper$graph_cut_type, "\n")
+    }
+    if(!is.null(tmp_data$training_info$nest_list)){
+      cat("[flexBART]: nest_v = ", hyper$nest_v)
+      cat(" nest_v_option = ", hyper$nest_v_option)
+      cat(" nest_c = ", hyper$nest_c, "\n")
+    }
   }
-  
+
   tmp <- 
     ._draw_tree(tX_cont = t(tmp_data$training_info$X_cont),
                 tX_cat = t(tmp_data$training_info$X_cat),
+                cov_ensm = cov_ensm,
                 cutpoints_list = tmp_data$training_info$cutpoints,
                 cat_levels_list = tmp_data$training_info$cat_levels_list,
                 edge_mat_list = tmp_data$training_info$edge_mat_list,

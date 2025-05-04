@@ -1,0 +1,16 @@
+library(Rcpp)
+library(RcppArmadillo)
+sourceCpp("../flexBART/src/detect_nesting.cpp")
+source("../flexBART/R/get_z_col_id.R")
+source("../flexBART/R/flexBART_structures.R")
+source("../flexBART/R/get_covariate_info.R")
+source("../flexBART/R/parse_formula.R")
+source("../flexBART/R/prepare_data.R")
+source("../flexBART/R/parse_controls.R")
+source("../flexBART/R/parse_hyper.R")
+source("../flexBART/R/get_sigma.R")
+sourceCpp("../flexBART/src/rflexBART.cpp")
+
+source("generate_nested_example.R")
+
+source("../flexBART/R/rflexBART.R")
