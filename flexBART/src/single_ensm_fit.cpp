@@ -143,9 +143,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   double tmp_mu; // for holding the value of mu when we're doing the backfitting
   // END: initialize stuff for main MCMC loop
   
-  
-  //tree::npv bnv; // for checking that our ss map and our trees are not totally and utterly out of sync
-  
   // BEGIN: initialize tree vector & sufficient statistics maps
   std::vector<tree> t_vec(M);
   std::vector<suff_stat> ss_train_vec(M);
@@ -154,27 +151,16 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   
   for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i]; // start with all trees initialized at zero
   for(int m = 0; m < M; ++m){
-    // do an initial tree traversal
-    // this is kind of silly when t is just a stump
-    // but it may help if we were to allow start from an arbitrary ensemble
     tree_traversal(ss_train_vec[m], t_vec[m], di_train);
-    
     // get the fit of each tree
-    for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
-      tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
-      if(ss_it->second.size() > 0){
-        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-          //allfit_train[*it] += tmp_mu;
-          residual[*it] -= tmp_mu; // in this initial sweep, we have to remove the fit of each tree.
-        }
+    for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
+      tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+      if(l_it->second.size() > 0){
+        for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu; // in this initial sweep, we have to remove the fit of each tree.
       }
     }
     if(n_test > 0) tree_traversal(ss_test_vec[m], t_vec[m], di_test);
   }
-  
-  //for(int i = 0; i < n_train; i++) residual[i] = Y_train[i] - allfit_train[i];
-  
-  
   // END: initialize tree vector & sufficient statistics maps
 
   // BEGIN: create output containers
@@ -198,8 +184,6 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   Rcpp::List tree_draws(nd);
   // END: create output containers
   
-  
-  int r = 0;
   for(int iter = 0; iter < burn; ++iter){
     if(iter == 0) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Warmup" << std::endl;
     else if( iter % print_every == 0 ){
@@ -208,40 +192,42 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
     }
     total_accept = 0;
     for(int m = 0; m < M; ++m){
-      for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
+      //BEGIN: remove fit of m-th tree
+      for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
         // loop over the bottom nodes in m-th tree
-        tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
-        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-          residual[*it] += tmp_mu;
-        }
-      } // this whole loop is O(n)
+        tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+        if(l_it->second.size() > 0){
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] += tmp_mu;
+        } // closes if checking that leaf is non-empty and computes partial residual
+      } // closes loop over leafs
+      // END: remove fit of m-th tree
       
       update_tree_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
       total_accept += accept;
     
-      // now we need to update the value of allfit
-      for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
-        tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
-        if(ss_it->second.size() > 0){
-          for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-            residual[*it] -= tmp_mu;
-          }
-        }
-      } // this loop is also O(n)
+      // BEGIN: restore fit of m-th tree
+      for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
+        tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
+        if(l_it->second.size() > 0){
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu;
+        } // closes if checking that leaf is non-empty and computing full residual
+      } // closes loop over leafs
+      // END: restore fit of m-th tree
     } // closes loop over all of the trees
-    // ready to update sigma
+    
+    // BEGIN: update sigma
     total_sq_resid = 0.0;
     for(int i = 0; i < n_train; i++) total_sq_resid += pow(residual[i], 2.0); // sum of squared residuals
-    
     scale_post = lambda * nu + total_sq_resid;
     nu_post = nu + ( (double) n_train);
     sigma = sqrt(scale_post/gen.chi_square(nu_post));
     sigma_samples(iter) = sigma;
-    
-    // save information for the diagnostics
-    total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
+    // END: update sigma
+    // BEGIN: update theta (if sparse)
     if(sparse) update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
-    //for(int j = 0; j < p; ++j) var_count_samples(iter,j) = var_count[j];
+    // END: update theta (if sparse)
+    
+    total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
   } // closes burn-in
   
   for(int iter = burn; iter < total_draws; ++iter){
@@ -253,41 +239,42 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
       Rcpp::checkUserInterrupt();
     }
     for(int m = 0; m < M; ++m){
-      // 2 MAY: pick up from this point //
-      for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
+      //BEGIN: remove fit of m-th tree
+      for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
         // loop over the bottom nodes in m-th tree
-        tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
-        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-          residual[*it] += tmp_mu;
-        }
-      } // this whole loop is O(n)
+        tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+        if(l_it->second.size() > 0){
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] += tmp_mu;
+        } // closes if checking that leaf is non-empty and computes partial residual
+      } // closes loop over leafs
+      // END: remove fit of m-th tree
       
       update_tree_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
       total_accept += accept;
     
-      // now we need to update the value of allfit
-      for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
-        tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
-        if(ss_it->second.size() > 0){
-          for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-            residual[*it] -= tmp_mu;
-          }
-        }
-      } // this loop is also O(n)
+      // BEGIN: restore fit of m-th tree
+      for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
+        tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
+        if(l_it->second.size() > 0){
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu;
+        } // closes if checking that leaf is non-empty and computing full residual
+      } // closes loop over leafs
+      // END: restore fit of m-th tree
     } // closes loop over all of the trees
-    // ready to update sigma
+    // BEGIN: update sigma
     total_sq_resid = 0.0;
-    for(int i = 0; i < n_train; i++) total_sq_resid += pow(residual[i], 2.0); // sum of squared residuals
-    
+    for(int i = 0; i < n_train; ++i) total_sq_resid += pow(residual[i], 2.0); // sum of squared residuals
     scale_post = lambda * nu + total_sq_resid;
     nu_post = nu + ( (double) n_train);
     sigma = sqrt(scale_post/gen.chi_square(nu_post));
     sigma_samples(iter) = sigma;
+    // END: update sigma
     
-    // save information for the diagnostics
-    total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
+    //BEGIN: update theta (if sparse)
     if(sparse) update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
+    // END: update theta (if sparse)
     
+    total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
     if( (iter - burn)%thin == 0 ){
       sample_index = (int) ( (iter-burn)/thin);
       for(int j = 0; j < p; ++j) var_count_samples(sample_index,j) = var_count[j];
@@ -306,18 +293,16 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
           fit_train_mean(i) += tmp_allfit;
         }
       } else{
-        for(int i = 0; i < n_train; ++i){
-          fit_train_mean(i) += Y_train[i] - residual[i];
-        }
+        for(int i = 0; i < n_train; ++i) fit_train_mean(i) += Y_train[i] - residual[i];
       }
 
       if(n_test > 0){
         if(save_samples){
           for(int m = 0; m < M; ++m){
-            for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
-              tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
-              if(ss_it->second.size() > 0){
-                for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+            for(suff_stat_it l_it = ss_test_vec[m].begin(); l_it != ss_test_vec[m].end(); ++l_it){
+              tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
+              if(l_it->second.size() > 0){
+                for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
                   fit_test(sample_index, *it) += tmp_mu;
                   fit_test_mean(*it) += tmp_mu;
                 } // closes loop over observations in leaf
@@ -326,12 +311,10 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
           } // closes loop over trees
         } else{
           for(int m = 0; m < M; ++m){
-            for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
-              tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
-              if(ss_it->second.size() > 0){
-                for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-                  fit_test_mean(*it) += tmp_mu;
-                } // closes loop over observations in leaf
+            for(suff_stat_it l_it = ss_test_vec[m].begin(); l_it != ss_test_vec[m].end(); ++l_it){
+              tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
+              if(l_it->second.size() > 0){
+                for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) fit_test_mean(*it) += tmp_mu;
               } // closes if checking that leaf is non-empty
             } // closes loop over tree leafs
           } // closes loop over tres
@@ -346,23 +329,16 @@ Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train,
   Rcpp::List results;
   
   results["fit_train_mean"] = fit_train_mean;
-  if(save_samples){
-    results["fit_train"] = fit_train;
-  }
+  if(save_samples) results["fit_train"] = fit_train;
   if(n_test > 0){
     results["fit_test_mean"] = fit_test_mean;
-    if(save_samples){
-      results["fit_test"] = fit_test;
-    }
+    if(save_samples) results["fit_test"] = fit_test;
   }
   results["sigma"] = sigma_samples;
   results["total_accept"] = total_accept_samples;
   results["var_count"] = var_count_samples;
-  if(save_trees){
-    results["trees"] = tree_draws;
-  }
+  if(save_trees) results["trees"] = tree_draws;
 
-  
   return results;
   
 }

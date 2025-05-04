@@ -148,85 +148,27 @@ source("../flexBART/R/get_sigma.R")
 sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
 sourceCpp("../flexBART/src/rescale_beta.cpp")
 
-frmla <- 
-  Y ~ bart(.) + Z1 * bart(.) + Z1 * bart(.) + Z2 * bart(.) + Z2 * bart(.)
+source("../flexBART/R/flexBART.R")
 
-tmp_form <- parse_formula(frmla, train_data)
-outcome_name <- tmp_form$outcome_name
-cov_ensm <- tmp_form$cov_ensm
+pkgfit <-
+  flexBART(formula = Y ~ bart(.) + Z1 * bart(.) + Z1 * bart(.) + 
+             Z2 * bart(.) + Z2 * bart(.),
+           train_data = train_data,
+           test_data = test_data,
+           M = 50, n.chains = 4)
 
-tmp_data <- prepare_data(train_data = train_data,
-                         outcome_name = outcome_name,
-                         cov_ensm = cov_ensm,
-                         test_data = test_data)
+plot(beta0_test + beta1_test, pkgfit$beta.test.mean[,1],
+     xlab = "Actual", ylab = "Predicted",
+     pch = 16, cex = 0.5)
 
-R <- ncol(cov_ensm)
-y_range <- 
-  max(tmp_data$training_info$std_Y) - min(tmp_data$training_info$std_Y)
-sigest <- 
-  get_sigma(tmp_data$training_info,
-            tmp_data$data_info)
-hyper <- 
-  parse_hyper(R = R,
-              y_range = y_range,
-              sigest = sigest, M = 50, sparse = TRUE)
+plot(beta2_test + beta3_test, pkgfit$beta.test.mean[,2],
+     xlab = "Actual", ylab = "Predicted",
+     pch = 16, cex = 0.5)
+
+plot(beta4_test + beta5_test, pkgfit$beta.test.mean[,3],
+     xlab = "Actual", ylab = "Predicted",
+     pch = 16, cex = 0.5)
 
 
-control <- parse_controls()
-
-y_mean <- tmp_data$training_info$y_mean
-y_sd <- tmp_data$training_info$y_sd
-z_mean <- tmp_data$training_info$z_mean
-z_sd <- tmp_data$training_info$z_sd
-z_col_id <- tmp_data$training_info$z_col_id
-
-multi_time <-
-  system.time(
-    multi_fit <- 
-      ._multi_fit(Y_train = tmp_data$training_info$std_Y,
-                  cov_ensm = cov_ensm,
-                  tZ_train = t(tmp_data$training_info$Z),
-                  tX_cont_train = t(tmp_data$training_info$X_cont),
-                  tX_cat_train = t(tmp_data$training_info$X_cat),
-                  tZ_test = t(tmp_data$testing_info$Z),
-                  tX_cont_test = t(tmp_data$testing_info$X_cont),
-                  tX_cat_test = t(tmp_data$testing_info$X_cat),
-                  cutpoints_list = tmp_data$training_info$cutpoints,
-                  cat_levels_list = tmp_data$training_info$cat_levels_list,
-                  edge_mat_list = tmp_data$training_info$edge_mat_list,
-                  nest_list = tmp_data$training_info$nest_list,
-                  graph_cut_type = hyper$graph_cut_type,
-                  sparse = hyper$sparse, 
-                  a_u = hyper$a_u, b_u = hyper$b_u,
-                  nest_v = hyper$nest_v,
-                  nest_v_option = hyper$nest_v_option,
-                  nest_c = hyper$nest_c,
-                  M_vec = hyper$M_vec,
-                  alpha_vec = hyper$alpha_vec, beta_vec = hyper$beta_vec,
-                  mu0_vec = hyper$mu0_vec, tau_vec = hyper$tau_vec,
-                  sigest = hyper$sigest,
-                  nu = hyper$nu,lambda = hyper$lambda, 
-                  nd = control$nd, burn = control$burn, thin = control$thin,
-                  save_samples = control$save_samples, save_trees = control$save_trees,
-                  verbose = control$verbose, print_every = control$print_every))
-
-
-muhat_train <- y_mean + y_sd * multi_fit$fit_train_mean
-muhat_test <- y_mean + y_sd * multi_fit$fit_test_mean
-plot(mu_test, muhat_test, pch = 16, cex = 0.5)
-
-betahat_train <-
-  rescale_beta_mean(multi_fit$beta_train_mean,
-                    y_mean = y_mean, y_sd = y_sd,
-                    x_mean = z_mean, x_sd = z_sd, 
-                    z_col_id = z_col_id)
-
-betahat_test <-
-  rescale_beta_mean(multi_fit$beta_test_mean,
-                    y_mean = y_mean, y_sd = y_sd,
-                    x_mean = z_mean, x_sd = z_sd, 
-                    z_col_id = z_col_id)
-
-plot(beta0_test + beta1_test, betahat_test[,1], pch = 16, cex = 0.5)
-plot(beta2_test + beta3_test, betahat_test[,2], pch = 16, cex = 0.5)
-plot(beta4_test + beta5_test, betahat_test[,3], pch = 16, cex = 0.5)
+var_prob <- 
+  apply(pkgfit$varcounts >= 1, MARGIN = c(2,3), FUN = mean)

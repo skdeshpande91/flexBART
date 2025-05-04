@@ -1,18 +1,7 @@
-export("parse_formula")
-export("prepare_data")
-export("parse_hyper")
-export("parse_control")
 export("flexBART")
-
-
-
-
 #export("predict_flexBART")
 #export("rflexBART")
-#export("network_BART")
-#export("rnetwork_BART")
 #export("probit_flexBART")
-#export("probit_networkBART")
 #export("summarize_post_pred")
 importFrom(Rcpp, evalCpp)
 importFrom(stats, quantile, formula)
