@@ -133,7 +133,7 @@ get_continuous_info <- function(x, name, pad = 0.1, n_unik_diffs = 5)
   if(length(unique(consecutive_diffs)) < n_unik_diffs){
     cat("[get_continuous info]:", name, " suspected to be discrete. Defining a grid of cutpoints for", name, "\n")
     cat("Using the unique values of x as splitting points.\n")
-    cat("To use a different grid, manually set the `cutpoints_list` argument of flexBART")
+    cat("To use a different grid, manually set the `cutpoints_list` argument of flexBART.\n")
     x_sd <- NA
     x_min <- NA
     x_max <- NA

@@ -12,7 +12,7 @@ void draw_aa_cutpoint(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior
     std::set<double> cutpoints = tree_pi.cutpoints->at(rule.v_aa);
     c_lower = *(cutpoints.begin()); // returns smallest element in set
     c_upper = *(cutpoints.rbegin()); // reverse iterator, returns largest value in set
-    nx->get_rg_aa(rule.v_raw, c_lower, c_upper);
+    nx->get_rg_aa(rule.v_aa, c_lower, c_upper);
     if(c_lower >= c_upper){
       // this is a weird tree and we'll just propose a trivial split
       c_lower = *(cutpoints.begin()); // returns smallest element in set
@@ -25,7 +25,7 @@ void draw_aa_cutpoint(rule_t &rule, tree &t, int &nid, data_info &di, tree_prior
       Rcpp::Rcout << "  lower bound is: " << c_lower << " count in set is " << cutpoints.count(c_lower) << std::endl;
       Rcpp::Rcout << "  upper bound is: " << c_upper << " count in set is " << cutpoints.count(c_upper) << std::endl;
       
-      Rcpp::Rcout << "rule.v_aa = " << rule.v_aa << std::endl;
+      Rcpp::Rcout << "rule.v_aa = " << rule.v_aa << " nid = " << nid << std::endl;
       t.print();
       
       Rcpp::stop("we should never have a c that is outside the pre-defined set of cutpoints!");

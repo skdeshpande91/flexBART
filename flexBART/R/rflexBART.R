@@ -1,6 +1,5 @@
 rflexBART <- function(train_data,
                       nd,
-                      adjacency_list = NULL,
                       verbose = TRUE,
                       print_every = floor(nd/10),
                       ...)
@@ -10,6 +9,9 @@ rflexBART <- function(train_data,
   ###############################
   usr_args <- list(...)
   usr_names <- names(usr_args)
+  
+  cat(usr_names, "\n")
+  
   
   n <- nrow(train_data)
   if("Y_flexBART" %in% colnames(train_data)){
@@ -35,15 +37,19 @@ rflexBART <- function(train_data,
     # if user didn't provide nest_v, nest_v_option, or nest_c, 
     # we need to use default value
     # should warn the user:
-    if(!"nest_v" %in% usr_names){
+    if("nest_v" %in% usr_names) nest_v <- usr_args[["nest_v"]]
+    else{
       warning("[flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
       nest_v <- TRUE
     }
-    if(! "nest_v_option" %in% usr_names){
-      warning("[flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v_option=3")
+    if("nest_v_option" %in% usr_names) nest_v_option <- usr_args[["nest_v_option"]]
+    else{
+      warning("[flexBART]: nesting structure detected but no nest_v_option argument specified. Defaulting to nest_v_option=3")
       nest_v_option <- 3
     }
-    if(! "nest_c" %in% usr_names){
+    
+    if("nest_c" %in% usr_names) nest_c <- usr_args[["nest_c"]]
+    else{
       warning("[flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
       nest_c <- TRUE
     }
