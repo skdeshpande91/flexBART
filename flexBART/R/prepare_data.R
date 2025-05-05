@@ -2,6 +2,7 @@ prepare_data <- function(train_data,
                          outcome_name,
                          cov_ensm, 
                          test_data = NULL,
+                         probit = FALSE,
                          ...)
 {
   
@@ -23,12 +24,14 @@ prepare_data <- function(train_data,
   if("n_unik_diffs" %in% usr_names) n_unik_diffs <- usr_args[["n_unik_diffs"]]
   
   # are there adjacency matrices describing structure of categorial levels
-  adjacency_list <- NULL
+  #adjacency_list <- NULL
   tmp_adj <- pmatch(usr_names, table = "adjacency_list", duplicates.ok = FALSE)
   if(any(!is.na(tmp_adj))){
     ix <- which(!is.na(tmp_adj))
     tmp_name <- usr_names[[ix]]
     adjacency_list <- usr_args[[tmp_name]]
+  } else{
+    adjacency_list <- NULL
   }
   
   ###############################
@@ -82,9 +85,20 @@ prepare_data <- function(train_data,
     stop("[prepare_data]: flexBART does not yet support missing outcomes. 
          Please re-run after removing observations w/ missing outcomes.")
   }
-  trinfo$y_mean <- mean(y)
-  trinfo$y_sd <- sd(y)
-  trinfo$std_Y <- (y - trinfo$y_mean)/trinfo$y_sd
+  if(!probit){
+    trinfo$y_mean <- mean(y)
+    trinfo$y_sd <- sd(y)
+    trinfo$std_Y <- (y - trinfo$y_mean)/trinfo$y_sd 
+  } else{
+    if(!is.integer(y)){
+      stop("For probit regression ", outcome_name, " must be an integer")
+    }
+    if(!all(y %in% c(0L,1L))){
+      stop("For probit regression ", outcome_name, " must take values in 0L or 1L")
+    }
+    trinfo$std_Y <- y
+  }
+
   
   ###############################
   # Build X_cont_train (if applicable)
@@ -152,7 +166,7 @@ prepare_data <- function(train_data,
         matrix(NA, nrow = n_test, ncol = dinfo$p_cont,
                dimnames = list(c(), dinfo$cont_names))
       for(j in dinfo$cont_names){
-        if(is.null(trinfo$cutpoints[j])){
+        if(is.null(trinfo$cutpoints[[j]])){
           x_max <- dinfo$x_max[j]
           x_min <- dinfo$x_min[j]
           if(any(test_data[,j] > x_max) | any(test_data[,j] < x_min)){
@@ -161,8 +175,8 @@ prepare_data <- function(train_data,
           }
         } else{
           # j is a gridded/discrete ordinal variable
-          x_max <- max(trinfo$cutpoints_list[[j]])
-          x_min <- min(trinfo$cutpoints_list[[j]])
+          x_max <- max(trinfo$cutpoints[[j]])
+          x_min <- min(trinfo$cutpoints[[j]])
           if(any(test_data[,j] > x_max) | any(test_data[,j] < x_min)){
             warning(paste("[prepare_data]: found test set value for", j, 
                           "outside range of cutpoints used in training.",

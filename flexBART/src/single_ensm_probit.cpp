@@ -152,7 +152,7 @@ Rcpp::List flexBART_fit(Rcpp::IntegerVector Y_train,
   // BEGIN: initialize latents and residual
   for(int i = 0; i < n_train; ++i){
     if(Y_train[i] == 1) latent[i] = gen.lo_trunc_norm(0.0, 0.0);
-    else if(Y_train[i] == 0) latent[i] = gen.hi_trun_norm(0.0, 0.0);
+    else if(Y_train[i] == 0) latent[i] = gen.hi_trunc_norm(0.0, 0.0);
     else{
       Rcpp::Rcout << " Outcome for observation i = " << i+1 << " is " << Y_train[i] << std::endl;
       Rcpp::stop("For probit regression, all outcomes must be 1 or 0.");
@@ -164,13 +164,11 @@ Rcpp::List flexBART_fit(Rcpp::IntegerVector Y_train,
   // BEGIN: initializze tree vector and sufficient statistics maps
   for(int m = 0; m < M; ++m){
     tree_traversal(ss_train_vec[m], t_vec[m], di_train); // populates ss_train_vec[m]
-    for(suff_stat_it ss_it = ss_train_vec[m].begin(); ss_it != ss_train_vec[m].end(); ++ss_it){
-      tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu(); // get the value of mu in the leaf
-      if(ss_it->second.size() > 0){
-        for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-          residual[*it] -= tmp_mu; // in this initial sweep, we have to remove the fit of each tree.
-        }
-      }
+    for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
+      tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+      if(l_it->second.size() > 0){
+        for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu; // in this initial sweep, we have to remove the fit of each tree.
+      } // closes if checking leaf is non-empty and updating initial value of residual
     }
     if(n_test > 0) tree_traversal(ss_test_vec[m], t_vec[m], di_test);
   }
@@ -218,7 +216,7 @@ Rcpp::List flexBART_fit(Rcpp::IntegerVector Y_train,
     for(int m = 0; m < M; ++m){
       
       //BEGIN: remove fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++ss_it){
+      for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
         // loop over the bottom nodes in m-th tree
         tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
         if(l_it->second.size() > 0){
@@ -265,7 +263,7 @@ Rcpp::List flexBART_fit(Rcpp::IntegerVector Y_train,
     for(int m = 0; m < M; ++m){
       
       //BEGIN: remove fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++ss_it){
+      for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
         // loop over the bottom nodes in m-th tree
         tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
         if(l_it->second.size() > 0){
@@ -306,26 +304,24 @@ Rcpp::List flexBART_fit(Rcpp::IntegerVector Y_train,
       if(save_samples){
         for(int i = 0; i < n_train; ++i){
           tmp_fit = latent[i] - residual[i];
-          fit_train(sample_index,i) = R::pnorm(tmp_allfit, 0.0, 1.0, true, false);
-          fit_train_mean(i) += R::pnorm(tmp_allfit, 0.0, 1.0, true, false);
+          fit_train(sample_index,i) = R::pnorm(tmp_fit, 0.0, 1.0, true, false);
+          fit_train_mean(i) += R::pnorm(tmp_fit, 0.0, 1.0, true, false);
         }
       } else{
         for(int i = 0; i < n_train; ++i){
-          tmp_fit = latent[i] - residual[i]
-          fit_train_mean(i) += R::pnorm(tmp_allfit, 0.0, 1.0, true, false);
+          tmp_fit = latent[i] - residual[i];
+          fit_train_mean(i) += R::pnorm(tmp_fit, 0.0, 1.0, true, false);
         }
       }
       if(n_test > 0){
         for(int i = 0; i < n_test; ++i) tmp_fit_test[i] = 0.0;
         
         for(int m = 0; m < M; ++m){
-          for(suff_stat_it ss_it = ss_test_vec[m].begin(); ss_it != ss_test_vec[m].end(); ++ss_it){
-            tmp_mu = t_vec[m].get_ptr(ss_it->first)->get_mu();
-            if(ss_it->second.size() > 0){
-              for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-                tmp_fit_test[*it] += tmp_mu
-              } // closes loop over observations in leaf
-            } // closes if checking that leaf is non-empty
+          for(suff_stat_it l_it = ss_test_vec[m].begin(); l_it != ss_test_vec[m].end(); ++l_it){
+            tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
+            if(l_it->second.size() > 0){
+              for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) tmp_fit_test[*it] += tmp_mu;
+            } // closes if checking that leaf is non-empty and increment tmp_fit_test
           } // closes if/else checking whether we're saving samples or just posterior mean
         } // closes loop over trees
         
@@ -352,7 +348,6 @@ Rcpp::List flexBART_fit(Rcpp::IntegerVector Y_train,
     results["fit_test_mean"] = fit_test_mean;
     if(save_samples) results["fit_test"] = fit_test;
   }
-  results["sigma"] = sigma_samples;
   results["total_accept"] = total_accept_samples;
   results["var_count"] = var_count_samples;
   if(save_trees) results["trees"] = tree_draws;

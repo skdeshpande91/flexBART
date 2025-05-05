@@ -189,11 +189,11 @@ flexBART <- function(formula,
                         nest_v = hyper$nest_v,
                         nest_v_option = hyper$nest_v_option,
                         nest_c = hyper$nest_c,
-                        mu0 = hyper$mu0_vec[1],
-                        tau = hyper$tau_vec[1],
                         M = hyper$M_vec[1],
                         alpha = hyper$alpha_vec[1],
                         beta = hyper$beta_vec[1],
+                        mu0 = hyper$mu0_vec[1],
+                        tau = hyper$tau_vec[1],
                         sigest = hyper$sigest,
                         nu = hyper$nu,
                         lambda = hyper$lambda,
@@ -357,9 +357,7 @@ flexBART <- function(formula,
   results[["varcounts"]] <- varcounts_samples
   results[["timing"]] <- timing
 
-  if(control$save_trees){
-    results[["trees"]] <- fit$trees 
-  }
+  if(control$save_trees) results[["trees"]] <- fit$trees
   
   return(results)
   

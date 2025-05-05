@@ -118,7 +118,7 @@ validate_flexBART_hyper <- function(hyper)
 # Actually parse the hyperparameters
 ###############################
 
-parse_hyper <- function(R, y_range,...){
+parse_hyper <- function(R, y_range, ...){
   ###############################
   # Create an empty flexBART_hypers object
   ###############################
@@ -293,3 +293,164 @@ parse_hyper <- function(R, y_range,...){
   validate_flexBART_hyper(hyper)
   return(hyper)
 }
+
+parse_hyper_probit <- function(R, y_mean, ...){
+  ###############################
+  # Create an empty flexBART_hypers object
+  ###############################
+  hyper <- new_flexBART_hyper()
+  target_names <- names(hyper)
+  ###############################
+  # Grab any user-specified arguments
+  ###############################
+  usr_args <- list(...)
+  usr_names <- names(usr_args) # equivalent to `...names()`
+  
+  ###############################
+  # Check whether user supplied anything for M_vec
+  ###############################
+  tmp_M <- pmatch(usr_names, table = "M_vec", duplicates.ok = FALSE)
+  if(all(is.na(tmp_M))){
+    # user doesn't provide any arguments for M
+    hyper$M_vec <- rep(50L, times = R)
+  } else{
+    ix <- which(!is.na(tmp_M))
+    tmp_name <- usr_names[[ix]]
+    usr_M <- usr_args[[tmp_name]]
+    if(!is.integer(usr_M)) usr_M <- as.integer(usr_M)
+    
+    if(length(usr_M) == 1) hyper$M_vec <- rep(usr_M, times = R)
+    else if(length(usr_M) == R) hyper$M_vec <- usr_M
+    else{
+      message(paste("[parse_hyper]: matched M_vec to argument", tmp_name, "="))
+      print(usr_M)
+      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+    }
+    rm(ix, tmp_name, usr_M)
+  }
+  rm(tmp_M)
+  ###############################
+  # Check whether user supplied anything for alpha_vec
+  ###############################
+  tmp_alpha <- pmatch(usr_names, table = "alpha_vec", duplicates.ok = FALSE)
+  if(all(is.na(tmp_alpha))){
+    hyper$alpha_vec <- rep(0.95, times = R)
+  } else{
+    ix <- which(!is.na(tmp_alpha))
+    tmp_name <- usr_names[[ix]]
+    usr_alpha <- usr_args[[tmp_name]]
+    if(length(usr_alpha) == 1) hyper$alpha_vec <- rep(usr_alpha, times = R)
+    else if(length(usr_alpha) == R) hyper$alpha_vec <- usr_alpha
+    else{
+      message(paste("[parse_hyper]: matched alpha_vec to supplied argument", tmp_name))
+      message("supplied argument =")
+      print(usr_alpha)
+      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+    }
+    rm(ix, tmp_name, usr_alpha)
+  }
+  rm(tmp_alpha)
+  ###############################
+  # Check whether user supplied anything for beta_vec
+  ###############################
+  tmp_beta <- pmatch(usr_names, table = "beta_vec", duplicates.ok = FALSE)
+  if(all(is.na(tmp_beta))){
+    hyper$beta_vec <- rep(2, times = R)
+  } else{
+    ix <- which(!is.na(tmp_beta))
+    tmp_name <- usr_names[[ix]]
+    usr_beta <- usr_args[[tmp_name]]
+    if(length(usr_beta) == 1) hyper$beta_vec <- rep(usr_beta, times = R)
+    else if(length(usr_beta) == R) hyper$beta_vec <- usr_beta
+    else{
+      message(paste("[parse_hyper]: matched beta_vec to supplied argument", tmp_name))
+      message("supplied argument =")
+      print(usr_beta)
+      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+    }
+    rm(ix, tmp_name, usr_beta)
+  }
+  rm(tmp_beta)
+  ###############################
+  # Check whether user supplied anything for mu0_vec
+  ###############################
+  tmp_mu <- pmatch(usr_names, table = "mu0_vec", duplicates.ok = FALSE)
+  if(all(is.na(tmp_mu))){
+    if(R == 1) hyper$mu0_vec <- qnorm(y_mean)/hyper$M_vec[1]
+    else{
+      hyper$mu0_vec <- c(qnorm(y_mean), rep(0, times = R-1))/hyper$M_vec
+    }
+  } else{
+    ix <- which(!is.na(tmp_mu))
+    tmp_name <- usr_names[[ix]]
+    usr_mu <- usr_args[[tmp_name]]
+    if(length(usr_mu) == 1) hyper$mu0_vec <- rep(usr_mu, times = R)
+    else if(length(usr_mu) == R) hyper$mu_vec <- usr_mu
+    else{
+      message(paste("[parse_hyper]: matched mu0_vec to supplied argument", tmp_name))
+      message("supplied argument =")
+      print(usr_mu)
+      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+    }
+    rm(ix, tmp_name, usr_mu)
+  }
+  rm(tmp_mu)
+  ###############################
+  # Check whether user supplied anything for tau_vec
+  ###############################
+  tmp_tau <- pmatch(usr_names, table = "tau_vec", duplicates.ok = FALSE)
+  if(all(is.na(tmp_tau))){
+    if(R == 1){
+      hyper$tau_vec <- 1/(sqrt(hyper$M_vec[1]))
+    } else{
+      # TO DO: actually check probit vcbart and adjust hyperparameters
+      hyper$tau_vec <- 0.5/sqrt(hyper$M_vec)
+    }
+  } else{
+    ix <- which(!is.na(tmp_tau))
+    tmp_name <- usr_names[[ix]]
+    usr_tau <- usr_args[[tmp_name]]
+    if(length(usr_tau) == 1) hyper$tau_vec <- rep(usr_tau, times = R)
+    else if(length(usr_tau) == R) hyper$tau_vec <- usr_tau
+    else{
+      message(paste("[parse_hyper]: matched tau_vec to supplied argument", tmp_name))
+      message("supplied argument =")
+      print(usr_tau)
+      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+    }
+    rm(ix, tmp_name, usr_tau)
+  }
+  rm(tmp_tau)
+  
+  ###############################
+  # Check whether user supplied anything for sigma prior
+  ###############################
+  if("nu" %in% usr_names) warning("For probit regression, ignoring argument nu")
+  if("lambda" %in% usr_names) warning("For probit regression, ignoring argument lambda")
+  if("sigest" %in% usr_names) warning("For probit regression, ignoring argument sigest")
+  if("sigquant" %in% usr_names) warning("For probit regression, ignoring argument sigquant")
+  
+  ###############################
+  # Check whether user supplied anything else
+  ###############################
+  param_names <- 
+    c("graph_cut_type", "nest_v", "nest_v_option", "nest_c",
+      "sparse", "a_u", "b_u")
+  for(param in param_names){
+    if(param %in% usr_names){
+      # override with user supplied value
+      hyper[[param]] <- usr_args[[param]]
+    }
+  }
+  ###############################
+  # Validate the hyperparameters
+  ###############################
+  validate_flexBART_hyper(hyper)
+  return(hyper)
+}
+
