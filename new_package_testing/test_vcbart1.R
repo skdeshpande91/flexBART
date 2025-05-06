@@ -113,9 +113,9 @@ source("../flexBART/R/get_sigma.R")
 
 sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
 sourceCpp("../flexBART/src/rescale_beta.cpp")
-
+sourceCpp("../flexBART/src/predict_flexBART.cpp")
 source("../flexBART/R/flexBART.R")
-
+source("../flexBART/R/predict_flexBART.R")
 
 fit <-
   flexBART(formula = Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.),
@@ -140,3 +140,47 @@ plot(beta2_test, fit$beta.test.mean[,3],
 var_probs <- 
   apply(fit$varcounts >= 1, MAR = c(2,3), FUN = mean)
 
+
+# Check that predict works
+tmp_train <-
+  predict.flexBART(object = fit$fit,
+                   newdata = train_data,
+                   verbose = TRUE, print_every = 400)
+
+range(tmp_train$yhat - fit$yhat.train)
+range(tmp_train$beta - fit$beta.train)
+range(tmp_train$raw_beta - fit$raw_beta.train)
+
+tmp_test <-
+  predict.flexBART(object = fit$fit,
+                   newdata = test_data,
+                   verbose = TRUE, print_every = 400)
+
+range(tmp_test$yhat - fit$yhat.test)
+range(tmp_test$beta - fit$beta.test)
+range(tmp_test$raw_beta - fit$raw_beta.test)
+
+###
+# Need to check the predictions
+tmp_preds <- matrix(nrow = 4000,ncol = n_test)
+for(i in 1:n_test){
+  tmp_preds[,i] <- 
+    fit$beta.test[,i,1] + 
+    fit$beta.test[,i,2] * test_data[i,"Z1"] + 
+    fit$beta.test[,i,3] * test_data[i,"Z2"]
+}
+
+tmp_preds2 <- matrix(nrow = 4000, ncol = n_test)
+for(i in 1:n_test){
+  tmp_preds2[,i] <-
+    tmp_test$beta[,i,1] + 
+    tmp_test$beta[,i,2] * test_data[i,"Z1"] + 
+    tmp_test$beta[,i,3] * test_data[i,"Z2"]
+}
+
+plot(colMeans(tmp_preds2), fit$yhat.test.mean, pch = 16, cex = 0.5)
+range(colMeans(tmp_preds2) - colMeans(tmp_preds))
+
+plot(colMeans(tmp_preds), fit$yhat.test.mean, pch = 16, cex = 0.5)
+
+plot(mu_test, colMeans(tmp_preds), pch = 16, cex= 0.5)

@@ -326,6 +326,8 @@ flexBART <- function(formula,
     list(y_mean = y_mean, y_sd = y_sd, 
          z_mean = z_mean, z_sd = z_sd,
          z_col_id = z_col_id)
+  fit_out[["M"]] <- hyper$M_vec
+  fit_out[["cov_ensm"]] <- cov_ensm
   validate_flexBART_fit(fit_out)
  
   results <- list()

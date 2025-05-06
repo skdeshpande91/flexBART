@@ -5,8 +5,8 @@
 arma::mat rescale_beta_mean(arma::mat beta_input,
                             double y_mean,
                             double y_sd,
-                            Rcpp::NumericVector x_mean,
-                            Rcpp::NumericVector x_sd,
+                            Rcpp::NumericVector z_mean,
+                            Rcpp::NumericVector z_sd,
                             Rcpp::IntegerVector z_col_id)
 {
   int R = z_col_id.size();
@@ -22,8 +22,8 @@ arma::mat rescale_beta_mean(arma::mat beta_input,
   beta_out.col(0) += y_mean;
 
   for(int j = 1; j < R; ++j){
-    beta_out.col(z_col_id(j)) += y_sd/x_sd[j] * beta_input.col(j);
-    beta_out.col(0) -= y_sd/x_sd[j] * x_mean[j] * beta_input.col(j);
+    beta_out.col(z_col_id(j)) += y_sd/z_sd[j] * beta_input.col(j);
+    beta_out.col(0) -= y_sd/z_sd[j] * z_mean[j] * beta_input.col(j);
   }
   
   return beta_out;
@@ -33,8 +33,8 @@ arma::mat rescale_beta_mean(arma::mat beta_input,
 arma::cube rescale_beta(arma::cube beta_input,
                         double y_mean,
                         double y_sd,
-                        Rcpp::NumericVector x_mean,
-                        Rcpp::NumericVector x_sd,
+                        Rcpp::NumericVector z_mean,
+                        Rcpp::NumericVector z_sd,
                         Rcpp::IntegerVector z_col_id)
 {
   
@@ -54,8 +54,8 @@ arma::cube rescale_beta(arma::cube beta_input,
   beta_out.slice(0) += y_mean;
   
   for(int j = 1; j < R; ++j){
-    beta_out.slice(z_col_id(j)) += y_sd/x_sd[j] * beta_input.slice(j);
-    beta_out.slice(0) -= y_sd/x_sd[j] * x_mean[j] * beta_input.slice(j);
+    beta_out.slice(z_col_id(j)) += y_sd/z_sd[j] * beta_input.slice(j);
+    beta_out.slice(0) -= y_sd/z_sd[j] * z_mean[j] * beta_input.slice(j);
   }
   return beta_out;
 }

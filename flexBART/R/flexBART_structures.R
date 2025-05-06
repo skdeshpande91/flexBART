@@ -147,13 +147,15 @@ new_flexBART_fit <- function()
   out["trees"] <- list(NULL)
   out["is.probit"] <- list(NULL)
   out["scaling_info"] <- list(NULL)
+  out["M"] <- list(NULL)
+  out["cov_ensm"] <- list(NULL)
 
   structure(out, class = "flexBART_fit")
 }
 validate_flexBART_fit <- function(fit)
 {
   exp_names <- c("dinfo", "trees", "is.probit",
-                 "scaling_info")
+                 "scaling_info", "M", "cov_ensm")
   x_uncl <- unclass(fit)
   if(!identical(sort(names(x_uncl)), sort(exp_names))){
     stop("[validate_flexBART_fit]: fit does not have valid names")
