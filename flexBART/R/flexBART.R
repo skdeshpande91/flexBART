@@ -318,12 +318,18 @@ flexBART <- function(formula,
     }
   }
   
+  fit_out <- new_flexBART_fit()
+  fit_out[["dinfo"]] <- tmp_data$data_info
+  if(control$save_trees) fit_out[["trees"]] <- tree_list
+  fit_out[["is.probit"]] <- FALSE
+  fit_out[["scaling_info"]] <-
+    list(y_mean = y_mean, y_sd = y_sd, 
+         z_mean = z_mean, z_sd = z_sd,
+         z_col_id = z_col_id)
+  validate_flexBART_fit(fit_out)
+ 
   results <- list()
-  results[["y_mean"]] <- y_mean
-  results[["y_sd"]] <- y_sd
-  results[["z_mean"]] <- z_mean
-  results[["z_sd"]] <- z_sd
-  results[["z_col_id"]] <- z_col_id
+  results[["fit"]] <- fit_out # this contains everything needed for predict
   results[["yhat.train.mean"]] <- yhat_train_mean
   if(R > 1){
     results[["beta.train.mean"]] <- beta_train_mean
@@ -357,7 +363,7 @@ flexBART <- function(formula,
   results[["varcounts"]] <- varcounts_samples
   results[["timing"]] <- timing
 
-  if(control$save_trees) results[["trees"]] <- tree_list
+  
   
   return(results)
   

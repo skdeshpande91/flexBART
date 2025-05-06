@@ -135,8 +135,8 @@ get_continuous_info <- function(x, name, pad = 0.1, n_unik_diffs = 5)
     cat("Using the unique values of x as splitting points.\n")
     cat("To use a different grid, manually set the `cutpoints_list` argument of flexBART.\n")
     x_sd <- NA
-    x_min <- NA
-    x_max <- NA
+    x_min <- min(x)
+    x_max <- max(x)
   } else{
     x_sd <- sd(x)
     x_min = min(x) - pad*x_sd
@@ -146,21 +146,16 @@ get_continuous_info <- function(x, name, pad = 0.1, n_unik_diffs = 5)
 }
 
 # rescale truly continuous functions and leave discrete, ordinal ones alone
-convert_continuous <- function(x, x_min, x_max)
+convert_continuous <- function(x, x_min, x_max, discrete = FALSE)
 {
-  if(is.na(x_min) != is.na(x_max)){
-    stop("[convert_continuous]: x_min and x_max must both be NA or both not be NA")
+  if(discrete){
+    std_x <- x
+    cutpoints <- sort(unique(x))
   } else{
-    if(is.na(x_min) & is.na(x_max)){
-      # signals that the variable is discrete and we should just return x
-      std_x <- x
-      cutpoints <- sort(unique(x))
-    } else if(!is.na(x_min) & !is.na(x_max)){
-      std_x <- 2 * (x - x_min)/(x_max - x_min) - 1
-      cutpoints <- NULL
-    }
-    return(list(std_x = std_x, cutpoints = cutpoints))
+    std_x <- 2 * (x - x_min)/(x_max - x_min) - 1
+    cutpoints <- NULL
   }
+  return(list(std_x = std_x, cutpoints = cutpoints))
 }
 
 

@@ -2,6 +2,8 @@ new_flexBART_training <- function()
 {
   out <- list()
   out["std_Y"] <- list(NULL)
+  out["y_mean"] <- list(NULL)
+  out["y_sd"] <- list(NULL)
   # in the C++ code, we use a 1x1 matrix as a null value for design matrices
   # this avoids having to cast nullable arguments first
   out["X_cont"] <- matrix(0, nrow = 1, ncol = 1) 
@@ -23,7 +25,7 @@ new_flexBART_training <- function()
 
 validate_flexBART_training <- function(trinfo)
 {
-  exp_names <- c("std_Y", "X_cont", "X_cat", "Z",
+  exp_names <- c("std_Y", "y_mean", "y_sd", "X_cont", "X_cat", "Z",
                  "cutpoints",
                  "cat_levels_list", "edge_mat_list",
                  "nest_list",
@@ -135,4 +137,28 @@ validate_flexBART_data_info <- function(dinfo)
   # check that length(cont_names) == p_cont
   # check that length(cat_names) == p_cat
   # check that cat_mapping_list has exactly p_cat elements
+}
+
+
+new_flexBART_fit <- function()
+{
+  out <- list()
+  out["dinfo"] <- list(NULL)
+  out["trees"] <- list(NULL)
+  out["is.probit"] <- list(NULL)
+  out["scaling_info"] <- list(NULL)
+
+  structure(out, class = "flexBART_fit")
+}
+validate_flexBART_fit <- function(fit)
+{
+  exp_names <- c("dinfo", "trees", "is.probit",
+                 "scaling_info")
+  x_uncl <- unclass(fit)
+  if(!identical(sort(names(x_uncl)), sort(exp_names))){
+    stop("[validate_flexBART_fit]: fit does not have valid names")
+  }
+  
+  # for probit, we don't really need y_mean or y_sd to be set and until we get
+  # multiple ensemble probit working, no need to 
 }

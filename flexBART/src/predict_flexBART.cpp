@@ -1,8 +1,6 @@
 #include "funs.h"
-#include "data_parsing_funs.h"
-// TO DO: rewrite to work with the new graph stuff
 
-// [[Rcpp::export(".single_ensm_predict)]]
+// [[Rcpp::export(".single_ensm_predict")]]
 Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
                                      Rcpp::NumericMatrix tX_cont,
                                      Rcpp::IntegerMatrix tX_cat,
@@ -37,37 +35,55 @@ Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
 
   std::vector<double> allfit(n);
   Rcpp::NumericMatrix pred_out(nd,n);
-
   
-  for(int iter = 0; iter < nd; ++iter){
-    if(verbose && (iter%print_every == 0)){
-      Rcpp::Rcout << "  Iteration: " << iter << " of " << nd <<std::endl;
-      Rcpp::checkUserInterrupt();
-    }
-    Rcpp::CharacterVector tmp_string_vec = tree_draws[iter];
-    if(tmp_string_vec.size() != M){
-      // did we somehow not record enough tree strings?
-      // this should really never be hit
-      // essentially we're mimicing the R code all(sapply(tree_draws, FUN = length) = length(tree_draws[1]))
-      Rcpp::Rcout << "iter = " << iter << " # tree strings = " << tmp_string_vec.size() << std::endl;
-      Rcpp::stop("Unexpected number of tree strings!");
-    } else{
-      std::vector<tree> t_vec(M);
-      for(int m = 0; m < M; ++m){
-        // tmp_string_vec is an Rcpp::CharacterVector
-        // let's extract a single element from the CharacterVector and turn it into a std::string
-        // that can be passed to read_tree
-        std::string tmp_string = Rcpp::as<std::string>(tmp_string_vec[m]); // convert content of the
-        read_tree(t_vec[m], tmp_string, set_str);
+  if(probit){
+    for(int iter = 0; iter < nd; ++iter){
+      if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
+      else if(iter%print_every == 0){
+        Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+        Rcpp::checkUserInterrupt();
       }
-      fit_ensemble(allfit, t_vec, di);
-      if(probit){
-        for(int i = 0; i < n; i++) pred_out(iter,i) = R::pnorm(allfit[i], 0.0, 1.0, true, false);
+      Rcpp::CharacterVector tmp_string_vec = tree_draws[iter];
+      if(tmp_string_vec.size() != M){
+        Rcpp::Rcout << "iter = " << iter << " # tree strings = " << tmp_string_vec.size() << std::endl;
+        Rcpp::stop("Unexpected number of tree strings!");
       } else{
-        for(int i = 0; i < n; i++) pred_out(iter,i) = allfit[i];
-      } 
-    } // closes if/else checking that we have M strings for the draw of the ensemble
-  } // closes loop over all draws of the ensemble
- 
+        std::vector<tree> t_vec(M);
+        for(int m = 0; m < M; ++m){
+          // tmp_string_vec is an Rcpp::CharacterVector
+          // let's extract a single element from the CharacterVector and turn it into a std::string
+          // that can be passed to read_tree
+          std::string tmp_string = Rcpp::as<std::string>(tmp_string_vec[m]); // convert content of the
+          read_tree(t_vec[m], tmp_string, set_str);
+        } // closes loop populating vector of trees
+        fit_ensemble(allfit, t_vec, di);
+        for(int i = 0; i < n; ++i) pred_out(iter,i) = R::pnorm(allfit[i], 0.0, 1.0, true, false);
+      } // closes if/else checking that we have string for every tree
+    } // closes loop over tree samples
+  } else{
+    for(int iter = 0; iter < nd; ++iter){
+      if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
+      else if(iter%print_every == 0){
+        Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+        Rcpp::checkUserInterrupt();
+      }
+      Rcpp::CharacterVector tmp_string_vec = tree_draws[iter];
+      if(tmp_string_vec.size() != M){
+        Rcpp::Rcout << "iter = " << iter << " # tree strings = " << tmp_string_vec.size() << std::endl;
+        Rcpp::stop("Unexpected number of tree strings!");
+      } else{
+        std::vector<tree> t_vec(M);
+        for(int m = 0; m < M; ++m){
+          // tmp_string_vec is an Rcpp::CharacterVector
+          // let's extract a single element from the CharacterVector and turn it into a std::string
+          // that can be passed to read_tree
+          std::string tmp_string = Rcpp::as<std::string>(tmp_string_vec[m]); // convert content of the
+          read_tree(t_vec[m], tmp_string, set_str);
+        } // closes loop populating vector of trees
+        fit_ensemble(allfit, t_vec, di);
+        for(int i = 0; i < n; ++i) pred_out(iter,i) = allfit[i];
+      } // closes if/else checking that we have string for every tree
+    } // closes loop over tree samples
+  } // closes if/else checking whether we're doing probit
   return pred_out;
 }

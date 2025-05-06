@@ -113,7 +113,8 @@ prepare_data <- function(train_data,
       tmp <- 
         convert_continuous(x = train_data[,j],
                            x_min = dinfo$x_min[j],
-                           x_max = dinfo$x_max[j])
+                           x_max = dinfo$x_max[j],
+                           discrete = is.null(dinfo$x_sd[j]))
       trinfo$X_cont[,j] <- tmp$std_x
       if(is.null(tmp$cutpoints)){
         tmp_cutpoints_list[j] <- list(NULL)
@@ -186,7 +187,8 @@ prepare_data <- function(train_data,
         teinfo$X_cont[,j] <- 
           convert_continuous(x = test_data[,j],
                              x_min = dinfo$x_min[j],
-                             x_max = dinfo$x_max[j])$std_x
+                             x_max = dinfo$x_max[j],
+                             discrete = is.null(dinfo$x_sd[j]))$std_x
       } # closes loop over continuous predictors
     } # closes if checking if there are continuous predictors
     if(dinfo$p_cat > 0){
