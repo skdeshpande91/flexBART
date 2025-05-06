@@ -357,7 +357,7 @@ flexBART <- function(formula,
   results[["varcounts"]] <- varcounts_samples
   results[["timing"]] <- timing
 
-  if(control$save_trees) results[["trees"]] <- fit$trees
+  if(control$save_trees) results[["trees"]] <- tree_list
   
   return(results)
   

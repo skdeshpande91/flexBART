@@ -2,20 +2,26 @@
 #include "data_parsing_funs.h"
 // TO DO: rewrite to work with the new graph stuff
 
-// [[Rcpp::export(".predict_flexBART")]]
+// [[Rcpp::export(".single_ensm_predict)]]
 Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
                                      Rcpp::NumericMatrix tX_cont,
                                      Rcpp::IntegerMatrix tX_cat,
-                                     bool probit = false,
-                                     bool verbose = true, int print_every = 50)
+                                     bool probit,
+                                     bool verbose, int print_every)
 {
   set_str_conversion set_str; // for converting sets of integers into strings
-
   int n = 0;
   int p_cont = 0;
   int p_cat = 0;
   
-  parse_training_data(n, p_cont, p_cat, tX_cont, tX_cat);
+  if(tX_cont.size() > 1) p_cont = tX_cont.rows();
+  if(tX_cat.size() > 1) p_cat = tX_cat.rows();
+  
+  if(p_cont > 0 && p_cat == 0) n = tX_cont.cols();
+  else if(p_cont == 0 && p_cat > 0) n = tX_cat.cols();
+  else if(p_cont > 0 && p_cat > 0) n = tX_cont.cols();
+  else Rcpp::stop("Need to supply tX_cont or tX_cat!");
+  
   int p = p_cont + p_cat;
   data_info di;
   di.n = n;
@@ -29,17 +35,11 @@ Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
   Rcpp::CharacterVector first_tree_vec = tree_draws[0];
   int M = first_tree_vec.size();
 
-  if(verbose){  
-    Rcpp::Rcout << "nd = " << nd << "M = " << M;
-    Rcpp::Rcout << " n = " << n << " p_cont = " << p_cont << " p_cat = " << p_cat << std::endl;
-  }
-
   std::vector<double> allfit(n);
-  //Rcpp::NumericMatrix pred_out(n,nd);
   Rcpp::NumericMatrix pred_out(nd,n);
 
   
-  for(int iter = 0; iter < nd; iter++){
+  for(int iter = 0; iter < nd; ++iter){
     if(verbose && (iter%print_every == 0)){
       Rcpp::Rcout << "  Iteration: " << iter << " of " << nd <<std::endl;
       Rcpp::checkUserInterrupt();
@@ -53,7 +53,7 @@ Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws,
       Rcpp::stop("Unexpected number of tree strings!");
     } else{
       std::vector<tree> t_vec(M);
-      for(int m = 0; m < M; m++){
+      for(int m = 0; m < M; ++m){
         // tmp_string_vec is an Rcpp::CharacterVector
         // let's extract a single element from the CharacterVector and turn it into a std::string
         // that can be passed to read_tree
