@@ -257,6 +257,10 @@ prepare_data <- function(train_data,
       trinfo$z_sd[r] <- sd(trinfo$Z[,r])
       trinfo$Z[,r] <- (trinfo$Z[,r] - trinfo$z_mean[r])/trinfo$z_sd[r]
     }
+    # remember to standardize Z_test
+    if(n_test > 0){
+      teinfo$Z[,r] <- (teinfo$Z[,r] - trinfo$z_mean[r])/trinfo$z_sd[r]
+    }
   }
   
   ######################################

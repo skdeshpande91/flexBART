@@ -159,28 +159,3 @@ tmp_test <-
 range(tmp_test$yhat - fit$yhat.test)
 range(tmp_test$beta - fit$beta.test)
 range(tmp_test$raw_beta - fit$raw_beta.test)
-
-###
-# Need to check the predictions
-tmp_preds <- matrix(nrow = 4000,ncol = n_test)
-for(i in 1:n_test){
-  tmp_preds[,i] <- 
-    fit$beta.test[,i,1] + 
-    fit$beta.test[,i,2] * test_data[i,"Z1"] + 
-    fit$beta.test[,i,3] * test_data[i,"Z2"]
-}
-
-tmp_preds2 <- matrix(nrow = 4000, ncol = n_test)
-for(i in 1:n_test){
-  tmp_preds2[,i] <-
-    tmp_test$beta[,i,1] + 
-    tmp_test$beta[,i,2] * test_data[i,"Z1"] + 
-    tmp_test$beta[,i,3] * test_data[i,"Z2"]
-}
-
-plot(colMeans(tmp_preds2), fit$yhat.test.mean, pch = 16, cex = 0.5)
-range(colMeans(tmp_preds2) - colMeans(tmp_preds))
-
-plot(colMeans(tmp_preds), fit$yhat.test.mean, pch = 16, cex = 0.5)
-
-plot(mu_test, colMeans(tmp_preds), pch = 16, cex= 0.5)

@@ -147,28 +147,44 @@ source("../flexBART/R/get_sigma.R")
 
 sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
 sourceCpp("../flexBART/src/rescale_beta.cpp")
-
+sourceCpp("../flexBART/src/predict_flexBART.cpp")
 source("../flexBART/R/flexBART.R")
+source("../flexBART/R/predict_flexBART.R")
 
-pkgfit <-
+flex_fit <-
   flexBART(formula = Y ~ bart(.) + Z1 * bart(.) + Z1 * bart(.) + 
              Z2 * bart(.) + Z2 * bart(.),
            train_data = train_data,
            test_data = test_data,
            M = 50, n.chains = 4)
 
-plot(beta0_test + beta1_test, pkgfit$beta.test.mean[,1],
+plot(beta0_test + beta1_test, flex_fit$beta.test.mean[,1],
      xlab = "Actual", ylab = "Predicted",
      pch = 16, cex = 0.5)
 
-plot(beta2_test + beta3_test, pkgfit$beta.test.mean[,2],
+plot(beta2_test + beta3_test, flex_fit$beta.test.mean[,2],
      xlab = "Actual", ylab = "Predicted",
      pch = 16, cex = 0.5)
 
-plot(beta4_test + beta5_test, pkgfit$beta.test.mean[,3],
+plot(beta4_test + beta5_test, flex_fit$beta.test.mean[,3],
      xlab = "Actual", ylab = "Predicted",
      pch = 16, cex = 0.5)
 
+tmp_train <-
+  predict.flexBART(object = flex_fit$fit,
+                   newdata = train_data,
+                   verbose = TRUE, print_every = 400)
 
-var_prob <- 
-  apply(pkgfit$varcounts >= 1, MARGIN = c(2,3), FUN = mean)
+range(tmp_train$yhat - flex_fit$yhat.train)
+range(tmp_train$beta - flex_fit$beta.train)
+range(tmp_train$raw_beta - flex_fit$raw_beta.train)
+
+tmp_test <-
+  predict.flexBART(object = flex_fit$fit,
+                   newdata = test_data,
+                   verbose = TRUE, print_every = 400)
+
+range(tmp_test$yhat - flex_fit$yhat.test)
+range(tmp_test$beta - flex_fit$beta.test)
+range(tmp_test$raw_beta - flex_fit$raw_beta.test)
+

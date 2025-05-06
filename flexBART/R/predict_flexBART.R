@@ -102,8 +102,8 @@ predict.flexBART <- function(object, newdata,
     output[["yhat"]] <- yhat
     output[["beta"]] <- beta_samples
     output[["raw_beta"]] <- tmp[["raw_beta"]]
-    output[["yhat_raw"]] <- tmp[["fit"]]
-    output[["Z"]] <- Z
+    #output[["yhat_raw"]] <- tmp[["fit"]]
+    #output[["Z"]] <- Z
   } # closes if/else checking whether it is single ensemble or multiple ensembles
   return(output)
 }
