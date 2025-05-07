@@ -11,8 +11,8 @@ predict.flexBART <- function(object, ...)
 
   if(! "verbose" %in% usr_names) verbose <- FALSE
   else{
+    verbose <- usr_args[["verbose"]]
     if(!is(verbose, "logical")) stop("Argument verbose must be logical")
-    else verbose <- usr_args[["verbose"]]
   }
   
   if(!is(object, "flexBART")){
