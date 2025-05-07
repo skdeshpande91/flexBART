@@ -1,11 +1,14 @@
 predict.flexBART <- function(object, newdata,
-                             verbose = FALSE, print_every = 50)
+                             verbose = FALSE)
 {
 
   # validate fit; it should be class flexBART_fit
   if(!"flexBART" %in% class(object)){
     stop("object must be of class 'flexBART'.")
   }
+  if(is.null(object$trees)) stop("No trees provided!")
+  nd <- length(object$trees)
+  print_every <- floor(nd/10)
 
   n <- nrow(newdata)
   cov_ensm <- object[["cov_ensm"]]

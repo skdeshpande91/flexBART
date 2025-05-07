@@ -19,7 +19,7 @@ probit_flexBART(formula, train_data, test_data = NULL,...)
   As usual, rows (resp. columns) correspond to observations (resp. variables)}
   \item{test_data}{an optional object of class \code{data.frame} containing test-set (i.e., out-of-sample) data. 
   Default is \code{NULL}.}
-  \item{...}{additional arguments to be passed to the low-level model fitting function (see below)}
+  \item{\dots}{additional arguments to be passed to the low-level model fitting function (see below)}
 }
 \details{
 Implements the Albert & Chib (1993) data augmentation strategy for probit regression and models the regression function with a sum-of-trees.

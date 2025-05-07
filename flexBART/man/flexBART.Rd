@@ -23,7 +23,7 @@ flexBART(formula, train_data, test_data = NULL, inform_sigma = TRUE, ...)
   Default is \code{NULL}.}
   \item{inform_sigma}{a logical value for whether the residual variance 
   should be initialized using regularized regression (\code{inform_sigm=TRUE}) or not (\code{inform_sigma=FALSE}). Default is \code{TRUE}.}
-  \item{...}{additional arguments to be passed to the low-level model fitting function (see below)}
+  \item{\dots}{additional arguments to be passed to the low-level model fitting function (see below)}
 }
 \details{
 Default implementations of Bayesian Additive Regression Trees (BART) represent categorical predictors 
