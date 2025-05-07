@@ -1,4 +1,4 @@
-#include "update_tree_fast.h"
+#include "update_tree.h"
 
 void compute_jump_posterior_single(std::map<int, jump_post> &jp_map, suff_stat &ss, double &sigma, data_info &di, tree_prior_info &tree_pi)
 {

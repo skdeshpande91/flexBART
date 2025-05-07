@@ -13,8 +13,9 @@ source("../flexBART/R/get_sigma.R")
 sourceCpp("../flexBART/src/single_ensm_fit.cpp")
 sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
 sourceCpp("../flexBART/src/rescale_beta.cpp")
-
+sourceCpp("../flexBART/src/predict_flexBART.cpp")
 source("../flexBART/R/flexBART.R")
+source("../flexBART/R/predict_flexBART.R")
 
 
 source("generate_friedman_data.R")

@@ -32,8 +32,6 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   // BEGIN: get dimensions of training data
   int n_train = Y_train.size(); // how many training observations
   int R = cov_ensm.cols();// or could hardcode to 1
-  //int R = tZ_train.rows(); // how many ensembles
-  //if(R != 1) Rcpp::stop("[flexBART_fit]: this function assumes R = 1");
   int p_cont = 0;
   int p_cat = 0;
   if(tX_cont_train.size() > 1) p_cont = tX_cont_train.rows();

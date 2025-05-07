@@ -195,7 +195,6 @@ Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
   // END: create output containers
   
   
-  int r = 0;
   for(int iter = 0; iter < burn; ++iter){
     if(iter == 0) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Warmup" << std::endl;
     else if( iter % print_every == 0 ){

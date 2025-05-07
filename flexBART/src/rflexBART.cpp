@@ -55,7 +55,6 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   // BEGIN: create splitting probabilities
   // declare stuff for variable selection
   std::vector<double> theta(p, 1.0/ (double) p);
-  double u = 1.0/(1.0 + (double) p);
   std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
   int rule_count = 0; // how many total decision rules are there in the ensemble
   // END: create splitting probabilities
@@ -111,7 +110,6 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   
   tree t;
   suff_stat ss;
-  double tmp_mu;
   
   for(int iter = 0; iter < nd; ++iter){
     if(verbose && iter % print_every == 0) Rcpp::Rcout << "  Drawing tree " << iter+1 << " of " << nd << std::endl;

@@ -357,9 +357,9 @@ flexBART <- function(formula,
       }
     }
   }
-  results[["initial_sigma"]] <- sigest
+  #results[["initial_sigma"]] <- sigest
   results[["sigma"]] <- sigma_samples * y_sd
-  results[["all_sigma"]] <- all_sigma * y_sd
+  #results[["all_sigma"]] <- all_sigma * y_sd
   results[["varcounts"]] <- varcounts_samples
   results[["timing"]] <- timing
   class(results) <- c(class(results), "flexBART")

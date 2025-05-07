@@ -7,7 +7,7 @@ new_flexBART_control <- function()
   out["nd"] <- 1000L
   out["burn"] <- 1000L
   out["thin"] <- 1L
-  out["n.chains"] <- 1L
+  out["n.chains"] <- 4L
   out["n.cores"] <- 1L
   out["save_samples"] <- TRUE
   out["save_trees"] <- TRUE
