@@ -9,11 +9,13 @@ source("../flexBART/R/prepare_data.R")
 source("../flexBART/R/parse_controls.R")
 source("../flexBART/R/parse_hyper.R")
 source("../flexBART/R/get_sigma.R")
-source("../flexBART/R/flexBART.R")
 
 sourceCpp("../flexBART/src/single_ensm_fit.cpp")
 sourceCpp("../flexBART/src/multi_ensm_fit.cpp")
 sourceCpp("../flexBART/src/rescale_beta.cpp")
+
+source("../flexBART/R/flexBART.R")
+
 
 source("generate_friedman_data.R")
 

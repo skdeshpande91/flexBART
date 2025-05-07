@@ -317,21 +317,19 @@ flexBART <- function(formula,
       }
     }
   }
-  
-  fit_out <- new_flexBART_fit()
-  fit_out[["dinfo"]] <- tmp_data$data_info
-  if(control$save_trees) fit_out[["trees"]] <- tree_list
-  fit_out[["is.probit"]] <- FALSE
-  fit_out[["scaling_info"]] <-
-    list(y_mean = y_mean, y_sd = y_sd, 
-         z_mean = z_mean, z_sd = z_sd,
-         z_col_id = z_col_id)
-  fit_out[["M"]] <- hyper$M_vec
-  fit_out[["cov_ensm"]] <- cov_ensm
-  validate_flexBART_fit(fit_out)
  
   results <- list()
-  results[["fit"]] <- fit_out # this contains everything needed for predict
+  results[["dinfo"]] <- tmp_data$data_info
+  if(control$save_trees) results[["trees"]] <- tree_list
+  results[["scaling_info"]] <- 
+    list(y_mean = y_mean, y_sd = y_sd,
+         z_mean = z_mean, z_sd = z_sd,
+         z_col_id = z_col_id)
+  results[["M"]] <- hyper$M_vec
+  results[["cov_ensm"]] <- cov_ensm
+  
+  results[["is.probit"]] <- FALSE
+  
   results[["yhat.train.mean"]] <- yhat_train_mean
   if(R > 1){
     results[["beta.train.mean"]] <- beta_train_mean
@@ -364,9 +362,7 @@ flexBART <- function(formula,
   results[["all_sigma"]] <- all_sigma * y_sd
   results[["varcounts"]] <- varcounts_samples
   results[["timing"]] <- timing
-
-  
-  
+  class(results) <- c(class(results), "flexBART")
   return(results)
   
 }

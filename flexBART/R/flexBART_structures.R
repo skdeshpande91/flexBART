@@ -139,28 +139,3 @@ validate_flexBART_data_info <- function(dinfo)
   # check that cat_mapping_list has exactly p_cat elements
 }
 
-
-new_flexBART_fit <- function()
-{
-  out <- list()
-  out["dinfo"] <- list(NULL)
-  out["trees"] <- list(NULL)
-  out["is.probit"] <- list(NULL)
-  out["scaling_info"] <- list(NULL)
-  out["M"] <- list(NULL)
-  out["cov_ensm"] <- list(NULL)
-
-  structure(out, class = "flexBART_fit")
-}
-validate_flexBART_fit <- function(fit)
-{
-  exp_names <- c("dinfo", "trees", "is.probit",
-                 "scaling_info", "M", "cov_ensm")
-  x_uncl <- unclass(fit)
-  if(!identical(sort(names(x_uncl)), sort(exp_names))){
-    stop("[validate_flexBART_fit]: fit does not have valid names")
-  }
-  
-  # for probit, we don't really need y_mean or y_sd to be set and until we get
-  # multiple ensemble probit working, no need to 
-}

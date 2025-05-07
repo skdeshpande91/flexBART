@@ -35,13 +35,25 @@ source("../flexBART/R/parse_hyper.R")
 source("../flexBART/R/get_sigma.R")
 
 sourceCpp("../flexBART/src/single_ensm_probit.cpp")
+sourceCpp("../flexBART/src/predict_flexBART.cpp")
 source("../flexBART/R/probit_flexBART.R")
+source("../flexBART/R/predict_flexBART.R")
 
 flex_fit <-
   probit_flexBART(formula = Y~bart(.),
                   train_data = train_data, 
                   test_data = test_data,
                   n.chains = 4, M = 50)
+phat_train <-
+  predict(object = flex_fit, newdata = train_data, 
+          verbose = TRUE, print_every = 400)
+
+range(phat_train - flex_fit$prob.train)
+
+phat_test <-
+  predict(object = flex_fit, newdata = test_data, 
+          verbose = TRUE, print_every = 400)
+range(phat_test - flex_fit$prob.test)
 
 plot(prob_test, flex_fit$prob.test.mean, pch = 16, cex = 0.5,
      xlab = "Actual", ylab = "Predicted")

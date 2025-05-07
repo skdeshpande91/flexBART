@@ -2,7 +2,7 @@ Package: flexBART
 Type: Package
 Title: A More Flexible BART Model
 Version: 2.0.0
-Date: 2025-05-01
+Date: 2025-05-07
 Authors@R: c(
   person(given = "Sameer K.", family = "Deshpande", role = c("aut", "cre"), email = "sameer.deshpande@wisc.edu"),
   person(given = "Cecilia", family = "Balocchi", role = c("aut"), email = "cecilia.balocchi@ed.ac.uk"),

@@ -3,11 +3,10 @@ predict.flexBART <- function(object, newdata,
 {
 
   # validate fit; it should be class flexBART_fit
-  if(class(object) != "flexBART_fit"){
-    stop("object must be of class 'flexBART_fit'. If using output of flexBART or probit_flexBART, pass only the element named 'fit' ")
+  if(!"flexBART" %in% class(object)){
+    stop("object must be of class 'flexBART'.")
   }
-  validate_flexBART_fit(object)
-  
+
   n <- nrow(newdata)
   cov_ensm <- object[["cov_ensm"]]
   R <- ncol(cov_ensm)

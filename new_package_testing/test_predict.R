@@ -30,14 +30,14 @@ flex_fit <-
            n.chains = 4)
 
 yhat_train <-
-  predict.flexBART(object = flex_fit$fit,
+  predict.flexBART(object = flex_fit,
                    newdata = friedman_train,
                    verbose = TRUE, print_every = 400)
 
 range(yhat_train - flex_fit$yhat.train)
 
 yhat_test <-
-  predict.flexBART(object = flex_fit$fit,
+  predict.flexBART(object = flex_fit,
                    newdata = friedman_test,
                    verbose = TRUE, print_every = 400)
 range(yhat_test - flex_fit$yhat.test)

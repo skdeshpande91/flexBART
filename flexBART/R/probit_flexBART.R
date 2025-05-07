@@ -197,15 +197,21 @@ probit_flexBART <- function(formula,
     
   }
   results <- list()
+  results[["dinfo"]] <- tmp_data$data_info
+  results[["M"]] <- hyper$M_vec
+  results[["is.probit"]] <- TRUE
+  results[["cov_ensm"]] <- cov_ensm
+  if(control$save_trees) results[["trees"]] <- tree_list
+
   results[["prob.train.mean"]] <- prob_train_mean
   if(control$save_samples) results[["prob.train"]] <- prob_train_samples
   if(n_test > 0){
     results[["prob.test.mean"]] <- prob_test_mean
-    if(control$save_samples) results[["prob.test"]] <- prob_test
+    if(control$save_samples) results[["prob.test"]] <- prob_test_samples
   }
   results[["varcounts"]] <- varcounts_samples
   results[["timing"]] <- timing
   if(control$save_trees) results[["trees"]] <- tree_list 
-  
+  class(results) <- c(class(results), "flexBART")
   return(results)
 }
