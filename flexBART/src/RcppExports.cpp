@@ -11,31 +11,52 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// flexBART_fit
-Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train, Rcpp::NumericMatrix tX_cont_train, Rcpp::IntegerMatrix tX_cat_train, Rcpp::NumericMatrix tX_cont_test, Rcpp::IntegerMatrix tX_cat_test, Rcpp::LogicalVector unif_cuts, Rcpp::Nullable<Rcpp::List> cutpoints_list, Rcpp::Nullable<Rcpp::List> cat_levels_list, Rcpp::Nullable<Rcpp::List> edge_mat_list, Rcpp::LogicalVector graph_split, int graph_cut_type, bool sparse, double a_u, double b_u, double mu0, double tau, double lambda, double nu, int M, int nd, int burn, int thin, bool save_samples, bool save_trees, bool verbose, int print_every);
-RcppExport SEXP _flexBART_flexBART_fit(SEXP Y_trainSEXP, SEXP tX_cont_trainSEXP, SEXP tX_cat_trainSEXP, SEXP tX_cont_testSEXP, SEXP tX_cat_testSEXP, SEXP unif_cutsSEXP, SEXP cutpoints_listSEXP, SEXP cat_levels_listSEXP, SEXP edge_mat_listSEXP, SEXP graph_splitSEXP, SEXP graph_cut_typeSEXP, SEXP sparseSEXP, SEXP a_uSEXP, SEXP b_uSEXP, SEXP mu0SEXP, SEXP tauSEXP, SEXP lambdaSEXP, SEXP nuSEXP, SEXP MSEXP, SEXP ndSEXP, SEXP burnSEXP, SEXP thinSEXP, SEXP save_samplesSEXP, SEXP save_treesSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
+// detect_nesting
+Rcpp::List detect_nesting(arma::mat X_cat, Rcpp::IntegerVector K, int p_cont);
+RcppExport SEXP _flexBART_detect_nesting(SEXP X_catSEXP, SEXP KSEXP, SEXP p_contSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type X_cat(X_catSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type K(KSEXP);
+    Rcpp::traits::input_parameter< int >::type p_cont(p_contSEXP);
+    rcpp_result_gen = Rcpp::wrap(detect_nesting(X_cat, K, p_cont));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vcbart_fit
+Rcpp::List vcbart_fit(Rcpp::NumericVector Y_train, Rcpp::IntegerMatrix cov_ensm, Rcpp::NumericMatrix tZ_train, Rcpp::NumericMatrix tX_cont_train, Rcpp::IntegerMatrix tX_cat_train, Rcpp::NumericMatrix tZ_test, Rcpp::NumericMatrix tX_cont_test, Rcpp::IntegerMatrix tX_cat_test, Rcpp::Nullable<Rcpp::List> cutpoints_list, Rcpp::Nullable<Rcpp::List> cat_levels_list, Rcpp::Nullable<Rcpp::List> edge_mat_list, Rcpp::Nullable<Rcpp::List> nest_list, int graph_cut_type, bool sparse, double a_u, double b_u, bool nest_v, int nest_v_option, bool nest_c, Rcpp::IntegerVector M_vec, Rcpp::NumericVector alpha_vec, Rcpp::NumericVector beta_vec, Rcpp::NumericVector mu0_vec, Rcpp::NumericVector tau_vec, double sigest, double nu, double lambda, int nd, int burn, int thin, bool save_samples, bool save_trees, bool verbose, int print_every);
+RcppExport SEXP _flexBART_vcbart_fit(SEXP Y_trainSEXP, SEXP cov_ensmSEXP, SEXP tZ_trainSEXP, SEXP tX_cont_trainSEXP, SEXP tX_cat_trainSEXP, SEXP tZ_testSEXP, SEXP tX_cont_testSEXP, SEXP tX_cat_testSEXP, SEXP cutpoints_listSEXP, SEXP cat_levels_listSEXP, SEXP edge_mat_listSEXP, SEXP nest_listSEXP, SEXP graph_cut_typeSEXP, SEXP sparseSEXP, SEXP a_uSEXP, SEXP b_uSEXP, SEXP nest_vSEXP, SEXP nest_v_optionSEXP, SEXP nest_cSEXP, SEXP M_vecSEXP, SEXP alpha_vecSEXP, SEXP beta_vecSEXP, SEXP mu0_vecSEXP, SEXP tau_vecSEXP, SEXP sigestSEXP, SEXP nuSEXP, SEXP lambdaSEXP, SEXP ndSEXP, SEXP burnSEXP, SEXP thinSEXP, SEXP save_samplesSEXP, SEXP save_treesSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Y_train(Y_trainSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type cov_ensm(cov_ensmSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tZ_train(tZ_trainSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont_train(tX_cont_trainSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat_train(tX_cat_trainSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tZ_test(tZ_testSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont_test(tX_cont_testSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat_test(tX_cat_testSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type unif_cuts(unif_cutsSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cutpoints_list(cutpoints_listSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cat_levels_list(cat_levels_listSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type edge_mat_list(edge_mat_listSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type graph_split(graph_splitSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type nest_list(nest_listSEXP);
     Rcpp::traits::input_parameter< int >::type graph_cut_type(graph_cut_typeSEXP);
     Rcpp::traits::input_parameter< bool >::type sparse(sparseSEXP);
     Rcpp::traits::input_parameter< double >::type a_u(a_uSEXP);
     Rcpp::traits::input_parameter< double >::type b_u(b_uSEXP);
-    Rcpp::traits::input_parameter< double >::type mu0(mu0SEXP);
-    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< bool >::type nest_v(nest_vSEXP);
+    Rcpp::traits::input_parameter< int >::type nest_v_option(nest_v_optionSEXP);
+    Rcpp::traits::input_parameter< bool >::type nest_c(nest_cSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type M_vec(M_vecSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type alpha_vec(alpha_vecSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type beta_vec(beta_vecSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mu0_vec(mu0_vecSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type tau_vec(tau_vecSEXP);
+    Rcpp::traits::input_parameter< double >::type sigest(sigestSEXP);
     Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
-    Rcpp::traits::input_parameter< int >::type M(MSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
     Rcpp::traits::input_parameter< int >::type nd(ndSEXP);
     Rcpp::traits::input_parameter< int >::type burn(burnSEXP);
     Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
@@ -43,49 +64,133 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type save_trees(save_treesSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
-    rcpp_result_gen = Rcpp::wrap(flexBART_fit(Y_train, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, sparse, a_u, b_u, mu0, tau, lambda, nu, M, nd, burn, thin, save_samples, save_trees, verbose, print_every));
+    rcpp_result_gen = Rcpp::wrap(vcbart_fit(Y_train, cov_ensm, tZ_train, tX_cont_train, tX_cat_train, tZ_test, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M_vec, alpha_vec, beta_vec, mu0_vec, tau_vec, sigest, nu, lambda, nd, burn, thin, save_samples, save_trees, verbose, print_every));
     return rcpp_result_gen;
 END_RCPP
 }
-// predict_flexBART
-Rcpp::NumericMatrix predict_flexBART(Rcpp::List tree_draws, Rcpp::NumericMatrix tX_cont, Rcpp::IntegerMatrix tX_cat, bool probit, bool verbose, int print_every);
-RcppExport SEXP _flexBART_predict_flexBART(SEXP tree_drawsSEXP, SEXP tX_contSEXP, SEXP tX_catSEXP, SEXP probitSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
+// single_predict
+Rcpp::NumericMatrix single_predict(Rcpp::List tree_draws, Rcpp::NumericMatrix tX_cont, Rcpp::IntegerMatrix tX_cat, int M, bool probit, bool verbose, int print_every);
+RcppExport SEXP _flexBART_single_predict(SEXP tree_drawsSEXP, SEXP tX_contSEXP, SEXP tX_catSEXP, SEXP MSEXP, SEXP probitSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::List >::type tree_draws(tree_drawsSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont(tX_contSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat(tX_catSEXP);
+    Rcpp::traits::input_parameter< int >::type M(MSEXP);
     Rcpp::traits::input_parameter< bool >::type probit(probitSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
-    rcpp_result_gen = Rcpp::wrap(predict_flexBART(tree_draws, tX_cont, tX_cat, probit, verbose, print_every));
+    rcpp_result_gen = Rcpp::wrap(single_predict(tree_draws, tX_cont, tX_cat, M, probit, verbose, print_every));
     return rcpp_result_gen;
 END_RCPP
 }
-// probit_flexBART_fit
-Rcpp::List probit_flexBART_fit(Rcpp::IntegerVector Y_train, Rcpp::NumericMatrix tX_cont_train, Rcpp::IntegerMatrix tX_cat_train, Rcpp::NumericMatrix tX_cont_test, Rcpp::IntegerMatrix tX_cat_test, Rcpp::LogicalVector unif_cuts, Rcpp::Nullable<Rcpp::List> cutpoints_list, Rcpp::Nullable<Rcpp::List> cat_levels_list, Rcpp::Nullable<Rcpp::List> edge_mat_list, Rcpp::LogicalVector graph_split, int graph_cut_type, bool sparse, double a_u, double b_u, double mu0, double tau, int M, int nd, int burn, int thin, bool save_samples, bool save_trees, bool verbose, int print_every);
-RcppExport SEXP _flexBART_probit_flexBART_fit(SEXP Y_trainSEXP, SEXP tX_cont_trainSEXP, SEXP tX_cat_trainSEXP, SEXP tX_cont_testSEXP, SEXP tX_cat_testSEXP, SEXP unif_cutsSEXP, SEXP cutpoints_listSEXP, SEXP cat_levels_listSEXP, SEXP edge_mat_listSEXP, SEXP graph_splitSEXP, SEXP graph_cut_typeSEXP, SEXP sparseSEXP, SEXP a_uSEXP, SEXP b_uSEXP, SEXP mu0SEXP, SEXP tauSEXP, SEXP MSEXP, SEXP ndSEXP, SEXP burnSEXP, SEXP thinSEXP, SEXP save_samplesSEXP, SEXP save_treesSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
+// multi_predict
+Rcpp::List multi_predict(Rcpp::List tree_draws, Rcpp::NumericMatrix tZ, Rcpp::NumericMatrix tX_cont, Rcpp::IntegerMatrix tX_cat, Rcpp::IntegerVector M_vec, bool verbose, int print_every);
+RcppExport SEXP _flexBART_multi_predict(SEXP tree_drawsSEXP, SEXP tZSEXP, SEXP tX_contSEXP, SEXP tX_catSEXP, SEXP M_vecSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type Y_train(Y_trainSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type tree_draws(tree_drawsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tZ(tZSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont(tX_contSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat(tX_catSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type M_vec(M_vecSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
+    rcpp_result_gen = Rcpp::wrap(multi_predict(tree_draws, tZ, tX_cont, tX_cat, M_vec, verbose, print_every));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rescale_beta_mean
+arma::mat rescale_beta_mean(arma::mat beta_input, double y_mean, double y_sd, Rcpp::NumericVector z_mean, Rcpp::NumericVector z_sd, Rcpp::IntegerVector z_col_id);
+RcppExport SEXP _flexBART_rescale_beta_mean(SEXP beta_inputSEXP, SEXP y_meanSEXP, SEXP y_sdSEXP, SEXP z_meanSEXP, SEXP z_sdSEXP, SEXP z_col_idSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type beta_input(beta_inputSEXP);
+    Rcpp::traits::input_parameter< double >::type y_mean(y_meanSEXP);
+    Rcpp::traits::input_parameter< double >::type y_sd(y_sdSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type z_mean(z_meanSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type z_sd(z_sdSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type z_col_id(z_col_idSEXP);
+    rcpp_result_gen = Rcpp::wrap(rescale_beta_mean(beta_input, y_mean, y_sd, z_mean, z_sd, z_col_id));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rescale_beta
+arma::cube rescale_beta(arma::cube beta_input, double y_mean, double y_sd, Rcpp::NumericVector z_mean, Rcpp::NumericVector z_sd, Rcpp::IntegerVector z_col_id);
+RcppExport SEXP _flexBART_rescale_beta(SEXP beta_inputSEXP, SEXP y_meanSEXP, SEXP y_sdSEXP, SEXP z_meanSEXP, SEXP z_sdSEXP, SEXP z_col_idSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::cube >::type beta_input(beta_inputSEXP);
+    Rcpp::traits::input_parameter< double >::type y_mean(y_meanSEXP);
+    Rcpp::traits::input_parameter< double >::type y_sd(y_sdSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type z_mean(z_meanSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type z_sd(z_sdSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type z_col_id(z_col_idSEXP);
+    rcpp_result_gen = Rcpp::wrap(rescale_beta(beta_input, y_mean, y_sd, z_mean, z_sd, z_col_id));
+    return rcpp_result_gen;
+END_RCPP
+}
+// drawTree
+Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont, Rcpp::IntegerMatrix tX_cat, Rcpp::IntegerMatrix cov_ensm, Rcpp::Nullable<Rcpp::List> cutpoints_list, Rcpp::Nullable<Rcpp::List> cat_levels_list, Rcpp::Nullable<Rcpp::List> edge_mat_list, Rcpp::Nullable<Rcpp::List> nest_list, int graph_cut_type, bool nest_v, int nest_v_option, bool nest_c, double alpha, double beta, int nd, bool verbose, int print_every);
+RcppExport SEXP _flexBART_drawTree(SEXP tX_contSEXP, SEXP tX_catSEXP, SEXP cov_ensmSEXP, SEXP cutpoints_listSEXP, SEXP cat_levels_listSEXP, SEXP edge_mat_listSEXP, SEXP nest_listSEXP, SEXP graph_cut_typeSEXP, SEXP nest_vSEXP, SEXP nest_v_optionSEXP, SEXP nest_cSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP ndSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont(tX_contSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat(tX_catSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type cov_ensm(cov_ensmSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cutpoints_list(cutpoints_listSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cat_levels_list(cat_levels_listSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type edge_mat_list(edge_mat_listSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type nest_list(nest_listSEXP);
+    Rcpp::traits::input_parameter< int >::type graph_cut_type(graph_cut_typeSEXP);
+    Rcpp::traits::input_parameter< bool >::type nest_v(nest_vSEXP);
+    Rcpp::traits::input_parameter< int >::type nest_v_option(nest_v_optionSEXP);
+    Rcpp::traits::input_parameter< bool >::type nest_c(nest_cSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< int >::type nd(ndSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
+    rcpp_result_gen = Rcpp::wrap(drawTree(tX_cont, tX_cat, cov_ensm, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, nest_v, nest_v_option, nest_c, alpha, beta, nd, verbose, print_every));
+    return rcpp_result_gen;
+END_RCPP
+}
+// flexBART_fit
+Rcpp::List flexBART_fit(Rcpp::NumericVector Y_train, Rcpp::IntegerMatrix cov_ensm, Rcpp::NumericMatrix tX_cont_train, Rcpp::IntegerMatrix tX_cat_train, Rcpp::NumericMatrix tX_cont_test, Rcpp::IntegerMatrix tX_cat_test, Rcpp::Nullable<Rcpp::List> cutpoints_list, Rcpp::Nullable<Rcpp::List> cat_levels_list, Rcpp::Nullable<Rcpp::List> edge_mat_list, Rcpp::Nullable<Rcpp::List> nest_list, int graph_cut_type, bool sparse, double a_u, double b_u, bool nest_v, int nest_v_option, bool nest_c, int M, double alpha, double beta, double mu0, double tau, double sigest, double nu, double lambda, int nd, int burn, int thin, bool save_samples, bool save_trees, bool verbose, int print_every);
+RcppExport SEXP _flexBART_flexBART_fit(SEXP Y_trainSEXP, SEXP cov_ensmSEXP, SEXP tX_cont_trainSEXP, SEXP tX_cat_trainSEXP, SEXP tX_cont_testSEXP, SEXP tX_cat_testSEXP, SEXP cutpoints_listSEXP, SEXP cat_levels_listSEXP, SEXP edge_mat_listSEXP, SEXP nest_listSEXP, SEXP graph_cut_typeSEXP, SEXP sparseSEXP, SEXP a_uSEXP, SEXP b_uSEXP, SEXP nest_vSEXP, SEXP nest_v_optionSEXP, SEXP nest_cSEXP, SEXP MSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP mu0SEXP, SEXP tauSEXP, SEXP sigestSEXP, SEXP nuSEXP, SEXP lambdaSEXP, SEXP ndSEXP, SEXP burnSEXP, SEXP thinSEXP, SEXP save_samplesSEXP, SEXP save_treesSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Y_train(Y_trainSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type cov_ensm(cov_ensmSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont_train(tX_cont_trainSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat_train(tX_cat_trainSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont_test(tX_cont_testSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat_test(tX_cat_testSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type unif_cuts(unif_cutsSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cutpoints_list(cutpoints_listSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cat_levels_list(cat_levels_listSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type edge_mat_list(edge_mat_listSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type graph_split(graph_splitSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type nest_list(nest_listSEXP);
     Rcpp::traits::input_parameter< int >::type graph_cut_type(graph_cut_typeSEXP);
     Rcpp::traits::input_parameter< bool >::type sparse(sparseSEXP);
     Rcpp::traits::input_parameter< double >::type a_u(a_uSEXP);
     Rcpp::traits::input_parameter< double >::type b_u(b_uSEXP);
+    Rcpp::traits::input_parameter< bool >::type nest_v(nest_vSEXP);
+    Rcpp::traits::input_parameter< int >::type nest_v_option(nest_v_optionSEXP);
+    Rcpp::traits::input_parameter< bool >::type nest_c(nest_cSEXP);
+    Rcpp::traits::input_parameter< int >::type M(MSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type beta(betaSEXP);
     Rcpp::traits::input_parameter< double >::type mu0(mu0SEXP);
     Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< int >::type M(MSEXP);
+    Rcpp::traits::input_parameter< double >::type sigest(sigestSEXP);
+    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
     Rcpp::traits::input_parameter< int >::type nd(ndSEXP);
     Rcpp::traits::input_parameter< int >::type burn(burnSEXP);
     Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
@@ -93,54 +198,60 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type save_trees(save_treesSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
-    rcpp_result_gen = Rcpp::wrap(probit_flexBART_fit(Y_train, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, sparse, a_u, b_u, mu0, tau, M, nd, burn, thin, save_samples, save_trees, verbose, print_every));
+    rcpp_result_gen = Rcpp::wrap(flexBART_fit(Y_train, cov_ensm, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M, alpha, beta, mu0, tau, sigest, nu, lambda, nd, burn, thin, save_samples, save_trees, verbose, print_every));
     return rcpp_result_gen;
 END_RCPP
 }
-// drawEnsemble
-Rcpp::List drawEnsemble(Rcpp::NumericMatrix tX_cont, Rcpp::IntegerMatrix tX_cat, Rcpp::LogicalVector unif_cuts, Rcpp::Nullable<Rcpp::List> cutpoints_list, Rcpp::Nullable<Rcpp::List> cat_levels_list, Rcpp::Nullable<Rcpp::List> edge_mat_list, Rcpp::LogicalVector graph_split, int graph_cut_type, double alpha, double beta, double mu0, double tau, int M, bool verbose, int print_every);
-RcppExport SEXP _flexBART_drawEnsemble(SEXP tX_contSEXP, SEXP tX_catSEXP, SEXP unif_cutsSEXP, SEXP cutpoints_listSEXP, SEXP cat_levels_listSEXP, SEXP edge_mat_listSEXP, SEXP graph_splitSEXP, SEXP graph_cut_typeSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP mu0SEXP, SEXP tauSEXP, SEXP MSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
+// flexBART_fit
+Rcpp::List flexBART_fit(Rcpp::IntegerVector Y_train, Rcpp::IntegerMatrix cov_ensm, Rcpp::NumericMatrix tX_cont_train, Rcpp::IntegerMatrix tX_cat_train, Rcpp::NumericMatrix tX_cont_test, Rcpp::IntegerMatrix tX_cat_test, Rcpp::Nullable<Rcpp::List> cutpoints_list, Rcpp::Nullable<Rcpp::List> cat_levels_list, Rcpp::Nullable<Rcpp::List> edge_mat_list, Rcpp::Nullable<Rcpp::List> nest_list, int graph_cut_type, bool sparse, double a_u, double b_u, bool nest_v, int nest_v_option, bool nest_c, int M, double alpha, double beta, double mu0, double tau, int nd, int burn, int thin, bool save_samples, bool save_trees, bool verbose, int print_every);
+RcppExport SEXP _flexBART_flexBART_fit(SEXP Y_trainSEXP, SEXP cov_ensmSEXP, SEXP tX_cont_trainSEXP, SEXP tX_cat_trainSEXP, SEXP tX_cont_testSEXP, SEXP tX_cat_testSEXP, SEXP cutpoints_listSEXP, SEXP cat_levels_listSEXP, SEXP edge_mat_listSEXP, SEXP nest_listSEXP, SEXP graph_cut_typeSEXP, SEXP sparseSEXP, SEXP a_uSEXP, SEXP b_uSEXP, SEXP nest_vSEXP, SEXP nest_v_optionSEXP, SEXP nest_cSEXP, SEXP MSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP mu0SEXP, SEXP tauSEXP, SEXP ndSEXP, SEXP burnSEXP, SEXP thinSEXP, SEXP save_samplesSEXP, SEXP save_treesSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont(tX_contSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat(tX_catSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type unif_cuts(unif_cutsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type Y_train(Y_trainSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type cov_ensm(cov_ensmSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont_train(tX_cont_trainSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat_train(tX_cat_trainSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type tX_cont_test(tX_cont_testSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type tX_cat_test(tX_cat_testSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cutpoints_list(cutpoints_listSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cat_levels_list(cat_levels_listSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type edge_mat_list(edge_mat_listSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type graph_split(graph_splitSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type nest_list(nest_listSEXP);
     Rcpp::traits::input_parameter< int >::type graph_cut_type(graph_cut_typeSEXP);
+    Rcpp::traits::input_parameter< bool >::type sparse(sparseSEXP);
+    Rcpp::traits::input_parameter< double >::type a_u(a_uSEXP);
+    Rcpp::traits::input_parameter< double >::type b_u(b_uSEXP);
+    Rcpp::traits::input_parameter< bool >::type nest_v(nest_vSEXP);
+    Rcpp::traits::input_parameter< int >::type nest_v_option(nest_v_optionSEXP);
+    Rcpp::traits::input_parameter< bool >::type nest_c(nest_cSEXP);
+    Rcpp::traits::input_parameter< int >::type M(MSEXP);
     Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
     Rcpp::traits::input_parameter< double >::type beta(betaSEXP);
     Rcpp::traits::input_parameter< double >::type mu0(mu0SEXP);
     Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< int >::type M(MSEXP);
+    Rcpp::traits::input_parameter< int >::type nd(ndSEXP);
+    Rcpp::traits::input_parameter< int >::type burn(burnSEXP);
+    Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
+    Rcpp::traits::input_parameter< bool >::type save_samples(save_samplesSEXP);
+    Rcpp::traits::input_parameter< bool >::type save_trees(save_treesSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
-    rcpp_result_gen = Rcpp::wrap(drawEnsemble(tX_cont, tX_cat, unif_cuts, cutpoints_list, cat_levels_list, edge_mat_list, graph_split, graph_cut_type, alpha, beta, mu0, tau, M, verbose, print_every));
-    return rcpp_result_gen;
-END_RCPP
-}
-// summarize_post_pred
-Rcpp::NumericMatrix summarize_post_pred(Rcpp::NumericMatrix fit_samples, Rcpp::NumericVector sigma_samples);
-RcppExport SEXP _flexBART_summarize_post_pred(SEXP fit_samplesSEXP, SEXP sigma_samplesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type fit_samples(fit_samplesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sigma_samples(sigma_samplesSEXP);
-    rcpp_result_gen = Rcpp::wrap(summarize_post_pred(fit_samples, sigma_samples));
+    rcpp_result_gen = Rcpp::wrap(flexBART_fit(Y_train, cov_ensm, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M, alpha, beta, mu0, tau, nd, burn, thin, save_samples, save_trees, verbose, print_every));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_flexBART_flexBART_fit", (DL_FUNC) &_flexBART_flexBART_fit, 26},
-    {"_flexBART_predict_flexBART", (DL_FUNC) &_flexBART_predict_flexBART, 6},
-    {"_flexBART_probit_flexBART_fit", (DL_FUNC) &_flexBART_probit_flexBART_fit, 24},
-    {"_flexBART_drawEnsemble", (DL_FUNC) &_flexBART_drawEnsemble, 15},
-    {"_flexBART_summarize_post_pred", (DL_FUNC) &_flexBART_summarize_post_pred, 2},
+    {"_flexBART_detect_nesting", (DL_FUNC) &_flexBART_detect_nesting, 3},
+    {"_flexBART_vcbart_fit", (DL_FUNC) &_flexBART_vcbart_fit, 34},
+    {"_flexBART_single_predict", (DL_FUNC) &_flexBART_single_predict, 7},
+    {"_flexBART_multi_predict", (DL_FUNC) &_flexBART_multi_predict, 7},
+    {"_flexBART_rescale_beta_mean", (DL_FUNC) &_flexBART_rescale_beta_mean, 6},
+    {"_flexBART_rescale_beta", (DL_FUNC) &_flexBART_rescale_beta, 6},
+    {"_flexBART_drawTree", (DL_FUNC) &_flexBART_drawTree, 16},
+    {"_flexBART_flexBART_fit", (DL_FUNC) &_flexBART_flexBART_fit, 32},
+    {"_flexBART_flexBART_fit", (DL_FUNC) &_flexBART_flexBART_fit, 29},
     {NULL, NULL, 0}
 };
 

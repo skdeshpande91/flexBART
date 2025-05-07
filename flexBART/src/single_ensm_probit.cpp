@@ -1,27 +1,27 @@
-#include "update_tree_fast.h"
+#include "update_tree.h"
 #include "data_parsing_funs.h"
 #include "funs.h"
 // [[Rcpp::export(".single_fit_probit")]]
-Rcpp::List flexBART_fit(Rcpp::IntegerVector Y_train,
-                        Rcpp::IntegerMatrix cov_ensm,
-                        Rcpp::NumericMatrix tX_cont_train,
-                        Rcpp::IntegerMatrix tX_cat_train,
-                        Rcpp::NumericMatrix tX_cont_test,
-                        Rcpp::IntegerMatrix tX_cat_test,
-                        Rcpp::Nullable<Rcpp::List> cutpoints_list,
-                        Rcpp::Nullable<Rcpp::List> cat_levels_list,
-                        Rcpp::Nullable<Rcpp::List> edge_mat_list,
-                        Rcpp::Nullable<Rcpp::List> nest_list,
-                        int graph_cut_type,
-                        bool sparse, double a_u, double b_u,
-                        bool nest_v, int nest_v_option, bool nest_c,
-                        int M,
-                        double alpha, double beta,
-                        double mu0, double tau,
-                        int nd, int burn, int thin,
-                        bool save_samples,
-                        bool save_trees,
-                        bool verbose, int print_every)
+Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
+                             Rcpp::IntegerMatrix cov_ensm,
+                             Rcpp::NumericMatrix tX_cont_train,
+                             Rcpp::IntegerMatrix tX_cat_train,
+                             Rcpp::NumericMatrix tX_cont_test,
+                             Rcpp::IntegerMatrix tX_cat_test,
+                             Rcpp::Nullable<Rcpp::List> cutpoints_list,
+                             Rcpp::Nullable<Rcpp::List> cat_levels_list,
+                             Rcpp::Nullable<Rcpp::List> edge_mat_list,
+                             Rcpp::Nullable<Rcpp::List> nest_list,
+                             int graph_cut_type,
+                             bool sparse, double a_u, double b_u,
+                             bool nest_v, int nest_v_option, bool nest_c,
+                             int M,
+                             double alpha, double beta,
+                             double mu0, double tau,
+                             int nd, int burn, int thin,
+                             bool save_samples,
+                             bool save_trees,
+                             bool verbose, int print_every)
 {
   Rcpp::RNGScope scope;
   RNG gen;
