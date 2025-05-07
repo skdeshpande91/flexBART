@@ -114,6 +114,7 @@ flexBART <- function(formula,
       cat(" nest_v_option = ", hyper$nest_v_option)
       cat(" nest_c = ", hyper$nest_c, "\n")
     }
+    cat("[flexBART]: n.chains = ", control$n.chains, "\n")
   }
   
   
