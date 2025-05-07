@@ -5,7 +5,7 @@
 Probit flexBART for binary outcomes
 }
 \description{
-Fit a BART model of a binary responses using the the Albert \& Chib (1993) data augmentation for probit models.
+Fit a BART model of a binary responses using the the Albert and Chib (1993) data augmentation for probit models.
 }
 \usage{
 probit_flexBART(formula, train_data, test_data = NULL,...)
@@ -30,7 +30,7 @@ By default, we set \code{tau = 1/sqrt(M)} and \code{mu0 = qnorm(mean(Y_train))/M
 \value{
 An object of \code{class} "flexBART" containing
 \item{dinfo}{TO DO}
-\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict_flexBART}} to reconstruct the C++ representations of the sampled trees.}
+\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict.flexBART}} to reconstruct the C++ representations of the sampled trees.}
 \item{M}{number of trees used}
 \item{cov_ensm}{TO DO}
 \item{is.probit}{Logical with value \code{TRUE}. Used by \code{\link{predict.flexBART}}.}

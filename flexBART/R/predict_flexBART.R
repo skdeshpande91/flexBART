@@ -1,9 +1,21 @@
-predict.flexBART <- function(object, newdata,
-                             verbose = FALSE)
+predict.flexBART <- function(object, ...)
 {
+  ###############################
+  # Capture additional arguments
+  ###############################
+  usr_args <- list(...)
+  usr_names <- names(usr_args)
+  
+  if(!"newdata" %in% usr_names) stop("Must provide an argument newdata")
+  else newdata <- usr_args[["newdata"]]
 
-  # validate fit; it should be class flexBART_fit
-  if(!"flexBART" %in% class(object)){
+  if(! "verbose" %in% usr_names) verbose <- FALSE
+  else{
+    if(!is(verbose, "logical")) stop("Argument verbose must be logical")
+    else verbose <- usr_args[["verbose"]]
+  }
+  
+  if(!is(object, "flexBART")){
     stop("object must be of class 'flexBART'.")
   }
   if(is.null(object$trees)) stop("No trees provided!")

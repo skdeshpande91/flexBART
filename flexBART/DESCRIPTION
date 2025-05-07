@@ -10,6 +10,6 @@ Authors@R: c(
   person(given = "Jennifer", family = "Hill", role = c("aut"), email = "jennifer.hill@nyu.edu"))
 Description: A more flexible implementation of BART that accomodates structured categorical variables.
 License: GPL (>= 3)
-LinkingTo: Rcpp (>= 1.0.12), RcppArmadillo (>= 14.4)
-Imports: Rcpp (>= 1.0.12), glmnet (>= 4.0)
-Suggests: igraph, BART
+LinkingTo: Rcpp, RcppArmadillo
+Imports: Rcpp (>= 1.0.12), glmnet (>= 4.0), methods
+Suggests: igraph

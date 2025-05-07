@@ -58,9 +58,9 @@ validate_flexBART_training <- function(trinfo)
   }
   
   
-  for(r in 1:R){
+  for(r in 1:trinfo$R){
     if(is.na(trinfo$z_mean[r]) != is.na(trinfo$z_sd[r])){
-      message("[validate_flexBART_training]: r = ", r, "z_mean[r] =", z_mean[r], " z_sd[r] = ", z_sd[r])
+      message("[validate_flexBART_training]: r = ", r, "z_mean[r] =", trinfo$z_mean[r], " z_sd[r] = ", trinfo$z_sd[r])
       stop("[validate_flexBART_training]: r-th element of z_mean & z_sd must be both NA or both non-NA")
     }
     

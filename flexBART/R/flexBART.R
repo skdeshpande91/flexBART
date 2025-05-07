@@ -12,7 +12,7 @@ flexBART <- function(formula,
   ###############################
   # Parse the formula
   ###############################
-  if(class(formula) != "formula"){
+  if(!is(formula, "formula")){
     frmla <- stats::formula(formula)
   } else{
     frmla <- formula

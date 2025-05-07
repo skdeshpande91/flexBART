@@ -94,7 +94,7 @@ parse_adjacency <- function(adjacency_list, dinfo)
   for(j in dinfo$cat_names){
     if(j %in% names(adjacency_list)){
       tmp_A <- adjacency_list[[j]]
-      if(!identical(rownames(A), colnames(A))){
+      if(!identical(rownames(tmp_A), colnames(tmp_A))){
         message(paste("[parse_adjacency]: Dimension names for variable", j, " don't match"))
         stop("Row and column names for elements in adjacency_list must be identical")
       }

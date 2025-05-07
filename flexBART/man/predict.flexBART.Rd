@@ -7,13 +7,14 @@ Predicting new observations with previously fitted flexBART model
 \code{predict.flexBART} can take the output of \code{flexBART} and \code{probit_flexBART} and use it to make predictions at new inputs.
 }
 \usage{
-\method{predict}{flexBART}(object, newdata, verbose=FALSE)
+\method{predict}{flexBART}(object, ...)
 }
 
 \arguments{
-  \item{object}{object of class inhereting from "flexBART"}
-  \item{newdata}{Data frame in whch to look for variables with which to predict. Cannot be omitted.}
-  \item{verbose}{Logical, indicating whether or not to print message predictions are being made. Default is \code{FALSE}.}
+  \item{object}{object of class inhereting from "flexBART."}
+  \item{\dots}{additional arguments affecting the predictions produced.}
+  %\item{newdata}{Data frame in whch to look for variables with which to predict. Cannot be omitted.}
+  %\item{verbose}{Logical, indicating whether or not to print message predictions are being made. Default is \code{FALSE}.}
 }
 \details{
 Make predictions at new inputs based on the output of \code{flexBART}. Useful when the testing dataset is quite large.
