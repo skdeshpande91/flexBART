@@ -216,6 +216,7 @@ for(cix in 1:4){
                               y.train = train_data[,"Y"],
                               x.test = test_data[,colnames(test_data) != "Y"],
                               sparse = TRUE,
+                              ntree = 50,
                               ndpost = 1000, nskip = 1000))
   tmp_bart[,cix] <- bart_fit$yhat.test.mean
   tmp_time <- tmp_time + bart_time["elapsed"]
@@ -237,6 +238,7 @@ for(cix in 1:4){
       dbart_fit <- dbarts::bart(x.train = train_model_mat,
                                 y.train = train_data[,"Y"],
                                 x.test = test_model_mat,
+                                ntree = 50,
                                 ndpost = 1000, nskip = 1000, keeptrees = TRUE))
   
   tmp_dbart[,cix] <- dbart_fit$yhat.test.mean
