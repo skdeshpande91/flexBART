@@ -9,21 +9,20 @@ knitr::opts_chunk$set(echo = TRUE, tidy = TRUE)
 ```
 
 ## Overview
-In this example, we show how to use `flexBART::network_BART` for network-linked regression.
+In this example, we show how to use `flexBART::flexBART` for network-linked regression.
 At each vertex $v$ of a given network $\mathcal{G},$ we observe $n_{v}$ covariate-response pairs $(\boldsymbol{x}_{vt}, y_{vt})$ of a $p$-dimensional covariate vector $\boldsymbol{x}_{vt} \in [-1,1]^{p}$ and a scalar response $y.$
   We further model
 $$
   y_{vt} \sim \mathcal{N}(f(\mathbf{x}_{vt},v), \sigma^{2})
 $$
-  where $f: [-1,1]^{p} \times V(\mathcal{G}) \rightarrow \mathbb{R}$ is an unknown regression function.
+where $f: [-1,1]^{p} \times V(\mathcal{G}) \rightarrow \mathbb{R}$ is an unknown regression function.
 Implicit in our notation is the assumption that the regression relationship is not necessarily the same at every vertex.
-
 
 
 One option to learning $f$ is to fit separate BART models to the observations at each vertex (i.e. use the $(\boldsymbol{x}_{vt}, y_{vt})$ pairs to estimate the function $f(\boldsymbol{x}, v)$ for each $v$).
 Because it models the data at each vertex completely independently, such a strategy is unable to exploit network smoothness, in the sense that for two adjacent vertices $v \sim v',$ we might have $f(\boldsymbol{x}, v) \approx f(\boldsymbol{x},v').$
-  In the presence of such smoothness, it may be desirable to "partially pool" the observations across adjacent vertices.
-We now demonstrate how `flexBART::network_BART` can perform such partial pooling using the available adjacency information.
+In the presence of such smoothness, it may be desirable to "partially pool" the observations across adjacent vertices.
+We now demonstrate how `flexBART::flexBART` can perform such partial pooling using the available adjacency information.
 
 To this end, we will simulate data on a real network that encodes the spatial adjacency of a subset of the 2010 Census tracts in the city of Philadelphia.
 The file `network_linked_regression_data.RData` contains an **igraph** object containing this network, a nice layout matrix, for plotting, and the adjacency matrix for this network. 
