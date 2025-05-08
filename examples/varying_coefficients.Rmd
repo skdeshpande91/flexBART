@@ -1,0 +1,391 @@
+---
+title: "Varying coefficient models"
+output: rmarkdown::github_document
+date: '2025-05-08'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+**flexBART** now supports fitting varying coefficient models with Bayesian ensembles of regression trees.
+Specifically, it can be used to fit models of the form
+$$
+Y = \beta_{0}(\boldsymbol{X}) + \beta_{1}(\boldsymbol{X}) \times Z_{1} + \cdots + \beta_{R-1}(\boldsymbol(X)) \times Z_{R-1} + \sigma \epsilon
+$$
+where each function $\beta_{r}(\boldsymbol{X})$ is approximated with an ensemble of regression trees.
+**flexBART** allows the size (specified using the optional argument `M_vec` or `M`), the tree prior hyperparameters (specified using the optional arguments `alpha_vec` and `beta_vec`), and the variables used for splitting (specified via the `formula` argument) to vary in each ensemble.
+It further allows for redundancy/non-identifiability in which some of the $Z_{r}$'s are exactly equal to one another.
+This is useful if one wishes to fit, say, an additive model with BART (e.g., $Y = f_{1}(X_{1}) + f_{2}(X_{2})$ with BART priors on $f_{1}$ and $f_{2}$).
+
+## Identified example
+We first demonstrate **flexBART**'s functionality using data generated from the model $Y = \beta_{0}(\boldsymbol{X}) + \beta_{1}(\boldsymbol{X})Z_{1} + \beta_{2}(\boldsymbol{X})Z_{2} + \sigma\epsilon$ where 
+$\boldsymbol{X}$ contains $p_{\text{cont}} = 10$ continuous and $p_{\text{cat}} = 10$ categorical covarates.
+Each categorical covariate can take on 10 different values.
+We define the true coefficient functions below
+```{r define-beta}
+beta0_true <- function(df){
+  tmp_X1 <- (1+df[,"X1"])/2
+  tmp_X11 <- 1*(df[,"X11"] %in% c(0, 1, 4,5,6,8,9))
+  return(3 * tmp_X1 + (2 - 5 * (tmp_X11)) * sin(pi * tmp_X1) - 2 * (tmp_X11))
+}
+
+set.seed(517)
+D <- 5000
+omega0 <- rnorm(n = D, mean = 0, sd = 1.5)
+b0 <- 2 * pi * runif(n = D, min = 0, max = 1)
+weights <- rnorm(n = D, mean = 0, sd = 2*1/sqrt(D))
+beta1_true <- function(df){
+  # expect x to be in [-1,1]
+  # but let's expand the interval to -5,5
+  # z <- 10*x-5
+  u <- 5*df[,"X1"]
+  
+  if(length(u) == 1){
+    phi <- sqrt(2) * cos(b0 + omega0*u)
+    out <- sum(weights * phi)
+  } else{
+    phi_mat <- matrix(nrow = length(u), ncol = D)
+    for(d in 1:D){
+      phi_mat[,d] <- sqrt(2) * cos(b0[d] + omega0[d] * u)
+    }
+    out <- phi_mat %*% weights
+  }
+  return(out)
+}
+
+beta2_true <- function(df){
+  tmp_X <- (1+df[,"X1"])/2
+  return(3 - 3*cos(6*pi*tmp_X) * tmp_X^2) * (tmp_X > 0.6) - 
+    (10 * sqrt(tmp_X)) * (tmp_X < 0.25)
+}
+```
+We generate $n = 10000$ training observations and $n = 1000$ testing observations.
+```{r generate-vcbart1-data}
+n_train <- 10000
+n_test <- 1000
+p_cont <- 10
+p_cat <- 10
+sigma <- 1
+
+train_data <- data.frame(Y = rep(NA, times = n_train))
+test_data <- data.frame(Y = rep(NA, times = n_test))
+for(j in 1:p_cont){
+  train_data[,paste0("X",j)] <- 
+    runif(n = n_train, min = -1, max = 1)
+  test_data[,paste0("X",j)] <- 
+    runif(n = n_test, min = -1, max = 1)
+}
+for(j in 1:p_cat){
+  train_data[,paste0("X",j+p_cont)] <- 
+    factor(sample(0:9, size = n_train, replace = TRUE), levels = 0:9)
+  test_data[,paste0("X",j+p_cont)] <-
+    factor(sample(0:9, size = n_test, replace = TRUE), levels = 0:9)
+}
+
+train_data[,"Z1"] <-
+  rnorm(n = n_train, mean = 0, sd = 1)
+test_data[,"Z1"] <-
+  rnorm(n = n_test, mean = 0, sd = 1)
+
+train_data[,"Z2"] <-
+  rnorm(n = n_train, mean = 0, sd = 1)
+test_data[,"Z2"] <-
+  rnorm(n = n_test, mean = 0, sd = 1)
+```
+We now evaluate the true slopes and response surface function $\mathbb{E}[Y \vert \boldsymbol{X}, \boldsymbol{Z}]$ on the training and testing observations
+```{r vcbart1-true-slopes}
+beta0_train <- beta0_true(train_data)
+beta0_test <- beta0_true(test_data)
+
+beta1_train <- beta1_true(train_data)
+beta1_test <- beta1_true(test_data)
+
+beta2_train <- beta2_true(train_data)
+beta2_test <- beta2_true(test_data)
+
+mu_train <-
+  beta0_train + train_data[,"Z1"] * beta1_train + train_data[,"Z2"] * beta2_train
+
+mu_test <- 
+  beta0_test + test_data[,"Z1"] * beta1_test + test_data[,"Z2"] * beta2_test
+
+train_data[,"Y"] <-
+  mu_train + sigma * rnorm(n = n_train, mean = 0, sd = 1)
+
+test_data <- test_data[,colnames(test_data) != "Y"]
+```
+
+We're now ready to fit our model.
+```{r fit-vcbart1, results='hide'}
+set.seed(99)
+fit <-
+  flexBART::flexBART(formula = Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.),
+                     train_data = train_data,
+                     test_data = test_data)
+```
+
+`flexBART::flexBART` returns the posterior mean estimate and posterior samples for each $\beta_{j}(\boldsymbol{x})$ evaluation (outputs named `beta`) and for the whole response surface (outputs named `yhat`).
+We first plot the posterior mean evaluations of each $\beta_{j}$ and the response surface
+ for both training and testing
+ 
+```{r plot-fits-vcbart1, fig.align = 'center'}
+my_colors <- c("#999999", "#E69F00", "#56B4E9", "#009E73", 
+               "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(2,4))
+
+plot(mu_train, fit$yhat.train.mean, pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "Response surface (train)")
+abline(a = 0, b = 1, col = my_colors[3])
+plot(beta0_train, fit$beta.train.mean[,1], pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "Intercept (train)")
+abline(a = 0, b = 1, col = my_colors[3])
+plot(beta1_train, fit$beta.train.mean[,2], pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "beta1 (train)")
+abline(a = 0, b = 1, col = my_colors[3])
+plot(beta2_train, fit$beta.train.mean[,3], pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "beta2 (train)")
+abline(a = 0, b = 1, col = my_colors[3])
+
+
+plot(mu_test, fit$yhat.test.mean, pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "Response surface (test)")
+abline(a = 0, b = 1, col = my_colors[3])
+
+plot(beta0_test, fit$beta.test.mean[,1], pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "Intercept (test)")
+abline(a = 0, b = 1, col = my_colors[3])
+
+plot(beta1_test, fit$beta.test.mean[,2], pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "beta1 (test)")
+abline(a = 0, b = 1, col = my_colors[3])
+
+plot(beta2_test, fit$beta.test.mean[,3], pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "beta2 (test)")
+abline(a = 0, b = 1, col = my_colors[3])
+
+```
+### Pointwise uncertainty
+We can also assess the coverage of the pointwise credible intervals
+```{r compute-coverage-vcbart1}
+coverage <- matrix(nrow = 2, ncol = 4,
+                   dimnames = list(c("train", "test"),
+                                   c("mu", "beta0", "beta1", "beta2")))
+
+mu_train_l95 <- 
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.025)
+mu_train_u95 <- 
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.975)
+beta_train_l95 <-
+  apply(fit$beta.train, MARGIN = c(2,3), FUN = quantile, probs = 0.025)
+beta_train_u95 <-
+  apply(fit$beta.train, MARGIN = c(2,3), FUN = quantile, probs = 0.975)
+
+mu_test_l95 <- 
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.025)
+mu_test_u95 <- 
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.975)
+beta_test_l95 <-
+  apply(fit$beta.test, MARGIN = c(2,3), FUN = quantile, probs = 0.025)
+beta_test_u95 <-
+  apply(fit$beta.test, MARGIN = c(2,3), FUN = quantile, probs = 0.975)
+
+coverage["train", "mu"] <-
+  mean(mu_train >= mu_train_l95 & mu_train <= mu_train_u95)
+coverage["train", "beta0"] <-
+  mean(beta0_train >= beta_train_l95[,1] & beta0_train <= beta_train_u95[,1])
+coverage["train", "beta1"] <-
+  mean(beta1_train >= beta_train_l95[,2] & beta1_train <= beta_train_u95[,2])
+coverage["train", "beta2"] <-
+  mean(beta2_train >= beta_train_l95[,3] & beta2_train <= beta_train_u95[,3])
+
+
+coverage["test", "mu"] <-
+  mean(mu_test >= mu_test_l95 & mu_test <= mu_test_u95)
+coverage["test", "beta0"] <-
+  mean(beta0_test >= beta_test_l95[,1] & beta0_test <= beta_test_u95[,1])
+coverage["test", "beta1"] <-
+  mean(beta1_test >= beta_test_l95[,2] & beta1_test <= beta_test_u95[,2])
+coverage["test", "beta2"] <-
+  mean(beta2_test >= beta_test_l95[,3] & beta2_test <= beta_test_u95[,3])
+
+print(round(coverage, digits = 3))
+```
+### Variable selection
+By default `flexBART::flexBART` uses Linero (2018)'s sparsity-inducing Dirichlet prior on splitting variables.
+Following the recommendations from Section 3.2 of that paper, we can compute the posterior probability that each $X_{j}$ is used at least once in the ensemble for each $\beta_{r}(\boldsymbol{X}).$
+We can then select those covariates for which this probability exceeds 50\%.
+The `varcounts` element of `flexBART::flexBART`'s output is an array holding the posterior samples of the counts of rules based on covariate.
+```{r varcounts-vcbart1}
+dim(fit$varcounts)
+```
+The first dimension of `fit$varcounts` indexes MCMC samples.
+The second indexes covariates (i.e., elements of $\boldsymbol{X}$).
+The third indexes ensembles (i.e., $\beta_{0}$, \ldots, $\beta_{R-1}$).
+
+The selected variables are
+```{r varsel-vcbart1}
+marginal_split_prob <- 
+  apply(fit$varcounts >= 1, MARGIN = c(2,3), FUN = mean)
+which(marginal_split_prob >= 0.5, arr.ind = TRUE)
+```
+We see that $X_{1}$ and $X_{11}$ are selected for $\beta_{0};$ $X_{1}$ is selected for $\beta_{2};$ and $X_{1}$ is selected for $\beta_{3}.$
+So, at least for this run, there are no false positives or false negatives.
+
+## Redundant/non-identified example
+
+**flexBART** was originally envisioned to facilitate additive BART models and multi-level BART models.
+For instance ones with some ensembles splitting on grouping variables (to induce group-specific intercepts) and others splitting only on covariates.
+All of these can be viewed as special cases of varying coefficient models in which some of the $Z_{r}$'s are identical.
+The formula parser in `flexBART::flexBART` can identify those instances.
+When there are redundancies, the function returns the raw posterior samples of each ensemble on the standardized scale and posterior samples of the identified components on the original scale.
+
+To illustrate, suppose we generate data from the redundant model
+$$
+Y = [\beta_{0}(\boldsymbol{X}) + \beta_{1}(\boldsymbol{X})] + [\beta_{2}(\boldsymbol{X}) + \beta_{3}(\boldsymbol{X})] \times Z_{1} + [\beta_{4}(\boldsymbol{X}) + \beta_{5}(\boldsymbol{X})] \times Z_{2} + \sigma \epsilon.
+$$
+If we specify a formula like
+```
+Y~bart(.) + bart(.) + Z1*bart(.) + Z1*bart(.) + Z2*bart(.) + Z2*bart()
+```
+`flexBART::flexBART` will return posterior samples for 6 ensembles on the standardized scale.
+These samples are saved in the `raw_beta` slots of the output.
+As written, although the functions $\beta_{0}$ and $\beta_{1}$ are not identified, their sum is.
+So, `flexBART::flexBART` also returns posterior draws of their sum on the standardized scale.
+
+### Generating data from a redundant VC model
+To illustrate, we introduce a few more functions
+```{r true-betas-vcbart-2}
+beta3_true <- function(df){
+  tmp_X <- (1+df[,paste0("X", 1:p_cont)])/2
+  return(exp(sin((0.9 * (tmp_X[,1] + 0.48))^10)) + tmp_X[,2] * tmp_X[,3] + tmp_X[,4])
+}
+beta4_true <- function(df){
+  tmp_X <- (1+df[,paste0("X", 1:p_cont)])/2
+  return(exp(3*tmp_X[,5])*cos(7*pi*tmp_X[,5]/2))
+}
+beta5_true <- function(df){
+  tmp_X <- (1+df[,1:p_cont])/2
+  return(10*sin(pi*tmp_X[,6] * tmp_X[,7]) + 
+           20 * (tmp_X[,8] - 0.5)^2 + 
+           10 * tmp_X[,9] + 
+           5 * tmp_X[,10])
+}
+```
+We now generate $X$ and $Z$ values and evaluate the true slopes and response surface for training and testing observations.
+```{r generate-data-vcbart2}
+train_data <- data.frame(Y = rep(NA, times = n_train))
+test_data <- data.frame(Y = rep(NA, times = n_test))
+for(j in 1:p_cont){
+  train_data[,paste0("X",j)] <- 
+    runif(n = n_train, min = -1, max = 1)
+  test_data[,paste0("X",j)] <- 
+    runif(n = n_test, min = -1, max = 1)
+}
+for(j in 1:p_cat){
+  train_data[,paste0("X",j+p_cont)] <- 
+    factor(sample(0:9, size = n_train, replace = TRUE), levels = 0:9)
+  test_data[,paste0("X",j+p_cont)] <-
+    factor(sample(0:9, size = n_test, replace = TRUE), levels = 0:9)
+}
+
+train_data[,"Z1"] <-
+  rnorm(n = n_train, mean = 0, sd = 1)
+test_data[,"Z1"] <-
+  rnorm(n = n_test, mean = 0, sd = 1)
+
+train_data[,"Z2"] <-
+  rnorm(n = n_train, mean = 0, sd = 1)
+test_data[,"Z2"] <-
+  rnorm(n = n_test, mean = 0, sd = 1)
+
+
+beta0_train <- beta0_true(train_data)
+beta0_test <- beta0_true(test_data)
+
+beta1_train <- beta1_true(train_data)
+beta1_test <- beta1_true(test_data)
+
+beta2_train <- beta2_true(train_data)
+beta2_test <- beta2_true(test_data)
+
+beta3_train <- beta3_true(train_data)
+beta3_test <- beta3_true(test_data)
+
+beta4_train <- beta4_true(train_data)
+beta4_test <- beta4_true(test_data)
+
+beta5_train <- beta5_true(train_data)
+beta5_test <- beta5_true(test_data)
+
+
+
+mu_train <-
+  (beta0_train + beta1_train) +
+  train_data[,"Z1"] * (beta2_train + beta3_train) + 
+  train_data[,"Z2"] * (beta4_train + beta5_train)
+
+mu_test <-
+  (beta0_test + beta1_test) +
+  test_data[,"Z1"] * (beta2_test + beta3_test) + 
+  test_data[,"Z2"] * (beta4_test + beta5_test)
+
+train_data[,"Y"] <-
+  mu_train + sigma * rnorm(n = n_train, mean = 0, sd = 1)
+
+test_data <- test_data[,colnames(test_data) != "Y"]
+```
+
+### Fitting a redundant model
+```{r fit-vcbart2}
+fit <-flexBART::flexBART(
+  formula = Y ~ bart(.) + bart(.) + Z1 * bart(.) + Z1 * bart(.) + Z2 * bart(.) + Z2 * bart(.),
+  train_data = train_data,
+  test_data = test_data)
+
+```
+
+Evaluations of the identified parameters are available in `fit$beta.train` and `fit$beta.test`
+
+```{r plot-vcbart2}
+par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(2,4))
+plot(mu_train, fit$yhat.train.mean, 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", 
+     main = "Response surface (train)")
+abline(a = 0, b = 1, col = my_colors[3])
+plot(beta0_train + beta1_train, fit$beta.train.mean[,1], 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", 
+     main = "beta0+beta1 (train)")
+abline(a = 0, b = 1, col = my_colors[3])
+plot(beta2_train + beta3_train, fit$beta.train.mean[,2], 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "beta2+beta3 (train)")
+abline(a = 0, b = 1, col = my_colors[3])
+plot(beta4_train+beta5_train, fit$beta.train.mean[,3], 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "beta4+beta5 (train)")
+abline(a = 0, b = 1, col = my_colors[3])
+
+plot(mu_test, fit$yhat.test.mean, 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", 
+     main = "Response surface (test)")
+abline(a = 0, b = 1, col = my_colors[3])
+plot(beta0_test + beta1_test, fit$beta.test.mean[,1], 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", 
+     main = "beta0+beta1 (test)")
+abline(a = 0, b = 1, col = my_colors[3])
+plot(beta2_test + beta3_test, fit$beta.test.mean[,2], 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "beta2+beta3 (test)")
+abline(a = 0, b = 1, col = my_colors[3])
+plot(beta4_test+beta5_test, fit$beta.test.mean[,3], 
+     pch = 16, cex = 0.5,
+     xlab = "Actual", ylab = "Posterior Mean", main = "beta4+beta5 (test)")
+abline(a = 0, b = 1, col = my_colors[3])
+
+```
