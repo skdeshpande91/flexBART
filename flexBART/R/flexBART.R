@@ -74,21 +74,24 @@ flexBART <- function(formula,
     # check that it is less than 1; if it isn't, then we need to divide by sd(y)
     sigest <- usr_args[["sig_est"]]
     if(sigest < 0){
-      message(paste("[flexBART]: supplied sigest =", sigest))
-      stop("[flexBART]: estimate of residual sd must be positive!")
+      stop(paste("[flexBART]: supplied sigest =", sigest, ". Estimate of residual sd must be positive!"))
     }
     if(sigest > 1){
-      cat(paste("[flexBART]: supplied sigest = ", sigest, "greater than 1 \n"))
-      message(paste("[flexBART]: Internally, flexBART operates on standardized outcome scale. Dividing by outcome sd \n"))
+      cat(paste("supplied sigest = ", sigest, "greater than 1 \n"))
+      message(paste("Internally, flexBART operates on standardized outcome scale. Dividing by outcome sd \n"))
       sigest <- sigest/tmp_data$training_info$y_sd
     }
   } else{
     if(inform_sigma){
-      cat("[flexBART]: no initial estimate of sigma provided. Initializing using LASSO \n")
+      if(p_cont == 1 & p_cat == 0){
+        cat("no initial estimate of sigma provided. Initializing using OLS\n")
+      } else{
+        cat("no initial estimate of sigma provided. Initialize using LASSO\n")
+      }
       sigest <- 
         get_sigma(tmp_data$training_info, tmp_data$data_info)
     } else{
-      cat("[flexBART]: no initial estimate of sigma provided. Initializing using LASSO \n")
+      cat("no initial estimate of sigma provided.\n")
       sigest <- 1
     }
   }
@@ -104,17 +107,17 @@ flexBART <- function(formula,
   control <- parse_controls(...)
   
   if(control$verbose){
-    cat("[flexBART]: initial sigma (after standardization) =", 
+    cat("Initial sigma (after standardization) =", 
                   round(hyper$sigest, digits = 6), "\n")
     if(!is.null(tmp_data$training_info$edge_mat_list)){
-      cat("[flexBART]: graph_cut_type = ", hyper$graph_cut_type, "\n")
+      cat("graph_cut_type = ", hyper$graph_cut_type, "\n")
     }
     if(!is.null(tmp_data$training_info$nest_list)){
-      cat("[flexBART]: nest_v = ", hyper$nest_v)
+      cat("nest_v = ", hyper$nest_v)
       cat(" nest_v_option = ", hyper$nest_v_option)
       cat(" nest_c = ", hyper$nest_c, "\n")
     }
-    cat("[flexBART]: n.chains = ", control$n.chains, "\n")
+    cat("n.chains = ", control$n.chains, "\n")
   }
   
   

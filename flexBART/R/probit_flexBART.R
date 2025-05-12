@@ -83,10 +83,10 @@ probit_flexBART <- function(formula,
   
   if(control$verbose){
     if(!is.null(tmp_data$training_info$edge_mat_list)){
-      cat("[flexBART]: graph_cut_type = ", hyper$graph_cut_type, "\n")
+      cat("graph_cut_type = ", hyper$graph_cut_type, "\n")
     }
     if(!is.null(tmp_data$training_info$nest_list)){
-      cat("[flexBART]: nest_v = ", hyper$nest_v)
+      cat("nest_v = ", hyper$nest_v)
       cat(" nest_v_option = ", hyper$nest_v_option)
       cat(" nest_c = ", hyper$nest_c, "\n")
     }
