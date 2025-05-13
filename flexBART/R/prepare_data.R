@@ -79,7 +79,8 @@ prepare_data <- function(train_data,
   ###############################
   # Standardize outcome & check for missingness
   ###############################
-  y <- train_data[,outcome_name]
+  #y <- train_data[,outcome_name]
+  y <- train_data[[outcome_name]]
   if(any(is.na(y))){
     message(paste("[prepare_data]: Detected missing values in", outcome_name))
     stop("[prepare_data]: flexBART does not yet support missing outcomes. 
@@ -111,7 +112,7 @@ prepare_data <- function(train_data,
     tmp_cutpoints_list <- list()
     for(j in dinfo$cont_names){
       tmp <- 
-        convert_continuous(x = train_data[,j],
+        convert_continuous(x = train_data[[j]],
                            x_min = dinfo$x_min[j],
                            x_max = dinfo$x_max[j],
                            discrete = is.null(dinfo$x_sd[j]))
@@ -142,7 +143,7 @@ prepare_data <- function(train_data,
       trinfo$cat_levels_list[[j]] <- 
         dinfo$cat_mapping_list[[j]][,"integer_coding"]
       trinfo$X_cat[,j] <- 
-        convert_categorical(x = train_data[,j], 
+        convert_categorical(x = train_data[[j]], 
                             name = j, 
                             mapping = dinfo$cat_mapping_list[[j]])
     } # closes loop over categorical covariates
@@ -170,7 +171,7 @@ prepare_data <- function(train_data,
         if(is.null(trinfo$cutpoints[[j]])){
           x_max <- dinfo$x_max[j]
           x_min <- dinfo$x_min[j]
-          if(any(test_data[,j] > x_max) | any(test_data[,j] < x_min)){
+          if(any(test_data[[j]] > x_max) | any(test_data[[j]] < x_min)){
             warning(paste("[prepare_data]: found test set value for", j, 
                           "outside range found in training. Consider increased padding"))
           }
@@ -178,14 +179,14 @@ prepare_data <- function(train_data,
           # j is a gridded/discrete ordinal variable
           x_max <- max(trinfo$cutpoints[[j]])
           x_min <- min(trinfo$cutpoints[[j]])
-          if(any(test_data[,j] > x_max) | any(test_data[,j] < x_min)){
+          if(any(test_data[[j]] > x_max) | any(test_data[[j]] < x_min)){
             warning(paste("[prepare_data]: found test set value for", j, 
                           "outside range of cutpoints used in training.",
                           "Consider setting cutpoints_list manually"))
           }
         }
         teinfo$X_cont[,j] <- 
-          convert_continuous(x = test_data[,j],
+          convert_continuous(x = test_data[[j]],
                              x_min = dinfo$x_min[j],
                              x_max = dinfo$x_max[j],
                              discrete = is.null(dinfo$x_sd[j]))$std_x
@@ -197,7 +198,7 @@ prepare_data <- function(train_data,
                dimnames = list(c(), dinfo$cat_names))
       for(j in dinfo$cat_names){
         teinfo$X_cat[,j] <- 
-          convert_categorical(x = test_data[,j], name = j,
+          convert_categorical(x = test_data[[j]], name = j,
                               mapping = dinfo$cat_mapping_list[[j]])
       } # closes loop over categorical covariates j
     } # closes if checking there are categorical covariates
@@ -235,8 +236,8 @@ prepare_data <- function(train_data,
     # There are non-intercept terms
     nonint_names <- colnames(cov_ensm)[!is.na(colnames(cov_ensm))]
     for(j in nonint_names){
-      trinfo$Z[,j] <- train_data[,j]
-      if(n_test > 0) teinfo$Z[,j] <- test_data[,j]
+      trinfo$Z[,j] <- train_data[[j]]
+      if(n_test > 0) teinfo$Z[,j] <- test_data[[j]]
     }
   }
   
