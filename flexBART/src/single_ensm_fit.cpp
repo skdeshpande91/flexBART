@@ -64,7 +64,6 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   // END: build graph encoding nesting relationships b/w categorical predictors
 
   // BEGIN: create splitting probabilities
-  // declare stuff for variable selection
   std::vector<double> theta(p, 1.0/ (double) p);
   double u = 1.0/(1.0 + (double) p);
   std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
@@ -176,18 +175,21 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   
   arma::vec sigma_samples(total_draws);
   arma::vec total_accept_samples(total_draws);
-  //arma::mat var_count_samples(total_draws, p); // always useful to see how often we're splitting on variables in the ensemble
   arma::mat var_count_samples(nd, p);
   
   Rcpp::List tree_draws(nd);
   // END: create output containers
   
+  //BEGIN: burn-in
   for(int iter = 0; iter < burn; ++iter){
-    if(iter == 0) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Warmup" << std::endl;
-    else if( iter % print_every == 0 ){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
+    if(iter % print_every == 0){
       Rcpp::checkUserInterrupt();
+      if(verbose){
+        if(iter  == 0) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Warmup" << std::endl;
+        else Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
+      }
     }
+    
     total_accept = 0;
     for(int m = 0; m < M; ++m){
       //BEGIN: remove fit of m-th tree
@@ -227,15 +229,18 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
     
     total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
   } // closes burn-in
+  // END: burn-in
   
+  //BEGIN: post-burn-in
   for(int iter = burn; iter < total_draws; ++iter){
-    if( (iter%print_every == 0) || (iter == burn) ){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
+    if(iter==total_draws-1){
+      if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
+    } else if(iter%print_every == 0 || (iter==burn)){
       Rcpp::checkUserInterrupt();
-    } else if(iter == total_draws-1){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
-      Rcpp::checkUserInterrupt();
+      if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
     }
+  
+    total_accept = 0;
     for(int m = 0; m < M; ++m){
       //BEGIN: remove fit of m-th tree
       for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
@@ -320,6 +325,7 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
       } // close if checking that there are test set observations
     } // closes if that checks whether we should save anything in this iteration
   } // closes post-burn-in loop
+  // END: post-burn-in
   
   fit_train_mean /= ( (double) nd);
   if(n_test > 0) fit_test_mean /= ( (double) nd);

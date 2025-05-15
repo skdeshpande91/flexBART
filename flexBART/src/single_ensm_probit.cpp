@@ -194,12 +194,14 @@ Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
   Rcpp::List tree_draws(nd);
   // END: create output containers
   
-  
+  //BEGIN: burn-in
   for(int iter = 0; iter < burn; ++iter){
-    if(iter == 0) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Warmup" << std::endl;
-    else if( iter % print_every == 0 ){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
+    if(iter % print_every == 0){
       Rcpp::checkUserInterrupt();
+      if(verbose){
+        if(iter  == 0) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Warmup" << std::endl;
+        else Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
+      }
     }
     
     // BEGIN: update latents and residuals
@@ -213,7 +215,6 @@ Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
     
     total_accept = 0;
     for(int m = 0; m < M; ++m){
-      
       //BEGIN: remove fit of m-th tree
       for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
         // loop over the bottom nodes in m-th tree
@@ -240,14 +241,15 @@ Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
     total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
     if(sparse) update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
   } // closes burn-in
+  // END: burn-in
   
+  // BEGIN: post-burn-in
   for(int iter = burn; iter < total_draws; ++iter){
-    if( (iter%print_every == 0) || (iter == burn) ){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
+    if(iter==total_draws-1){
+      if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
+    } else if(iter%print_every == 0 || (iter==burn)){
       Rcpp::checkUserInterrupt();
-    } else if(iter == total_draws-1){
-      Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
-      Rcpp::checkUserInterrupt();
+      if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
     }
     
     // BEGIN: update latents and residuals
@@ -258,9 +260,8 @@ Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
       residual[i] = latent[i] - tmp_fit; // updates the residual
     }
     // END: update latents and residuals
-
+    total_accept = 0;
     for(int m = 0; m < M; ++m){
-      
       //BEGIN: remove fit of m-th tree
       for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
         // loop over the bottom nodes in m-th tree
@@ -335,6 +336,7 @@ Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
       } // close if checking that there are test set observations
     } // closes if that checks whether we should save anything in this iteration
   } // closes post-burn-in loop
+  // END: post-burn-in
   
   fit_train_mean /= ( (double) nd);
   if(n_test > 0) fit_test_mean /= ( (double) nd);

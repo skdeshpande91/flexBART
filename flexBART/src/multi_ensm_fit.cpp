@@ -239,13 +239,13 @@ Rcpp::List multi_fit(Rcpp::NumericVector Y_train,
   Rcpp::List tree_draws(nd);
   // END: create output containers
   
-  // BEGIN: burnin
+  // BEGIN: burn-in
   for(int iter = 0; iter < burn; ++iter){
-    if(verbose){
-      if(iter == 0) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Warmup" << std::endl;
-      else if(iter % print_every == 0){
-        Rcpp::checkUserInterrupt();
-        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
+    if(iter % print_every == 0){
+      Rcpp::checkUserInterrupt();
+      if(verbose){
+        if(iter  == 0) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Warmup" << std::endl;
+        else Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
       }
     }
   
@@ -293,16 +293,15 @@ Rcpp::List multi_fit(Rcpp::NumericVector Y_train,
     sigma_samples(iter) = sigma;
     // END: update sigma
   } // closes the main MCMC for loop
-  // END: burnin
+  // END: burn-in
   
   // BEGIN: post-burn-in
   for(int iter = burn; iter < total_draws; ++iter){
-    if(verbose){
-      if(iter == total_draws-1) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
-      else if(iter % print_every == 0){
-        Rcpp::checkUserInterrupt();
-        Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
-      }
+    if(iter==total_draws-1){
+      if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
+    } else if(iter%print_every == 0 || (iter==burn)){
+      Rcpp::checkUserInterrupt();
+      if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
     }
     // BEGIN: update all regression trees
     for(int r = 0; r < R; ++r){
