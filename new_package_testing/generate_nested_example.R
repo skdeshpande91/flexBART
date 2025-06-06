@@ -26,6 +26,7 @@ train_data$Blkgrp <- factor(train_data$Blkgrp, levels = 0:49)
 train_data$Tract <- factor(train_data$Tract, levels = 0:4)
 train_data$Race <- factor(train_data$Race, levels = 0:2)
 
+train_data$Y <- rnorm(n, mean = 0, sd = 1)
 #cov_ensm <- 
 #  matrix(0, nrow = ncol(train_data), ncol = 4,
 #         dimnames = list(colnames(train_data), rep(NA, times = 4)))
