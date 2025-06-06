@@ -260,7 +260,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
       tmp_fit = latent[i] - residual[i]; // current fit for i-th observations
       if(Y_train[i] == 1) latent[i] = gen.lo_trunc_norm(tmp_fit, 0.0);
       else latent[i] = gen.hi_trunc_norm(tmp_fit, 0.0);
-      residual[i] = latent[i] = tmp_fit; // updates the residual
+      residual[i] = latent[i] - tmp_fit; // updates the residual
     }
     // END: update latents and residuals
   
@@ -315,7 +315,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
       tmp_fit = latent[i] - residual[i]; // current fit for i-th observations
       if(Y_train[i] == 1) latent[i] = gen.lo_trunc_norm(tmp_fit, 0.0);
       else latent[i] = gen.hi_trunc_norm(tmp_fit, 0.0);
-      residual[i] = latent[i] = tmp_fit; // updates the residual
+      residual[i] = latent[i] - tmp_fit; // updates the residual
     }
     // END: update latents and residuals
     
@@ -422,7 +422,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
                 if(l_it->second.size() > 0){
                   for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
                     int i = *it;
-                    tmp_fit_test[i] += di_test.sz[r + i*R] * tmp_mu;
+                    tmp_fit_test[i] += di_test.z[r + i*R] * tmp_mu;
                     beta_test(sample_index,i,r) += tmp_mu;
                     beta_test_mean(i,r) += tmp_mu;
                   }
@@ -442,7 +442,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
                 if(l_it->second.size() > 0){
                   for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
                     int i = *it;
-                    tmp_fit_test[i] += di_test.sz[r + i*R] * tmp_mu;
+                    tmp_fit_test[i] += di_test.z[r + i*R] * tmp_mu;
                     beta_test_mean(i,r) += tmp_mu;
                   }
                 }

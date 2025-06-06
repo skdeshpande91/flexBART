@@ -176,7 +176,7 @@ flexBART <- function(formula,
       tmp_time <- 
         system.time(
           fit <- 
-            .single_fit(Y_train = tmp_data$training_info$std_Y,
+            ._single_fit(Y_train = tmp_data$training_info$std_Y,
                         cov_ensm = cov_ensm,
                         tX_cont_train = t(tmp_data$training_info$X_cont),
                         tX_cat_train = t(tmp_data$training_info$X_cat),
@@ -283,9 +283,8 @@ flexBART <- function(formula,
     }
   }
   ###############################
-  # We have to rescale the posterior samples
-  # For notational compactness, will keep a copy
-  # of the relevant things
+  # We have to rescale the posterior samples of beta
+  # For notational compactness, will keep a copy of the relevant things
   ###############################  
   y_mean <- tmp_data$training_info$y_mean
   y_sd <- tmp_data$training_info$y_sd

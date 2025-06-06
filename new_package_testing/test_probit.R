@@ -35,7 +35,9 @@ source("../flexBART/R/parse_hyper.R")
 source("../flexBART/R/get_sigma.R")
 
 sourceCpp("../flexBART/src/single_ensm_probit.cpp")
+sourceCpp("../flexBART/src/multi_ensm_probit.cpp")
 sourceCpp("../flexBART/src/predict_flexBART.cpp")
+sourceCpp("../flexBART/src/rescale_beta.cpp")
 source("../flexBART/R/probit_flexBART.R")
 source("../flexBART/R/predict_flexBART.R")
 

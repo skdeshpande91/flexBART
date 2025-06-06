@@ -21,8 +21,7 @@ probit_flexBART <- function(formula,
   outcome_name <- tmp_form$outcome_name
   cov_ensm <- tmp_form$cov_ensm
   
-  if(ncol(cov_ensm) > 1) stop("probit_flexBART does not yet support multiple ensembles!") 
-  
+
   ###############################
   # Prepare the data to be passed to 
   # actual sampler
@@ -98,22 +97,20 @@ probit_flexBART <- function(formula,
   total_draws <- control$nd * control$thin + control$burn
   total_samples <- control$nd * control$n.chains
   
-  # Container for sigma samples:
-  # all_sigma could be useful for assessing convergence
-  # sigma_samples will get passed to predict to do posterior predictive sampling
-  all_sigma <- array(NA, dim = c(total_draws, control$n.chains))
-  sigma_samples <- rep(NA, times = total_samples)
-  
   # Containers for posterior mean of total fit & each beta
   prob_train_mean <-rep(0, times = n_train)
+  if(R > 1) raw_beta_train_mean <- array(0, dim = c(n_train, R))
   if(n_test > 0){
     prob_test_mean <- rep(0, times = n_test)
+    if(R > 1) raw_beta_test_mean <- array(0, dim = c(n_test, R))
   }
   # Containers for posterior samples
   if(control$save_samples){
     prob_train_samples <- array(NA, dim = c(total_samples, n_train))
+    if(R > 1) raw_beta_train_samples <- array(NA, dim =c(total_samples, n_train, R))
     if(n_test > 0){
       prob_test_samples <- array(NA, dim = c(total_samples, n_test))
+      if(R > 1) raw_beta_test_samples <- array(NA, dim = c(total_samples, n_test, R))
     }
   }
   varcounts_samples <- 
@@ -140,45 +137,95 @@ probit_flexBART <- function(formula,
     }
     start_index <- (chain_num-1)*control$nd + 1
     end_index <- chain_num*control$nd
-    
-    tmp_time <-
-      system.time(
-        fit <-
-          .single_fit_probit(Y_train = tmp_data$training_info$std_Y,
-                             cov_ensm = cov_ensm,
-                             tX_cont_train = t(tmp_data$training_info$X_cont),
-                             tX_cat_train = t(tmp_data$training_info$X_cat),
-                             tX_cont_test = t(tmp_data$testing_info$X_cont),
-                             tX_cat_test = t(tmp_data$testing_info$X_cat),
-                             cutpoints_list = tmp_data$training_info$cutpoints,
-                             cat_levels_list = tmp_data$training_info$cat_levels_list,
-                             edge_mat_list = tmp_data$training_info$edge_mat_list,
-                             nest_list = tmp_data$training_info$nest_list,
-                             graph_cut_type = hyper$graph_cut_type,
-                             sparse = hyper$sparse, 
-                             a_u = hyper$a_u, 
-                             b_u = hyper$b_u,
-                             nest_v = hyper$nest_v,
-                             nest_v_option = hyper$nest_v_option,
-                             nest_c = hyper$nest_c,
-                             M = hyper$M_vec[1],
-                             alpha = hyper$alpha_vec[1],
-                             beta = hyper$beta_vec[1],
-                             mu0 = hyper$mu0_vec[1],
-                             tau = hyper$tau_vec[1],
-                             nd = control$nd, 
-                             burn = control$burn, 
-                             thin = control$thin,
-                             save_samples = control$save_samples, 
-                             save_trees = control$save_trees,
-                             verbose = control$verbose, 
-                             print_every = control$print_every))
-    
-    prob_train_mean <- prob_train_mean + fit$fit_train_mean/control$n.chains
+    if(R == 1){
+      tmp_time <-
+        system.time(
+          fit <-
+            ._single_fit_probit(Y_train = tmp_data$training_info$std_Y,
+                               cov_ensm = cov_ensm,
+                               tX_cont_train = t(tmp_data$training_info$X_cont),
+                               tX_cat_train = t(tmp_data$training_info$X_cat),
+                               tX_cont_test = t(tmp_data$testing_info$X_cont),
+                               tX_cat_test = t(tmp_data$testing_info$X_cat),
+                               cutpoints_list = tmp_data$training_info$cutpoints,
+                               cat_levels_list = tmp_data$training_info$cat_levels_list,
+                               edge_mat_list = tmp_data$training_info$edge_mat_list,
+                               nest_list = tmp_data$training_info$nest_list,
+                               graph_cut_type = hyper$graph_cut_type,
+                               sparse = hyper$sparse, 
+                               a_u = hyper$a_u, 
+                               b_u = hyper$b_u,
+                               nest_v = hyper$nest_v,
+                               nest_v_option = hyper$nest_v_option,
+                               nest_c = hyper$nest_c,
+                               M = hyper$M_vec[1],
+                               alpha = hyper$alpha_vec[1],
+                               beta = hyper$beta_vec[1],
+                               mu0 = hyper$mu0_vec[1],
+                               tau = hyper$tau_vec[1],
+                               nd = control$nd, 
+                               burn = control$burn, 
+                               thin = control$thin,
+                               save_samples = control$save_samples, 
+                               save_trees = control$save_trees,
+                               verbose = control$verbose, 
+                               print_every = control$print_every))
+    } else{
+      tmp_time <-
+        system.time(
+          fit <-
+            ._multi_fit_probit(Y_train = tmp_data$training_info$std_Y,
+                              cov_ensm = cov_ensm,
+                              tZ_train = t(tmp_data$training_info$Z),
+                              tX_cont_train = t(tmp_data$training_info$X_cont),
+                              tX_cat_train = t(tmp_data$training_info$X_cat),
+                              tZ_test = t(tmp_data$testing_info$Z),
+                              tX_cont_test = t(tmp_data$testing_info$X_cont),
+                              tX_cat_test = t(tmp_data$testing_info$X_cat),
+                              cutpoints_list = tmp_data$training_info$cutpoints,
+                              cat_levels_list = tmp_data$training_info$cat_levels_list,
+                              edge_mat_list = tmp_data$training_info$edge_mat_list,
+                              nest_list = tmp_data$training_info$nest_list,
+                              graph_cut_type = hyper$graph_cut_type,
+                              sparse = hyper$sparse, 
+                              a_u = hyper$a_u, 
+                              b_u = hyper$b_u,
+                              nest_v = hyper$nest_v,
+                              nest_v_option = hyper$nest_v_option,
+                              nest_c = hyper$nest_c,
+                              M_vec = hyper$M_vec,
+                              alpha_vec = hyper$alpha_vec,
+                              beta_vec = hyper$beta_vec,
+                              mu0_vec = hyper$mu0_vec,
+                              tau_vec = hyper$tau_vec,
+                              nd = control$nd, 
+                              burn = control$burn, 
+                              thin = control$thin,
+                              save_samples = control$save_samples, 
+                              save_trees = control$save_trees,
+                              verbose = control$verbose, 
+                              print_every = control$print_every))
+      raw_beta_train_mean <- raw_beta_train_mean + fit$beta_train_mean/control$n.chains
+      if(n_test > 0){
+        raw_beta_test_mean <- 
+          raw_beta_test_mean + fit$beta_test_mean/control$n.chains
+      }
+      if(control$save_samples){
+        raw_beta_train_samples[start_index:end_index,,] <- fit$beta_train
+        if(n_test > 0){
+          raw_beta_test_samples[start_index:end_index,,] <- fit$beta_test
+        }
+      }
+    } # closes if/else checking how many ensembles there are
+
+    prob_train_mean <- 
+      prob_train_mean + 
+      fit$fit_train_mean/control$n.chains
     
     if(n_test > 0){
       prob_test_mean <- 
-        prob_test_mean + fit$fit_test_mean/control$n.chains
+        prob_test_mean + 
+        fit$fit_test_mean/control$n.chains
     }
     if(control$save_samples){
       prob_train_samples[start_index:end_index,] <- fit$fit_train
@@ -194,20 +241,69 @@ probit_flexBART <- function(formula,
     if(control$verbose){
       cat("Ending chain", chain_num, "at", as.character(round(Sys.time())), "\n")
     }
-    
   }
+  ###############################
+  # We have to rescale the posterior samples of beta
+  # For notational compactness, will keep a copy of the relevant things
+  ###############################
+  y_mean <- tmp_data$training_info$y_mean # should be 0 
+  y_sd <- tmp_data$training_info$y_sd # should be 1
+  z_mean <- tmp_data$training_info$z_mean
+  z_sd <- tmp_data$training_info$z_sd
+  z_col_id <- tmp_data$training_info$z_col_id
+  if(R > 1){
+    beta_train_mean <- 
+      rescale_beta_mean(raw_beta_train_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
+    if(n_test > 0){
+      beta_test_mean <- 
+        rescale_beta_mean(raw_beta_test_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
+    }
+    if(control$save_samples){
+      beta_train_samples <- 
+        rescale_beta(raw_beta_train_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
+      if(n_test > 0){
+        beta_test_samples <- 
+          rescale_beta(raw_beta_test_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
+      }
+    }
+  }
+
   results <- list()
   results[["dinfo"]] <- tmp_data$data_info
   if(control$save_trees) results[["trees"]] <- tree_list
+  results[["scaling_info"]] <- 
+    list(y_mean = y_mean, y_sd = y_sd,
+         z_mean = z_mean, z_sd = z_sd,
+         z_col_id = z_col_id)
   results[["M"]] <- hyper$M_vec
   results[["cov_ensm"]] <- cov_ensm
   results[["is.probit"]] <- TRUE
 
   results[["prob.train.mean"]] <- prob_train_mean
-  if(control$save_samples) results[["prob.train"]] <- prob_train_samples
+  if(R > 1){
+    results[["beta.train.mean"]] <- beta_train_mean
+    results[["raw_beta.train.mean"]] <- raw_beta_train_mean
+  }
+  if(control$save_samples){
+    results[["prob.train"]] <- prob_train_samples
+    if(R > 1){ 
+      results[["beta.train"]] <- beta_train_samples
+      results[["raw_beta.train"]] <- raw_beta_train_samples
+    }
+  }
   if(n_test > 0){
     results[["prob.test.mean"]] <- prob_test_mean
-    if(control$save_samples) results[["prob.test"]] <- prob_test_samples
+    if(R > 1){
+      results[["beta.test.mean"]] <- beta_test_mean
+      results[["raw_beta.test.mean"]] <- raw_beta_test_mean
+    }
+    if(control$save_samples){
+      results[["prob.test"]] <- prob_test_samples
+      if(R > 1){
+        results[["beta.test"]] <- beta_test_samples
+        results[["raw_beta.test"]] <- raw_beta_test_samples
+      }
+    }
   }
   results[["varcounts"]] <- varcounts_samples
   results[["timing"]] <- timing

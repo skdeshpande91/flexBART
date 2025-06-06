@@ -1,7 +1,7 @@
 #include "update_tree.h"
 #include "data_parsing_funs.h"
 #include "funs.h"
-// [[Rcpp::export(".single_fit_probit")]]
+// [[Rcpp::export("._single_fit_probit")]]
 Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
                              Rcpp::IntegerMatrix cov_ensm,
                              Rcpp::NumericMatrix tX_cont_train,

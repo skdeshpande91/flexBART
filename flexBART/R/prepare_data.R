@@ -97,6 +97,8 @@ prepare_data <- function(train_data,
     if(!all(y %in% c(0L,1L))){
       stop("For probit regression ", outcome_name, " must take values in 0L or 1L")
     }
+    trinfo$y_mean <- 0 # to simply rescaling, set to 0
+    trinfo$y_sd <- 1 # to simplify rescaling, set to 1
     trinfo$std_Y <- y
   }
 
