@@ -74,7 +74,7 @@ Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
   double* residual = new double[n_train];
   int tmp_n_test = 1;
   if(n_test > 0) tmp_n_test = n_test;
-  double* tmp_fit_test = new double[tmp_n_test]; // for holding test set fits temporarility
+  double* tmp_fit_test = new double[tmp_n_test]; // for holding test set fits temporarily
 
   // END: initialize containers for residuals and fit
   
@@ -150,9 +150,10 @@ Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
   
   
   // BEGIN: initialize latents and residual
+  double offset = R::qnorm(Rcpp::mean(Y_train), 0.0,1.0, true, false);
   for(int i = 0; i < n_train; ++i){
-    if(Y_train[i] == 1) latent[i] = gen.lo_trunc_norm(0.0, 0.0);
-    else if(Y_train[i] == 0) latent[i] = gen.hi_trunc_norm(0.0, 0.0);
+    if(Y_train[i] == 1) latent[i] = gen.lo_trunc_norm(offset, 0.0);
+    else if(Y_train[i] == 0) latent[i] = gen.hi_trunc_norm(offset, 0.0);
     else{
       Rcpp::Rcout << " Outcome for observation i = " << i+1 << " is " << Y_train[i] << std::endl;
       Rcpp::stop("For probit regression, all outcomes must be 1 or 0.");
