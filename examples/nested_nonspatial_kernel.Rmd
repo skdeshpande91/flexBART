@@ -22,12 +22,12 @@ Because we only care about the co-clustering based on the partitioning of the ca
 We first generate a dataset with the desired nested structure.
 ```{r generate-nested-data}
 nested <- data.frame(Classroom = 0:119)
-nested$School <- floor(train_data$Classroom/5)
-nested$District <- floor(train_data$School/6)
+nested$School <- floor(nested$Classroom/5)
+nested$District <- floor(nested$School/6)
 
-nested$Classroom <- factor(train_data$Classroom, levels = 0:119)
-nested$School <- factor(train_data$School, levels = 0:23)
-nested$District <- factor(train_data$District, levels = 0:3)
+nested$Classroom <- factor(nested$Classroom, levels = 0:119)
+nested$School <- factor(nested$School, levels = 0:23)
+nested$District <- factor(nested$District, levels = 0:3)
 ```
 
 We also write a helper function to visualize the pairwise co-clustering probabilities.
@@ -52,7 +52,7 @@ plot_kernel <- function(kernel){
          xpd = TRUE)
   }
   text(x = seq(floor(n/10), floor(9*n/10), length = 5),
-       y = par("usr")[4]+5.5,
+       y = par("usr")[4]+7.5,
        labels = seq(0,1,length = 5), xpd = TRUE)
   for(i in 1:(n-1)){
     for(j in (i+1):n){
@@ -124,9 +124,10 @@ We simulate 10,000 draws from the tree prior and plot the (estimated) co-cluster
 The smalleste square in the plot represents an individual observation, which in this case is a classroom.
 We also overlay squares corresponding to the schools and districts.
 
-```{r partition0}
+```{r partition0, fig.width = 4, fig.height = 4, fig.align='center'}
+set.seed(609)
 partition0 <- 
-  flexBART::rflexBART(train_data = train_data,
+  flexBART::rflexBART(train_data = nested,
                       nd = 1e4, 
                       nest_v = TRUE,
                       nest_v_option = 0,
@@ -145,9 +146,9 @@ As expected, there is exactly one non-zero entry in each row corresponding to a 
 table(partition0$num_leafs)
 table(rowSums(partition0$varcounts != 0))
 ```
-
 In some sense, setting `nest_v_option = 0` ignores the nesting structure.
-Nevertheless, we see that the co-clustering probabilities clearly exhibit the hierarchical relationship
+Nevertheless, we see that the co-clustering probabilities clearly follow the hierarchical relationship between the variable.
+
 <!--
   We see that there is implicitly some cluster structure! This is because of the nesting
   Although the tree does not try to take advantage of it, it does manifest because splits on
@@ -155,23 +156,50 @@ Nevertheless, we see that the co-clustering probabilities clearly exhibit the hi
   exchangeable thing
 -->
 
-
-For `nest_v_option = 1`, the initial splitting variable is always `District`. Subsequently, the tree can split on any of the other variables as both `Classroom` and `District` are nested within `District`
-
-Similarly for `nest_v_option = 2`, the initial splitting variable is always `Classroom.` Subsequently, the tree can split on any of the other variables as `Classroom` is nested within both `School` and `District`
-To verify that the code is doing this correctly: 
-```{r sanity-check-2}
-any(partition2$varcounts[which(partition2$num_leafs > 1),1] == 0)
+For `nest_v_option = 1`, the initial splitting variable is always `District`. 
+Subsequently, the tree can split on any of the other variables as both `Classroom` and `District` are nested within `District`.
+```{r partition1, fig.width = 4, fig.height = 4, fig.align='center'}
+set.seed(609)
+partition1 <- 
+  flexBART::rflexBART(train_data = nested,
+                      nd = 1e4, 
+                      nest_v = TRUE,
+                      nest_v_option = 1,
+                      nest_c = TRUE,
+                      verbose = FALSE)
+plot_kernel(partition1$kernel)
+for(k in c(0, 30, 60, 90)) rect(k+0.5, k+0.5, k+30.5, k+30.5)
+for(k in seq(0, 115, by = 5)) rect(k+0.5, k+0.5, k+5.5, k+5.5)
 ```
-Finally, for `nest_v_option = 3`, 
-
-Throughout we will use the following helper function to visualize the co-clustering kernel matrix
 
 
+Similarly for `nest_v_option = 2`, the initial splitting variable is always `Classroom.` Subsequently, the tree can split on any of the other variables as `Classroom` is nested within both `School` and `District.`
+```{r partition2, fig.width = 4, fig.height = 4, fig.align='center'}
+set.seed(609)
+partition2 <- 
+  flexBART::rflexBART(train_data = nested,
+                      nd = 1e4, 
+                      nest_v = TRUE,
+                      nest_v_option = 2,
+                      nest_c = TRUE,
+                      verbose = FALSE)
+plot_kernel(partition2$kernel)
+for(k in c(0, 30, 60, 90)) rect(k+0.5, k+0.5, k+30.5, k+30.5)
+for(k in seq(0, 115, by = 5)) rect(k+0.5, k+0.5, k+5.5, k+5.5)
+```
 
-classrooms are nested within schools, which are themselves nested within districts.
-For this example, we will create 60 classrooms (numbered 0--59), 12 schools (numbered 0--11), and 4 districts (numbered 0--3) with (i) 5 classrooms per school and (ii) 3 schools per district.
-For simplicity, we will assign classrooms 0--4 to school 0, classrooms 5--9 to school 1, etc.
-We will similarly assign schools 0--2 to district 0, 3--5 to district 1, etc.
-The matrix `X_cat` created below has one row per classroom and columns for each resolution.
-Note that in **reBART** we assume that variables within a nested family have been arranged in order of increasing resolution.
+Finally, with `nest_v_option = 3`, the initial splitting variable is always `School`, which is why we see observations from the same school co-clustered very often.
+
+```{r partition3, fig.width = 4, fig.height = 4, fig.align='center'}
+set.seed(609)
+partition3 <- 
+  flexBART::rflexBART(train_data = nested,
+                      nd = 1e4, 
+                      nest_v = TRUE,
+                      nest_v_option = 3,
+                      nest_c = TRUE,
+                      verbose = FALSE)
+plot_kernel(partition3$kernel)
+for(k in c(0, 30, 60, 90)) rect(k+0.5, k+0.5, k+30.5, k+30.5)
+for(k in seq(0, 115, by = 5)) rect(k+0.5, k+0.5, k+5.5, k+5.5)
+```

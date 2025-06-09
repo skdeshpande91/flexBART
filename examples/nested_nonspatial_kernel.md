@@ -1,0 +1,312 @@
+Prior draws for multi-resolution trees
+================
+2025-06-09
+
+## Setup
+
+We will illustrate the types of partitions of nested categorical
+predictors supported by **flexBART** with a synthetic example in which
+(i) the observational units are students with one observation per
+student; (ii) students are nested into classrooms; (iii) classrooms are
+nested within schools; and (iv) schools are nested within districts. For
+this example, we will create 120 classrooms (numbered 0–59), 24 schools
+(numbered 0–11), and 4 districts (numbered 0–3) with (i) 5 classrooms
+per school and (ii) 6 schools per district.
+
+Whereas a standard, parametric multilevel model might assume
+exchangeability of classroom within schools and exchangeability of
+schools within districts, we will consider alternative specifications
+induced by tree-based recursive partitions. The key idea is that the
+prior correlation between random effects corresponding to a pair of
+classroom is proportional to the prior probability that the two
+classrooms are assigned to the same leaf of a tree. So in subsequent
+sections, we will use the function `flexBART::rflexBART` to simulate
+many tree draws and approximate this probability. We will focus, in
+particular, on how different priors for selecting the splitting
+probability induce different correlation structures. Because we only
+care about the co-clustering based on the partitioning of the
+categorical variables, we will create one student per classroom.
+
+We first generate a dataset with the desired nested structure.
+
+``` r
+nested <- data.frame(Classroom = 0:119)
+nested$School <- floor(nested$Classroom/5)
+nested$District <- floor(nested$School/6)
+
+nested$Classroom <- factor(nested$Classroom, levels = 0:119)
+nested$School <- factor(nested$School, levels = 0:23)
+nested$District <- factor(nested$District, levels = 0:3)
+```
+
+We also write a helper function to visualize the pairwise co-clustering
+probabilities.
+
+``` r
+plot_kernel <- function(kernel){
+  
+  col_list <- colorBlindness::Blue2DarkRed18Steps
+  n <- nrow(kernel)
+  
+  legend_seq <- seq(floor(n/10), floor(9*n/10), length = 500)
+  par(mar = c(1,1,5,1), mgp = c(1.8, 0.5, 0))
+  plot(1, type = "n", xlim = c(0.5,n+0.5), ylim = c(0.5,n+0.5),
+       xaxt = "n", yaxt = "n", xlab = "", ylab = "")
+  rect(floor(n/10), par("usr")[4]+0.5, 
+       floor(9*n/10), par("usr")[4] + 4.5, 
+       xpd = TRUE)
+  for(leg_ix in 1:499){
+    rect(legend_seq[leg_ix], par("usr")[4]+0.5, 
+         legend_seq[leg_ix+1], par("usr")[4]+4.5,
+         border = NA, 
+         col = rgb(colorRamp(col_list, bias = 1)((leg_ix-1)/500)/255),
+         xpd = TRUE)
+  }
+  text(x = seq(floor(n/10), floor(9*n/10), length = 5),
+       y = par("usr")[4]+7.5,
+       labels = seq(0,1,length = 5), xpd = TRUE)
+  for(i in 1:(n-1)){
+    for(j in (i+1):n){
+      rect(i-0.5,j-0.5,i+0.5, j+0.5, 
+           border = NA, col = rgb(colorRamp(col_list, bias = 1)(kernel[i,j])/255))
+      rect(j-0.5,i-0.5,j+0.5, i+0.5, 
+           border = NA, col = rgb(colorRamp(col_list, bias = 1)(kernel[i,j])/255))
+    }
+    rect(i-0.5,i-0.5,i+0.5, i+0.5, 
+         border = NA, col = rgb(colorRamp(col_list, bias = 1)(kernel[i,i])/255))
+  }
+  rect(n-0.5,n-0.5,n+0.5, n+0.5, 
+       border = NA, col = rgb(colorRamp(col_list, bias = 1)(kernel[i,i])/255))
+  abline(h = 1:(n+1) - 0.5, col = 'lightgray')
+  abline(v = 1:(n+1) - 0.5, col = 'lightgray')
+  
+}
+```
+
+## How **flexBART** represents and leverages nesting structure
+
+The functions `flexBART::flexBART`, `flexBART::probit_flexBART`, and
+`flexBART::rflexBART` automatically check for nesting structure among
+the categorical predictors provided in the training and optional testing
+data. Internally, these functions create a directed graph $\mathcal{G}$
+whose vertices corresponding to categorical variables and whose edges
+encode nesting relationship so that if variable $X_{j}$ is nested within
+$X_{k}$ an edge is drawn from $j$’s vertex in the graph to $k$’s vertex
+in the graph. They then compute the connected components of
+$\mathcal{G},$ which we will denote as $C_{1}, \ldots, C_{K}.$
+
+Recall that the drawing a decision rule at a particular node in a tree
+proceeds in two steps: first, a splitting variable $v$ is selected
+(conditionally given the decision rules at all of ’s ancestors); and
+second, a cutset $\mathcal{C}$ is selected conditionally given $v$ (and
+the decision rules at all of ’s ancestors). For categorical predictors,
+$\mathcal{C}$ is a random, proper subset of the set of the *available
+values* of $X_{v}$ at <!-- TO DO: make a cartoon figure --> So, nesting
+structure can influence the selection of the splitting variable and the
+generating of the random cutset. The logical arguments `nest_v` and
+`nest_c` are used, respectively, to tell **flexBART** functions whether
+to use nesting structure when forming.
+
+In this running example with classrooms nested within school nested
+within districts, suppose we decide to split on Classroom after after
+having already split on School. Since `Classroom` is nested within
+`School`, the initial split implicitly partitions `Classrooms`, which
+restricts the set of available values.
+<!-- TO DO: make a cartoon figure -->
+
+In **flexBART**, we can either ignore this restriction
+(`nest_c = FALSE`) or account for it (`nest_c = TRUE`). If we ignore
+this restriction, it can be the case that the tree assigns levels which
+can never reach a node to the left or right child. Since the choice of
+splitting variable is decoupled from the number of available values of
+each variable, toggling this argument is unlikely to affect the
+predictive performance.
+
+More substantively, when `nest_v = FALSE`, the prior selects a splitting
+variable according to a vector
+$\theta^{\top} = (\theta_{1}, \ldots, \theta_{p}).$ Depending on the
+argument `sparse`, the vector of splitting probabilities is fixed with
+$\theta_{j} = 1/p$ for all j (`sparse=FALSE`) or are learned adaptively
+using the approach of [Linero
+(2018)](https://doi.org/10.1111/rssb.12293), which specifies a
+sparsity-inducing Dirichlet prior for $\theta.$
+
+When `nest_v = TRUE`, **flexBART** functions support four different
+options for selecting the splitting variable, which are encoded with the
+`nest_v_option`, which is expected to take values 0, 1, 2, or 3. At a
+given node , we initialize a vector of un-normalized splitting
+probabilities
+$\tilde{\theta}^{\top} = (\tilde{\theta}_{1}, \ldots, \tilde{\theta}_{p})$
+by setting $\tilde{\theta}_{j} = 1$ for all continuous $X_{j}$’s and
+setting $\tilde{\theta}_{j} = 0$ for all categorical $X_{j}$’s. We then
+loop over the connected components to see if any variable from $C_{k}$
+was used at one of ’s ancestors. If so, we identify a representative
+$v_{k}^{\text{rep}},$ which is the most recently used variable used from
+the cluster. If not, we say that $C_{k}$ has no valid representative at
+. We describe how we then set some of the categorial
+$\tilde{\theta}_{j}$’s to 1 by considering two cases for each cluster
+$C_{k}.$
+
+**Case 1**: If $C_{k}$ has a valid representative, then we set
+$\tilde{\theta}_{v^{\text{rep}}_{k}} = 1.$ We set additional
+$\tilde{\theta}_{j}$’s to 1 based on `nest_v_option`: \* If
+`nest_v_option = 0`, we set $\tilde{\theta}_{j} = 0$ for all
+$j \in C_{k}$ s.t. $j \neq v^{\text{rep}}_{k}.$ This way, the tree is
+only allowed to split on a previously selected variable from the cluster
+$C_{k}.$ \* If `nest_v_option = 1`, we identify all $j \in C_{k}$ such
+that $(j,v^{\text{rep}}_{k})$ is an edge in $\mathcal{G}[C_{k}]$ and set
+the corresponding $\tilde{\theta}_{j}$’s to 1. This way, the tree can
+split on $v^{\text{rep}}_{k}$ or any higher-resolution variable that is
+nested within $v^{\text{rep}}_{k}.$ \* If `nest_v_option = 2`, we
+identify all $j \in C_{k}$ such that $(v^{\text{rep}}_{k},j)$ is an edge
+in $\mathcal{G}[C_{k}]$ and set the corresponding $\tilde{\theta}_{j}$’s
+to 1. This way, the tree can split on $v^{\text{rep}}_{k}$ or on any
+lower-resolution variable that nests $v^{\text{rep}}_{k}.$ \* If
+`nest_v_option = 3`, we identify all $j \in C_{k}$ such that
+$(j,v^{\text{rep}}_{k})$ or $(v^{\text{rep}}_{k},j)$ is an edge in
+$\mathcal{G}[C_{k}].$ This way, the tree can split on
+$v^{\text{rep}}_{k},$ on any higher-resolution variable that is nested
+within the representative, or on any lower-resolution variable that
+nests the representative.
+
+**Case 2**: If $C_{k}$ does not have a valid representative, then we set
+the corresponding $\tilde{\theta}_{j}$’s to 1 based on `nest_v_option`:
+\* If `nest_v_option = 0` we set $\tilde{\theta}_{j} = 1$ for all
+$j \in C_{k}.$ This allows the tree to split on any variable from the
+component. \* If `nest_v_option = 1` we identify those vertices in
+$\mathcal{G}[C_{k}]$ that only have incoming edges but no outgoing
+edges. That is, we identify the **lowest** resolution variables in
+$C_{k}$ and set the corresponding $\tilde{\theta}_{j}$’s to 1. \* If
+`nest_v_option = 2`, we identify those vertices in $\mathcal{G}[C_{k}]$
+that only have out-going edges but no in-coming edges. That is, we
+identify the **highest** resolution variables in $C_{k}$ and set the
+corresponding $\tilde{\theta}_{j}$’s to 1. \* If `nest_v_option = 3,` we
+identify those vertices in $\mathcal{G}[C_{k}]$ that have both incoming
+and out-going edges. That is, we identify variables that are not the
+highest nor the lowest resolution variables in $C_{k}$ and set the
+corresponding $\tilde{\theat}_{j}$’s to 1.
+
+Generally speaking, `nest_v_option = 0` forces the tree to use a single
+resolution level, `nest_v_option = 1` encourages trees to split on
+higher resolutions, `nest_v_option` encourages trees to split on lower
+resolutions, and `nest_v_option = 3` encourages trees to split on
+mid-resolution (i.e., not the most extreme).
+
+## Illustration
+
+We simulate 10,000 draws from the tree prior and plot the (estimated)
+co-clustering probabilities. The smalleste square in the plot represents
+an individual observation, which in this case is a classroom. We also
+overlay squares corresponding to the schools and districts.
+
+``` r
+set.seed(609)
+partition0 <- 
+  flexBART::rflexBART(train_data = nested,
+                      nd = 1e4, 
+                      nest_v = TRUE,
+                      nest_v_option = 0,
+                      nest_c = TRUE,
+                      verbose = FALSE)
+plot_kernel(partition0$kernel)
+for(k in c(0, 30, 60, 90)) rect(k+0.5, k+0.5, k+30.5, k+30.5)
+for(k in seq(0, 115, by = 5)) rect(k+0.5, k+0.5, k+5.5, k+5.5)
+```
+
+<img src="nested_nonspatial_kernel_files/figure-gfm/partition0-1.png" style="display: block; margin: auto;" />
+Recall that with `nest_v_option = 0`, the splitting variable is selected
+uniformly at a random at the root and then fixed for all subsequent
+nodes. We can verify that this is the case by looking at the matrix of
+variable counts returned by `flexBART::rflexBART`. Each row of this
+matrix corresponds to a prior draw and the columns correspond to the
+variable. We also look at the number of leafs in each sampled tree As
+expected, there is exactly one non-zero entry in each row corresponding
+to a non-root tree.
+
+``` r
+table(partition0$num_leafs)
+```
+
+    ## 
+    ##    1    2    3    4    5    6    7    8 
+    ##  491 5461 2854  866  259   53   15    1
+
+``` r
+table(rowSums(partition0$varcounts != 0))
+```
+
+    ## 
+    ##    0    1 
+    ##  491 9509
+
+In some sense, setting `nest_v_option = 0` ignores the nesting
+structure. Nevertheless, we see that the co-clustering probabilities
+clearly follow the hierarchical relationship between the variable.
+
+<!--
+  We see that there is implicitly some cluster structure! This is because of the nesting
+  Although the tree does not try to take advantage of it, it does manifest because splits on
+  One way to enforce this is to scramble District and School; then there is no nesting structure and we get a big old 
+  exchangeable thing
+-->
+
+For `nest_v_option = 1`, the initial splitting variable is always
+`District`. Subsequently, the tree can split on any of the other
+variables as both `Classroom` and `District` are nested within
+`District`.
+
+``` r
+set.seed(609)
+partition1 <- 
+  flexBART::rflexBART(train_data = nested,
+                      nd = 1e4, 
+                      nest_v = TRUE,
+                      nest_v_option = 1,
+                      nest_c = TRUE,
+                      verbose = FALSE)
+plot_kernel(partition1$kernel)
+for(k in c(0, 30, 60, 90)) rect(k+0.5, k+0.5, k+30.5, k+30.5)
+for(k in seq(0, 115, by = 5)) rect(k+0.5, k+0.5, k+5.5, k+5.5)
+```
+
+<img src="nested_nonspatial_kernel_files/figure-gfm/partition1-1.png" style="display: block; margin: auto;" />
+
+Similarly for `nest_v_option = 2`, the initial splitting variable is
+always `Classroom.` Subsequently, the tree can split on any of the other
+variables as `Classroom` is nested within both `School` and `District.`
+
+``` r
+set.seed(609)
+partition2 <- 
+  flexBART::rflexBART(train_data = nested,
+                      nd = 1e4, 
+                      nest_v = TRUE,
+                      nest_v_option = 2,
+                      nest_c = TRUE,
+                      verbose = FALSE)
+plot_kernel(partition2$kernel)
+for(k in c(0, 30, 60, 90)) rect(k+0.5, k+0.5, k+30.5, k+30.5)
+for(k in seq(0, 115, by = 5)) rect(k+0.5, k+0.5, k+5.5, k+5.5)
+```
+
+<img src="nested_nonspatial_kernel_files/figure-gfm/partition2-1.png" style="display: block; margin: auto;" />
+
+Finally, with `nest_v_option = 3`, the initial splitting variable is
+always `School`, which is why we see observations from the same school
+co-clustered very often.
+
+``` r
+set.seed(609)
+partition3 <- 
+  flexBART::rflexBART(train_data = nested,
+                      nd = 1e4, 
+                      nest_v = TRUE,
+                      nest_v_option = 3,
+                      nest_c = TRUE,
+                      verbose = FALSE)
+plot_kernel(partition3$kernel)
+for(k in c(0, 30, 60, 90)) rect(k+0.5, k+0.5, k+30.5, k+30.5)
+for(k in seq(0, 115, by = 5)) rect(k+0.5, k+0.5, k+5.5, k+5.5)
+```
+
+<img src="nested_nonspatial_kernel_files/figure-gfm/partition3-1.png" style="display: block; margin: auto;" />
