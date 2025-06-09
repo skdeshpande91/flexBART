@@ -1,9 +1,12 @@
-citHeader("To cite flexBART in publications use:")
+bibentry(bibtype="Manual",
+  title = "flexBART",
+  author = c(person(c("Sameer", "K"), "Deshpande), 
+             person("Cecilia", "Balocchi"),
+             person("George", "Perrett"),
+             person("Jennifer", "Hill")),
+  year = "2025",
+  note="R package version 2.0.0")
 
-citEntry(entry = "Unpublished",
-  title        = "A new BART prior for flexible modeling with categorical predictors",
-  author       = personList(as.person("Sameer K. Deshpande")),
-  note         = "arXiv preprint arXiv:2211.04459",
-  year         = "2022",
-  textVersion  = "Deshpande,S.K. \"A new BART prior for flexible modeling with categorical predictors.\" arXiv preprint arXiv:2211.04459."
-)
+
+
+

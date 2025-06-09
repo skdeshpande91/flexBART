@@ -148,9 +148,16 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
             edge_map_it out_e_it = tree_pi.nest_out->find(*it);
             if(in_e_it->second.size() > 0 && out_e_it->second.size() == 0) nest_theta[*it + p_cont] = 1.0;
           }
+        } else if(tree_pi.nest_v_option == 3){
+          // split on something in the middle
+          for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
+            edge_map_it in_e_it = tree_pi.nest_in->find(*it);
+            edge_map_it out_e_it = tree_pi.nest_out->find(*it);
+            if(in_e_it->second.size() > 0 && out_e_it->second.size() > 0) nest_theta[*it + p_cont] = 1.0;
+          }
         } else{
           Rcpp::stop("[compute_nested_theta]: nest_v_option must be in {0, 1, 2, 3}");
-        } // closes if/else's checking nest_v_option 
+        } // closes if/else's checking nest_v_option
       } // closes if/else checking if cluster is singleton
     } // closes loop over clusters
   } else{
@@ -177,7 +184,7 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
         // did not previously split on variable from this component.
         if(c_it->second.size() == 1) nest_theta[*(c_it->second.begin()) + p_cont] = 1.0; // singleton cluster
         else{
-          if(tree_pi.nest_v_option == 0 || tree_pi.nest_v_option == 3){
+          if(tree_pi.nest_v_option == 0){
             // allow splits on any variable from the component
             for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it) nest_theta[*it + p_cont] = 1.0;
           } else if(tree_pi.nest_v_option == 1){
@@ -193,6 +200,13 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
               edge_map_it in_e_it = tree_pi.nest_in->find(*it);
               edge_map_it out_e_it = tree_pi.nest_out->find(*it);
               if(in_e_it->second.size() > 0 && out_e_it->second.size() == 0) nest_theta[*it + p_cont] = 1.0;
+            }
+          } else if(tree_pi.nest_v_option == 3){
+            // allow split on anything but the highest or lowest resolution variable in the cluster
+            for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
+              edge_map_it in_e_it = tree_pi.nest_in->find(*it);
+              edge_map_it out_e_it = tree_pi.nest_out->find(*it);
+              if(in_e_it->second.size() > 0 && out_e_it->second.size() > 0) nest_theta[*it + p_cont] = 1.0;
             }
           } else{
             Rcpp::stop("[compute_nested_theta]: nest_v_option must be in {0, 1, 2, 3}");

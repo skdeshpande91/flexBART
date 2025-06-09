@@ -10,7 +10,7 @@ rflexBART <- function(train_data,
   usr_args <- list(...)
   usr_names <- names(usr_args)
   
-  cat(usr_names, "\n")
+  #cat(usr_names, "\n")
   
   
   n <- nrow(train_data)
@@ -37,27 +37,32 @@ rflexBART <- function(train_data,
     # if user didn't provide nest_v, nest_v_option, or nest_c, 
     # we need to use default value
     # should warn the user:
+    
     if("nest_v" %in% usr_names) nest_v <- usr_args[["nest_v"]]
     else{
-      warning("[flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
+      warning("[rflexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
       nest_v <- TRUE
     }
-    if("nest_v_option" %in% usr_names) nest_v_option <- usr_args[["nest_v_option"]]
-    else{
-      warning("[flexBART]: nesting structure detected but no nest_v_option argument specified. Defaulting to nest_v_option=3")
-      nest_v_option <- 3
+    if(nest_v){
+      # we're going to use nested structure for selecting splitting variables
+      if("nest_v_option" %in% usr_names) nest_v_option <- usr_args[["nest_v_option"]]
+      else{
+        warning("[rflexBART]: nesting structure detected but no nest_v_option argument specified. Defaulting to nest_v_option=3")
+        nest_v_option <- 3 # may need to change the default
+      }
     }
-    
     if("nest_c" %in% usr_names) nest_c <- usr_args[["nest_c"]]
     else{
-      warning("[flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
+      warning("[rflexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
       nest_c <- TRUE
     }
   }
   hyper <- 
     parse_hyper(R = 1,
                 y_range = 0,
-                nest_v = nest_v, nest_v_option, nest_c = nest_c,
+                nest_v = nest_v, 
+                nest_v_option = nest_v_option, 
+                nest_c = nest_c,
                 tau_vec = c(1), mu0_vec = c(0),...)
   if(verbose){
     if(!is.null(tmp_data$training_info$edge_mat_list)){

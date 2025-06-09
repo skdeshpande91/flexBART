@@ -56,23 +56,32 @@ probit_flexBART <- function(formula,
     # if user didn't provide nest_v, nest_v_option, or nest_c, 
     # we need to use default value
     # should warn the user:
-    if(!"nest_v" %in% usr_names){
-      warning("[flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
+    
+    if("nest_v" %in% usr_names) nest_v <- usr_args[["nest_v"]]
+    else{
+      warning("[probit_flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
       nest_v <- TRUE
     }
-    if(! "nest_v_option" %in% usr_names){
-      warning("[flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v_option=3")
-      nest_v_option <- 3
+    if(nest_v){
+      # we're going to use nested structure for selecting splitting variables
+      if("nest_v_option" %in% usr_names) nest_v_option <- usr_args[["nest_v_option"]]
+      else{
+        warning("[probit_flexBART]: nesting structure detected but no nest_v_option argument specified. Defaulting to nest_v_option=3")
+        nest_v_option <- 3 # may need to change the default
+      }
     }
-    if(! "nest_c" %in% usr_names){
-      warning("[flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
+    if("nest_c" %in% usr_names) nest_c <- usr_args[["nest_c"]]
+    else{
+      warning("[probit_flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
       nest_c <- TRUE
     }
   }
   
   hyper <- 
     parse_hyper_probit(R = R, y_mean = y_mean,
-                nest_v = nest_v, nest_v_option, nest_c = nest_c, 
+                nest_v = nest_v, 
+                nest_v_option = nest_v_option, 
+                nest_c = nest_c, 
                 ...)
   
   ###############################
