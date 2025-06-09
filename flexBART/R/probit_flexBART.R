@@ -62,14 +62,13 @@ probit_flexBART <- function(formula,
       warning("[probit_flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
       nest_v <- TRUE
     }
-    if(nest_v){
-      # we're going to use nested structure for selecting splitting variables
-      if("nest_v_option" %in% usr_names) nest_v_option <- usr_args[["nest_v_option"]]
-      else{
-        warning("[probit_flexBART]: nesting structure detected but no nest_v_option argument specified. Defaulting to nest_v_option=3")
-        nest_v_option <- 3 # may need to change the default
-      }
+    
+    if("nest_v_option" %in% usr_names) nest_v_option <- usr_args[["nest_v_option"]]
+    else{
+      if(nest_v) warning("[rflexBART]: nesting structure detected but no nest_v_option argument specified. Defaulting to nest_v_option=3")
+      nest_v_option <- 3 # may need to change the default
     }
+    
     if("nest_c" %in% usr_names) nest_c <- usr_args[["nest_c"]]
     else{
       warning("[probit_flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")

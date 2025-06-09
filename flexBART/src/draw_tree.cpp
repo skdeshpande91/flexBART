@@ -50,6 +50,12 @@ void draw_tree(tree &t, data_info &di, tree_prior_info &tree_pi, RNG &gen)
             // we're actually going to grow the tree!
             draw_rule(rule, t, nx_nid, di, tree_pi, gen);
             t.birth(nx_nid, rule);
+            if(!rule.is_cat){
+              ++(tree_pi.var_count->at(rule.v_aa));
+            } else{
+              int v_raw = rule.v_cat + di.p_cont;
+              ++(tree_pi.var_count->at(v_raw));
+            }
           } // closes if checking that we're actually trying to grow the tree
         } else{
           //Rcpp::Rcout << "  node " << (*l_it)->get_nid() << " not at max depth. moving on";

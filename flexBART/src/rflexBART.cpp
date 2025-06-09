@@ -98,6 +98,7 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   Rcpp::IntegerVector num_empty(nd);
   Rcpp::IntegerVector max_cluster_size(nd);
   Rcpp::IntegerVector min_cluster_size(nd);
+  arma::mat var_count_samples = arma::zeros<arma::mat>(nd, p);
   arma::mat kernel = arma::zeros<arma::mat>(n,n); // kernel(i,ii) counts #times obs i & j in same leaf
     
   for(int iter = 0; iter < nd; ++iter){
@@ -114,6 +115,8 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   for(int iter = 0; iter < nd; ++iter){
     if(verbose && iter % print_every == 0) Rcpp::Rcout << "  Drawing tree " << iter+1 << " of " << nd << std::endl;
     t.to_null();
+    for(int j = 0; j < p; ++j) var_count[j] = 0;
+    
     draw_tree(t, di, tree_pi, gen);
     ss.clear();
     tree_traversal(ss,t,di);
@@ -148,6 +151,8 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
       max_cluster_size[iter] = max_size;
       min_cluster_size[iter] = min_size;
     } // closes loop over leafs
+    
+    for(int j = 0; j < p; ++j) var_count_samples(iter,j) = var_count[j];
   }
   kernel /= (double) nd;
   
@@ -158,5 +163,6 @@ Rcpp::List drawTree(Rcpp::NumericMatrix tX_cont,
   results["max_leaf_size"] = max_cluster_size;
   results["min_leaf_size"] = min_cluster_size;
   results["kernel"] = kernel;
+  results["varcounts"] = var_count_samples;
   return results;
 }

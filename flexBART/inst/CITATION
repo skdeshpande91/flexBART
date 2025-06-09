@@ -1,6 +1,6 @@
 bibentry(bibtype="Manual",
   title = "flexBART",
-  author = c(person(c("Sameer", "K"), "Deshpande), 
+  author = c(person(c("Sameer", "K"), "Deshpandei"), 
              person("Cecilia", "Balocchi"),
              person("George", "Perrett"),
              person("Jennifer", "Hill")),
