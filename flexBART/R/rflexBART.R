@@ -91,5 +91,7 @@ rflexBART <- function(train_data,
                 nd = nd, 
                 verbose = verbose,
                 print_every = print_every)
+  colnames(tmp$varcounts) <- 
+    c(tmp_data$data_info$cont_names, tmp_data$data_info$cat_names)
   return(tmp)
 }

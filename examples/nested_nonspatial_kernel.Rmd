@@ -19,18 +19,18 @@ So in subsequent sections, we will use the function `flexBART::rflexBART` to sim
 We will focus, in particular, on how different priors for selecting the splitting probability induce different correlation structures.
 Because we only care about the co-clustering based on the partitioning of the categorical variables, we will create one student per classroom.
 
+We first generate a dataset with the desired nested structure.
 ```{r generate-nested-data}
-train_data <-
-  data.frame(Classroom = 0:119)
-train_data$School <- floor(train_data$Classroom/5)
-train_data$District <- floor(train_data$School/6)
+nested <- data.frame(Classroom = 0:119)
+nested$School <- floor(train_data$Classroom/5)
+nested$District <- floor(train_data$School/6)
 
-train_data$Classroom <- factor(train_data$Classroom, levels = 0:119)
-train_data$School <- factor(train_data$School, levels = 0:23)
-train_data$District <- factor(train_data$District, levels = 0:3)
+nested$Classroom <- factor(train_data$Classroom, levels = 0:119)
+nested$School <- factor(train_data$School, levels = 0:23)
+nested$District <- factor(train_data$District, levels = 0:3)
 ```
 
-
+We also write a helper function to visualize the pairwise co-clustering probabilities.
 ```{r plot_kernel}
 plot_kernel <- function(kernel){
   
@@ -79,19 +79,18 @@ Internally, these functions create a directed graph $\mathcal{G}$ whose vertices
 They then compute the connected components of $\mathcal{G},$ which we will denote as $C_{1}, \ldots, C_{K}.$
 
 Recall that the drawing a decision rule at a particular node \texttt{nx} in a tree proceeds in two steps: first, a splitting variable $v$ is selected (conditionally given the decision rules at all of \texttt{nx}'s ancestors); and second, a cutset $\mathcal{C}$ is selected conditionally given $v$ (and the decision rules at all of \texttt{nx}'s ancestors).
-For categorical predictors, $\mathcal{C}$ is a random, proper subset of the set of the *available values* of $X_{v}$ at \texttt{nx} (TO DO: make a figure).
+For categorical predictors, $\mathcal{C}$ is a random, proper subset of the set of the *available values* of $X_{v}$ at \texttt{nx} <!-- TO DO: make a cartoon figure -->
 So, nesting structure can influence the selection of the splitting variable and the generating of the random cutset.
 The logical arguments `nest_v` and `nest_c` are used, respectively, to tell **flexBART** functions whether to use nesting structure when forming.
 
-### Nesting structure and cutsets
-
 In this running example with classrooms nested within school nested within districts, suppose we decide to split on Classroom after after having already split on School.
 Since `Classroom` is nested within `School`, the initial split implicitly partitions `Classrooms`, which restricts the set of available values. 
-TO DO: make a figure
+<!-- TO DO: make a cartoon figure -->
 
 In **flexBART**, we can either ignore this restriction (`nest_c = FALSE`) or account for it (`nest_c = TRUE`).
-If we ignore this restriction, it can be the case that the tree assigns levels which can never reach a node to the left or right.
-But it is unlikely to have any effect of predictive performance (since, currently, the choice of splitting variables is decoupled from the number of available values of each variable).
+If we ignore this restriction, it can be the case that the tree assigns levels which can never reach a node to the left or right child.
+Since the choice of splitting variable is decoupled from the number of available values of each variable, toggling this argument is unlikely to affect the predictive performance.
+
 
 More substantively, when `nest_v = FALSE`, the prior selects a splitting variable according to a vector $\theta^{\top} = (\theta_{1}, \ldots, \theta_{p}).$
 Depending on the argument `sparse`, the vector of splitting probabilities is fixed with $\theta_{j} = 1/p$ for all j (`sparse=FALSE`) or are learned adaptively using the approach of [Linero (2018)](https://doi.org/10.1111/rssb.12293), which specifies a sparsity-inducing Dirichlet prior for $\theta.$ 
@@ -121,17 +120,50 @@ Generally speaking, `nest_v_option = 0` forces the tree to use a single resoluti
 
 ## Illustration
 
+We simulate 10,000 draws from the tree prior and plot the (estimated) co-clustering probabilities.
+The smalleste square in the plot represents an individual observation, which in this case is a classroom.
+We also overlay squares corresponding to the schools and districts.
+
 ```{r partition0}
 partition0 <- 
   flexBART::rflexBART(train_data = train_data,
                       nd = 1e4, 
                       nest_v = TRUE,
                       nest_v_option = 0,
-                      nest_c = FALSE,
+                      nest_c = TRUE,
                       verbose = FALSE)
 plot_kernel(partition0$kernel)
+for(k in c(0, 30, 60, 90)) rect(k+0.5, k+0.5, k+30.5, k+30.5)
+for(k in seq(0, 115, by = 5)) rect(k+0.5, k+0.5, k+5.5, k+5.5)
+```
+Recall that with `nest_v_option = 0`, the splitting variable is selected uniformly at a random at the root and then fixed for all subsequent nodes.
+We can verify that this is the case by looking at the matrix of variable counts returned by `flexBART::rflexBART`.
+Each row of this matrix corresponds to a prior draw and the columns correspond to the variable.
+We also look at the number of leafs in each sampled tree
+As expected, there is exactly one non-zero entry in each row corresponding to a non-root tree.
+```{r partition0-varcounts}
+table(partition0$num_leafs)
+table(rowSums(partition0$varcounts != 0))
 ```
 
+In some sense, setting `nest_v_option = 0` ignores the nesting structure.
+Nevertheless, we see that the co-clustering probabilities clearly exhibit the hierarchical relationship
+<!--
+  We see that there is implicitly some cluster structure! This is because of the nesting
+  Although the tree does not try to take advantage of it, it does manifest because splits on
+  One way to enforce this is to scramble District and School; then there is no nesting structure and we get a big old 
+  exchangeable thing
+-->
+
+
+For `nest_v_option = 1`, the initial splitting variable is always `District`. Subsequently, the tree can split on any of the other variables as both `Classroom` and `District` are nested within `District`
+
+Similarly for `nest_v_option = 2`, the initial splitting variable is always `Classroom.` Subsequently, the tree can split on any of the other variables as `Classroom` is nested within both `School` and `District`
+To verify that the code is doing this correctly: 
+```{r sanity-check-2}
+any(partition2$varcounts[which(partition2$num_leafs > 1),1] == 0)
+```
+Finally, for `nest_v_option = 3`, 
 
 Throughout we will use the following helper function to visualize the co-clustering kernel matrix
 
