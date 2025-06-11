@@ -33,7 +33,28 @@ parse_formula <- function(frmla, train_data){
   ensm_terms <- lapply(ensm_terms, trimws) 
 
   # Extract additional intercepts
-  z_names <- attr(terms(frmla), "term.labels")[!grepl('bart', attr(terms(frmla), "term.labels"))]
+  
+  # find *bart() or bart()* terms
+  z_names_all_matches <- gregexpr("(?:([[:alnum:]_]+)\\*)?bart\\(([^)]*)\\)(?:\\*([[:alnum:]_]+))?",
+                                  gsub(" ", "", as.character(trms)[3], fixed = TRUE), 
+                                  perl = TRUE)
+  
+  # put in string fomrat
+  z_names_matched_strings <- regmatches(gsub(" ", "", as.character(trms)[3], fixed = TRUE), z_names_all_matches)[[1]]
+  
+  # now extract relevant strings 
+  z_names_capture_groups <- lapply(z_names_matched_strings, function(matched) {
+    regmatches(matched, regexec("(?:([[:alnum:]_]+)\\*)?bart\\(([^)]*)\\)(?:\\*([[:alnum:]_]+))?", 
+                                matched, 
+                                perl = TRUE))[[1]]
+  })
+  
+  # clean to only include z_name
+  z_names <- do.call(c, lapply(z_names_capture_groups, function(x) {
+    ifelse(x[[2]] == '', x[4], x[2])
+  }))
+  
+  z_names[z_names == ''] <- NA_character_
   
   ## handle '.' syntax 
   # first we identify all training terms that are not intercepts or the outcome
@@ -41,7 +62,7 @@ parse_formula <- function(frmla, train_data){
   
   # ensm_terms will be a length R list where elements are predictors included in that bart
   ensm_terms <- lapply(1:length(ensm_terms), function(i){
-    # if a bart has a . include all eligable predictors (X_names)
+    # if a bart has a . include all eligible predictors (X_names)
     if(any(grepl('\\.', ensm_terms[[i]]))){
       collapsed_terms <- paste(ensm_terms[[i]], collapse = '+')
       # but remove any terms with a -
