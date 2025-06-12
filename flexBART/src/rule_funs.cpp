@@ -116,7 +116,10 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
 {
   int p = p_cont + p_cat;
   // initialize prob for all continuous variables to be 1 and categorical variables to 0
-  for(int j = 0; j < p_cont; ++j) nest_theta[j] = 1.0;
+  //for(int j = 0; j < p_cont; ++j) nest_theta[j] = 1.0;
+  for(int j = 0; j < p_cont; ++j){
+    if(tree_pi.theta[j] != 0.0) nest_theta[j] = 1.0;
+  }
   for(int j = p_cont; j < p; ++j) nest_theta[j] = 0.0;
   
   tree::tree_p nx = t.get_ptr(nid);
@@ -133,27 +136,31 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
       else{
         if(tree_pi.nest_v_option == 0){
           // allow splits on any variable from the component
-          for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it) nest_theta[*it + p_cont] = 1.0;
+          //for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it) nest_theta[*it + p_cont] = 1.0;
+          for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
+            if(tree_pi.theta[*it + p_cont] != 0.0) nest_theta[*it + p_cont] = 1.0;
+          }
+          
         } else if(tree_pi.nest_v_option == 1){
           // find the lowest possible resolution variables: these have edges coming in but none going out
           for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
             edge_map_it in_e_it = tree_pi.nest_in->find(*it);
             edge_map_it out_e_it = tree_pi.nest_out->find(*it);
-            if(in_e_it->second.size() > 0 && out_e_it->second.size() == 0) nest_theta[*it + p_cont] = 1.0;
+            if(in_e_it->second.size() > 0 && out_e_it->second.size() == 0 && tree_pi.theta[*it + p_cont] != 0.0) nest_theta[*it + p_cont] = 1.0;
           }
         } else if(tree_pi.nest_v_option == 2){
           // find the highest possible resolution variables: these have edges going out but none coming in
           for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
             edge_map_it in_e_it = tree_pi.nest_in->find(*it);
             edge_map_it out_e_it = tree_pi.nest_out->find(*it);
-            if(in_e_it->second.size() == 0 && out_e_it->second.size() > 0) nest_theta[*it + p_cont] = 1.0;
+            if(in_e_it->second.size() == 0 && out_e_it->second.size() > 0 && tree_pi.theta[*it + p_cont] != 0.0) nest_theta[*it + p_cont] = 1.0;
           }
         } else if(tree_pi.nest_v_option == 3){
           // allow split on anything but the highest or lowest resolution variable in the cluster
           for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
             edge_map_it in_e_it = tree_pi.nest_in->find(*it);
             edge_map_it out_e_it = tree_pi.nest_out->find(*it);
-            if(in_e_it->second.size() > 0 && out_e_it->second.size() > 0) nest_theta[*it + p_cont] = 1.0;
+            if(in_e_it->second.size() > 0 && out_e_it->second.size() > 0 && tree_pi.theta[*it + p_cont] != 0.0) nest_theta[*it + p_cont] = 1.0;
           }
         } else{
           Rcpp::stop("[compute_nested_theta]: nest_v_option must be in {0, 1, 2, 3}");
@@ -182,31 +189,33 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
     for(std::map<int, std::set<int>>::iterator c_it = tree_pi.nest_components->begin(); c_it != tree_pi.nest_components->end(); ++c_it){
       if(cluster_rep.count(c_it->first) == 0){
         // did not previously split on variable from this component.
-        if(c_it->second.size() == 1) nest_theta[*(c_it->second.begin()) + p_cont] = 1.0; // singleton cluster
+        if(c_it->second.size() == 1 && tree_pi.theta[*(c_it->second.begin() + p_cont)] != 0.0) nest_theta[*(c_it->second.begin()) + p_cont] = 1.0; // singleton cluster
         else{
           if(tree_pi.nest_v_option == 0){
             // allow splits on any variable from the component
-            for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it) nest_theta[*it + p_cont] = 1.0;
+            for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
+              if(tree_pi.theta[*it + p_cont] != 0.0) nest_theta[*it + p_cont] = 1.0;
+            }
           } else if(tree_pi.nest_v_option == 1){
             // find the lowest possible resolution variables: these have edges coming in but none going out
             for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
               edge_map_it in_e_it = tree_pi.nest_in->find(*it);
               edge_map_it out_e_it = tree_pi.nest_out->find(*it);
-              if(in_e_it->second.size() > 0 && out_e_it->second.size() == 0) nest_theta[*it + p_cont] = 1.0;
+              if(in_e_it->second.size() > 0 && out_e_it->second.size() == 0 && tree_pi.theta[*it + p_cont] != 0.0) nest_theta[*it + p_cont] = 1.0;
             }
           } else if(tree_pi.nest_v_option == 2){
             // find the highest possible resolution variables: these have edges going out but none coming in
             for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
               edge_map_it in_e_it = tree_pi.nest_in->find(*it);
               edge_map_it out_e_it = tree_pi.nest_out->find(*it);
-              if(in_e_it->second.size() == 0 && out_e_it->second.size() > 0) nest_theta[*it + p_cont] = 1.0;
+              if(in_e_it->second.size() == 0 && out_e_it->second.size() > 0 && tree_pi.theta[*it + p_cont] != 0.0) nest_theta[*it + p_cont] = 1.0;
             }
           } else if(tree_pi.nest_v_option == 3){
             // allow split on anything but the highest or lowest resolution variable in the cluster
             for(std::set<int>::iterator it = c_it->second.begin(); it != c_it->second.end(); ++it){
               edge_map_it in_e_it = tree_pi.nest_in->find(*it);
               edge_map_it out_e_it = tree_pi.nest_out->find(*it);
-              if(in_e_it->second.size() > 0 && out_e_it->second.size() > 0) nest_theta[*it + p_cont] = 1.0;
+              if(in_e_it->second.size() > 0 && out_e_it->second.size() > 0 && tree_pi.theta[*it + p_cont] != 0.0) nest_theta[*it + p_cont] = 1.0;
             }
           } else{
             Rcpp::stop("[compute_nested_theta]: nest_v_option must be in {0, 1, 2, 3}");
@@ -218,27 +227,31 @@ void compute_nested_theta(std::vector<double> &nest_theta, tree &t, int &nid, in
           int v_rep = cluster_rep.find(c_it->first)->second; // most recent variable from cluster
           if(tree_pi.nest_v_option == 0){
             // only allow ourselves to split on v_rep
-            nest_theta[v_rep + p_cont] = 1.0;
+            if(tree_pi.theta[v_rep+p_cont] != 0.0) nest_theta[v_rep + p_cont] = 1.0;
           } else if(tree_pi.nest_v_option == 1){
             // include v_rep and everything that has edge into v_rep
-            nest_theta[v_rep + p_cont] = 1.0;
+            if(tree_pi.theta[v_rep + p_cont] != 0.0) nest_theta[v_rep + p_cont] = 1.0;
             edge_map_it e_it = tree_pi.nest_in->find(v_rep);
-            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it) nest_theta[it->source + p_cont] = 1.0;
+            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it){
+              if(tree_pi.theta[it->source + p_cont] != 0.0) nest_theta[it->source + p_cont] = 1.0;
+            }
           } else if(tree_pi.nest_v_option == 2){
             // include v_rep and everything that has edge out of v_rep
             nest_theta[v_rep + p_cont] = 1.0;
             edge_map_it e_it = tree_pi.nest_out->find(v_rep);
             for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it){
-              nest_theta[it->sink + p_cont] = 1.0;
+              if(tree_pi.theta[it->sink + p_cont] != 0.0) nest_theta[it->sink + p_cont] = 1.0;
             }
           } else if(tree_pi.nest_v_option == 3){
             // include v_rep and everything has edge out of v_rep or into v
             nest_theta[v_rep + p_cont] = 1.0;
             edge_map_it e_it = tree_pi.nest_in->find(v_rep);
-            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it) nest_theta[it->source + p_cont] = 1.0;
+            for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it){
+              if(tree_pi.theta[it->source + p_cont] != 0.0) nest_theta[it->source + p_cont] = 1.0;
+            }
             e_it = tree_pi.nest_out->find(v_rep);
             for(std::vector<edge>::iterator it = e_it->second.begin(); it != e_it->second.end(); ++it){
-              nest_theta[it->sink + p_cont] = 1.0;
+              if(tree_pi.theta[it->sink + p_cont] != 0.0) nest_theta[it->sink + p_cont] = 1.0;
             }
           } else{
             Rcpp::stop("[compute_nested_theta]: nest_v_option must be in {0, 1, 2, 3}");
