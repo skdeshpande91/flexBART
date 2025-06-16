@@ -39,11 +39,14 @@ Rcpp::NumericMatrix single_predict(Rcpp::List tree_draws,
   
   if(probit){
     for(int iter = 0; iter < nd; ++iter){
-      if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
-      else if(iter%print_every == 0){
-        Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+      if(iter % print_every == 0){
         Rcpp::checkUserInterrupt();
+        if(verbose){
+          if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
+          else Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+        }
       }
+      
       Rcpp::CharacterVector tmp_string_vec = tree_draws[iter];
       if(tmp_string_vec.size() != M){
         Rcpp::Rcout << "iter = " << iter << " # tree strings = " << tmp_string_vec.size() << std::endl;
@@ -63,10 +66,12 @@ Rcpp::NumericMatrix single_predict(Rcpp::List tree_draws,
     } // closes loop over tree samples
   } else{
     for(int iter = 0; iter < nd; ++iter){
-      if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
-      else if(iter%print_every == 0){
-        Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+      if(iter % print_every == 0){
         Rcpp::checkUserInterrupt();
+        if(verbose){
+          if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
+          else Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+        }
       }
       Rcpp::CharacterVector tmp_string_vec = tree_draws[iter];
       if(tmp_string_vec.size() != M){
@@ -131,10 +136,12 @@ Rcpp::List multi_predict(Rcpp::List tree_draws,
   
 
   for(int iter = 0; iter < nd; ++iter){
-    if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
-    else if(iter%print_every == 0){
-      Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+    if(iter % print_every == 0){
       Rcpp::checkUserInterrupt();
+      if(verbose){
+        if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
+        else Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+      }
     }
     Rcpp::List tmp_draw = tree_draws[iter];
     if(tmp_draw.size() != R){
