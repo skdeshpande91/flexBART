@@ -30,7 +30,7 @@ get_categorical_mapping <- function(x, name){
   # if we don't have every level represented, this errors out
   #mapping <- data.frame(integer_coding = 0:(max(as.integer(raw_x)-1)), value = levels(raw_x))
   mapping <- 
-    data.frame(integer_coding = as.integer(levels(raw_x))-1,
+    data.frame(integer_coding = as.integer(factor(levels(raw_x)))-1,
                value = levels(raw_x))
   mapping[which(mapping$value == "NA_flexbart"), "value"] <- NA
   return(mapping)
