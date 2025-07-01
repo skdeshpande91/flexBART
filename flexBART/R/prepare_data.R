@@ -52,8 +52,12 @@ prepare_data <- function(train_data,
     }
     cat("[prepare_data]: Using both training & testing data to get covariate information \n")
     if(p == 1){
-      cov_data <- 
-        data.frame(c(train_data[,covariate_names[1]], test_data[,covariate_names[1]]))
+      # when there is a single categorical predictor, c(train_data[,...], test_data[,...]) is a list
+      #cov_data <- 
+      # data.frame(c(train_data[,covariate_names[1]], test_data[,covariate_names[1]]))
+      cov_data <-
+        rbind(data.frame(train_data[,covariate_names[1]]),
+              data.frame(test_data[,covariate_names[1]]))
       colnames(cov_data) <- covariate_names[1]
     } else{
       cov_data <- 

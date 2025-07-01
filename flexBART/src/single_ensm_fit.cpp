@@ -38,8 +38,9 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   if(tX_cat_train.size() > 1) p_cat = tX_cat_train.rows();
   int p = p_cont + p_cat;
   int n_test = 0;
-  if(p_cont > 0 && tX_cont_test.size() > 0) n_test = tX_cont_test.cols();
-  else if(p_cat > 0 && tX_cat_test.size() > 0) n_test = tX_cat_test.cols();
+  if(p_cont > 0 && tX_cont_test.size() > 1) n_test = tX_cont_test.cols();
+  else if(p_cat > 0 && tX_cat_test.size() > 1) n_test = tX_cat_test.cols();
+
   //if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
   // END: get dimensions of testing data
   

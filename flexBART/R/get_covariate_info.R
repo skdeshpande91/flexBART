@@ -29,9 +29,13 @@ get_categorical_mapping <- function(x, name){
   }
   # if we don't have every level represented, this errors out
   #mapping <- data.frame(integer_coding = 0:(max(as.integer(raw_x)-1)), value = levels(raw_x))
-  mapping <- 
-    data.frame(integer_coding = as.integer(factor(levels(raw_x)))-1,
+  n_levels <- length(levels(raw_x))
+  mapping <-
+    data.frame(integer_coding = 0:(n_levels-1),
                value = levels(raw_x))
+  #mapping <- 
+  #  data.frame(integer_coding = as.integer(factor(levels(raw_x)))-1,
+   #            value = levels(raw_x))
   mapping[which(mapping$value == "NA_flexbart"), "value"] <- NA
   return(mapping)
 }
@@ -222,7 +226,7 @@ get_covariate_info <- function(cov_data, pad = NULL, n_unik_diffs = NULL)
     
     for(j in dinfo$cont_names){
       tmp <- 
-        get_continuous_info(x = cov_data[,j], name = j, 
+        get_continuous_info(x = cov_data[[j]], name = j, 
                             pad = pad[j], n_unik_diffs = n_unik_diffs)
       dinfo$x_min[j] <- tmp$x_min
       dinfo$x_max[j] <- tmp$x_max
@@ -235,7 +239,7 @@ get_covariate_info <- function(cov_data, pad = NULL, n_unik_diffs = NULL)
     # Build mapping of categorical variables
     dinfo$cat_mapping_list <- list()
     for(j in dinfo$cat_names){
-      dinfo$cat_mapping_list[[j]] <- get_categorical_mapping(cov_data[,j], j)
+      dinfo$cat_mapping_list[[j]] <- get_categorical_mapping(cov_data[[j]], j)
     }
   }
   

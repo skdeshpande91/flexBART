@@ -37,8 +37,8 @@ Rcpp::List single_probit_fit(Rcpp::IntegerVector Y_train,
   if(tX_cat_train.size() > 1) p_cat = tX_cat_train.rows();
   int p = p_cont + p_cat;
   int n_test = 0;
-  if(p_cont > 0 && tX_cont_test.size() > 0) n_test = tX_cont_test.cols();
-  else if(p_cat > 0 && tX_cat_test.size() > 0) n_test = tX_cat_test.cols();
+  if(p_cont > 0 && tX_cont_test.size() > 1) n_test = tX_cont_test.cols();
+  else if(p_cat > 0 && tX_cat_test.size() > 1) n_test = tX_cat_test.cols();
   // END: get dimensions of testing data
   
   // BEGIN: set cutpoints & categorical levels + parse network structure

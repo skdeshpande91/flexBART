@@ -67,8 +67,8 @@ void compute_ss_grow_single(suff_stat &ss, std::map<int, jump_post> &jp_map, int
   int nxr_nid = 2*nx_nid+1;
   
   // check that our data structures have element for nx but not for nxl or nxr (the proposed children)
-  if(ss.count(nx_nid) == 0 || ss.count(nxl_nid) == 1 || ss.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_train]: something is wrong with ss_train");
-  if(jp_map.count(nx_nid) == 0 || jp_map.count(nxl_nid) == 1 || jp_map.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_train]: something is wrong with jp_map!");
+  if(ss.count(nx_nid) == 0 || ss.count(nxl_nid) == 1 || ss.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_single]: something is wrong with ss_train");
+  if(jp_map.count(nx_nid) == 0 || jp_map.count(nxl_nid) == 1 || jp_map.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_single]: something is wrong with jp_map!");
   
   // if we get to here, data structure are fine
   suff_stat_it nx_it = ss.find(nx_nid); // points to nx's element in ss
@@ -108,7 +108,7 @@ void compute_ss_grow_single(suff_stat &ss, std::map<int, jump_post> &jp_map, int
           jpr_it->second.Theta += di.rp[i]/pow(sigma, 2.0);
         } else{
           Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont << " cutpoint = " << rule.c << std::endl;
-          Rcpp::stop("[compute_ss_grow_train]: could not assign observation to left or right child in axis-aligned split!");
+          Rcpp::stop("[compute_ss_grow_single]: could not assign observation to left or right child in axis-aligned split!");
         }
       } // closes loop over observations in nx
     } else{
@@ -137,8 +137,7 @@ void compute_ss_grow_single(suff_stat &ss, std::map<int, jump_post> &jp_map, int
           Rcpp::Rcout << "right values:";
           for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
           Rcpp::Rcout << std::endl;
-
-          Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
+          Rcpp::stop("[compute_ss_grow_single]: could not assign observation to left or right child in categorical split!");
         } // closes if/else checking whether observation i goes to nxl or nxr
       } // closes loop over observations in nx
     } // closes if/else checking whether rule is axis-aligned or categorical
@@ -155,8 +154,8 @@ void compute_ss_grow_multi(suff_stat &ss, std::map<int, jump_post> &jp_map, int 
   int nxr_nid = 2*nx_nid+1;
   
   // check that our data structures have element for nx but not for nxl or nxr (the proposed children)
-  if(ss.count(nx_nid) == 0 || ss.count(nxl_nid) == 1 || ss.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_train]: something is wrong with ss_train");
-  if(jp_map.count(nx_nid) == 0 || jp_map.count(nxl_nid) == 1 || jp_map.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_train]: something is wrong with jp_map!");
+  if(ss.count(nx_nid) == 0 || ss.count(nxl_nid) == 1 || ss.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_multi]: something is wrong with ss_train");
+  if(jp_map.count(nx_nid) == 0 || jp_map.count(nxl_nid) == 1 || jp_map.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_multi]: something is wrong with jp_map!");
   
   // if we get to here, data structure are fine
   suff_stat_it nx_it = ss.find(nx_nid); // points to nx's element in ss
@@ -196,7 +195,7 @@ void compute_ss_grow_multi(suff_stat &ss, std::map<int, jump_post> &jp_map, int 
           jpr_it->second.Theta += z * di.rp[i]/pow(sigma, 2.0);
         } else{
           Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont << " cutpoint = " << rule.c << std::endl;
-          Rcpp::stop("[compute_ss_grow_train]: could not assign observation to left or right child in axis-aligned split!");
+          Rcpp::stop("[compute_ss_grow_multi]: could not assign observation to left or right child in axis-aligned split!");
         }
       } // closes loop over observations in nx
     } else{
@@ -227,7 +226,7 @@ void compute_ss_grow_multi(suff_stat &ss, std::map<int, jump_post> &jp_map, int 
           for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
           Rcpp::Rcout << std::endl;
 
-          Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
+          Rcpp::stop("[compute_ss_grow_multi]: could not assign observation to left or right child in categorical split!");
         } // closes if/else checking whether observation i goes to nxl or nxr
       } // closes loop over observations in nx
     } // closes if/else checking whether rule is axis-aligned or categorical
@@ -242,7 +241,7 @@ void compute_ss_grow(suff_stat &ss, int &nx_nid, rule_t &rule, data_info &di)
   int nxr_nid = 2*nx_nid+1;
   
   // check that our data structures have element for nx but not for nxl or nxr (the proposed children)
-  if(ss.count(nx_nid) == 0 || ss.count(nxl_nid) == 1 || ss.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow_train]: something is wrong with ss_train");
+  if(ss.count(nx_nid) == 0 || ss.count(nxl_nid) == 1 || ss.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow]: something is wrong with ss_train");
 
   
   // if we get to here, data structure are fine
@@ -307,8 +306,8 @@ void compute_ss_prune_single(suff_stat &ss, std::map<int, jump_post> &jp_map, in
 {
   int i = 0;
   // check that our data structures have element for nxl and nxr but not for nx
-  if(ss.count(nxl_nid) == 0 || ss.count(nxr_nid) == 0 || ss.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune]: something's wrong with ss_train");
-  if(jp_map.count(nxl_nid) == 0 || jp_map.count(nxr_nid) == 0 || jp_map.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune]: something's wrong with jp_map");
+  if(ss.count(nxl_nid) == 0 || ss.count(nxr_nid) == 0 || ss.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune_single]: something's wrong with ss_train");
+  if(jp_map.count(nxl_nid) == 0 || jp_map.count(nxr_nid) == 0 || jp_map.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune_single]: something's wrong with jp_map");
   
   // if we get to here, data structure are fine
   suff_stat_it nxl_it = ss.find(nxl_nid); // points to nxl's element in ss
@@ -345,8 +344,8 @@ void compute_ss_prune_multi(suff_stat &ss, std::map<int, jump_post> &jp_map, int
   int i = 0;
   double z = 0.0;
   // check that our data structures have element for nxl and nxr but not for nx
-  if(ss.count(nxl_nid) == 0 || ss.count(nxr_nid) == 0 || ss.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune]: something's wrong with ss_train");
-  if(jp_map.count(nxl_nid) == 0 || jp_map.count(nxr_nid) == 0 || jp_map.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune]: something's wrong with jp_map");
+  if(ss.count(nxl_nid) == 0 || ss.count(nxr_nid) == 0 || ss.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune_multi]: something's wrong with ss_train");
+  if(jp_map.count(nxl_nid) == 0 || jp_map.count(nxr_nid) == 0 || jp_map.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune_multi]: something's wrong with jp_map");
   
   // if we get to here, data structure are fine
   suff_stat_it nxl_it = ss.find(nxl_nid); // points to nxl's element in ss

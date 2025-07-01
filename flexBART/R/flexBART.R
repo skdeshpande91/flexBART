@@ -58,20 +58,25 @@ flexBART <- function(formula,
     
     if("nest_v" %in% usr_names) nest_v <- usr_args[["nest_v"]]
     else{
-      warning("[flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
+      warning("[flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE\n")
       nest_v <- TRUE
     }
     
     if("nest_v_option" %in% usr_names) nest_v_option <- usr_args[["nest_v_option"]]
     else{
-      if(nest_v) warning("[rflexBART]: nesting structure detected but no nest_v_option argument specified. Defaulting to nest_v_option=3")
+      if(nest_v) warning("[rflexBART]: nesting structure detected but no nest_v_option argument specified. Defaulting to nest_v_option=3\n")
       nest_v_option <- 3 # may need to change the default
     }
     
     if("nest_c" %in% usr_names) nest_c <- usr_args[["nest_c"]]
     else{
-      warning("[flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
-      nest_c <- TRUE
+      if(nest_v){
+        warning("[flexBART]: nesting structure detected & nest_v = TRUE but no nest_c argument specified. Default to nest_c = TRUE\n")
+        nest_c <- TRUE
+      } else{
+        warning("[flexBART]: nesting structure detected but nest_v = FALSE and no nest_c argument specified. Default to nest_c = FALSE\n")
+        nest_c <- FALSE
+      }
     }
   }
   
