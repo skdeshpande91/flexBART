@@ -1,7 +1,7 @@
 flexBART <- function(formula, 
                      train_data,
                      test_data = NULL,
-                     inform_sigma = TRUE, ...)
+                     initialize_sigma = TRUE, ...)
 {
   ###############################
   # Capture additional arguments
@@ -88,7 +88,7 @@ flexBART <- function(formula,
       sigest <- sigest/tmp_data$training_info$y_sd
     }
   } else{
-    if(inform_sigma){
+    if(initialize_sigma){
       if(p_cont == 1 & p_cat == 0){
         cat("no initial estimate of sigma provided. Initializing using OLS\n")
       } else{
@@ -166,6 +166,17 @@ flexBART <- function(formula,
     cat("n_train =", n_train, "n_test =", n_test, "\n")
     cat("R =", R, "p_cont =", p_cont, "p_cat =", p_cat, "\n")
     cat("Number of trees: ", hyper$M_vec, "\n")
+    cat("Implied marginal priors:\n")
+    for(r in 1:R){
+      if(!is.na(colnames(cov_ensm))[r]){
+        cat("  Effect of", colnames(cov_ensm)[r], ":")
+      } else{
+        cat("  Intercept: ")
+      }
+      cat("N(", round(hyper$mu0_vec[r]*hyper$M_vec[r], digits = 6), ", ", 
+          round(hyper$tau_vec[r]^2*hyper$M_vec[r], digits = 6),
+          ") \n", sep="")
+    }
   }
   if(control$save_trees){
     tree_list <- list()
@@ -366,9 +377,7 @@ flexBART <- function(formula,
       }
     }
   }
-  #results[["initial_sigma"]] <- sigest
   results[["sigma"]] <- sigma_samples * y_sd
-  #results[["all_sigma"]] <- all_sigma * y_sd
   results[["varcounts"]] <- varcounts_samples
   results[["timing"]] <- timing
   class(results) <- c(class(results), "flexBART")
