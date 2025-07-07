@@ -97,7 +97,7 @@ It then places independent BART priors on the coefficients for the varying coeff
 Under this prior, the tree structure is generated using a branching process in which
 the probability that a node at depth \eqn{d}{d} is non-terminal is \eqn{\alpha \times (1 + d)^{-\beta}}{alpha * (1 + d)^(-beta)}.
 Then, decision rules are drawn sequentially from the root down to each leaf.
-Finally, independent \eqn{N}(\mu_0, \tau^2){N(mu_0, tau^2)} priors are specified for the outputs in each leaf.
+Finally, independent \eqn{N(\mu_0, \tau^2)}{N(mu_0, tau^2)} priors are specified for the outputs in each leaf.
 
 Users can specify prior hyperparameters for each ensemble using the following optional arguments (passed through \dots):
 \itemize{
@@ -226,15 +226,17 @@ abline(a = 0, b = 1, col = 'blue')
 }
 \references{
 Chipman, H, George, E.I., and McCulloch, R. (2008) BART: Bayesian Additive Regression Trees. 
-\emph{Annals of Applied Statistics}. \bold{4}(1):266--298. \href{https://doi.org/10.1214/09-AOAS285}{10.1214/09-AOAS285}.
+\emph{Annals of Applied Statistics}. \bold{4}(1):266--298. \doi{10.1214/09-AOAS285}.
 
-Deshpande, S.K. (2024) \bold{flexBART:} Flexible Bayesian regression trees with categorical predictors. \emph{Journal of Computational and Graphical Statistics.} \href{https://doi.org/10.1080/10618600.2024.2431072}{doi:10.1080/10618600.2024.2431072}.
+Deshpande, S.K. (2024) \bold{flexBART:} Flexible Bayesian regression trees with categorical predictors. 
+\emph{Journal of Computational and Graphical Statistics.} \doi{doi:10.1080/10618600.2024.2431072}.
 
 Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2024) VCBART:Bayesian trees for varying coefficients. 
-\emph{Bayesian Analysis}. \href{https://doi.org/10.1214/24-BA1470}{doi:10.1214/24-BA1470}.
+\emph{Bayesian Analysis}. \doi{doi:10.1214/24-BA1470}.
 
 Linero, A.R. (2018) Bayesian regression trees for high-dimensional prediction and variable selection. 
-\emph{Journal of the American Statistical Association.} \bold{113}(522):626--636. \href{https://doi.org/10.1080/01621459.2016.1264957}{doi:10.1080/01621459.2016.1264957}
+\emph{Journal of the American Statistical Association.} \bold{113}(522):626--636. 
+\doi{doi:10.1080/01621459.2016.1264957}
 
 
 }

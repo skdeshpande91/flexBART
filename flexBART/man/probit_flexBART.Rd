@@ -53,5 +53,5 @@ These strings are parsed by \code{predict_flexBART} to reconstruct the C++ repre
 %% ~put references to the literature/web site here ~
 Albert, J.H. and Chib, S. (1993) Bayesian analysis of binary and polychotomous data. 
 \emph{Journal of the American Statistical Association}. \bold{88}(422):669--679.
-\href{https://doi.org/10.2307/2290350}{doi:10.2307/2290350}.
+\doi{doi:10.2307/2290350}.
 }
