@@ -8,7 +8,7 @@ Authors@R: c(
   person(given = "Cecilia", family = "Balocchi", role = c("aut"), email = "cecilia.balocchi@ed.ac.uk"),
   person(given = "George", family = "Perrett", role = c("aut"), email = "gp77@nyu.edu"),
   person(given = "Jennifer", family = "Hill", role = c("aut"), email = "jennifer.hill@nyu.edu"))
-Description: A more flexible implementation of BART that accomodates structured categorical variables.
+Description: A more flexible implementation of BART that accommodates structured categorical variables.
 License: GPL (>= 3)
 LinkingTo: Rcpp, RcppArmadillo
 Imports: Rcpp (>= 1.0.12), glmnet (>= 4.0), methods
