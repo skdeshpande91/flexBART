@@ -262,7 +262,7 @@ parse_hyper <- function(R, y_range, ...){
   else hyper$sigest <- 1
   if(hyper$sigest < 0){
     message(paste0("[parse_hyper]: supplied sigest =", hyper$sigest))
-    stop("[parse_hyper]: sig_est must be positive (and, ideally, less than 1; see Details)")
+    stop("[parse_hyper]: sigest must be positive (and, ideally, less than 1; see Details)")
   }
   
   if("sigquant" %in% usr_names) hyper$sigquant <- usr_args[["sigquant"]]

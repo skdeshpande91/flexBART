@@ -83,7 +83,7 @@ flexBART <- function(formula,
   if("sigest" %in% usr_names){
     # user has supplied an initial estimate of sigma
     # check that it is less than 1; if it isn't, then we need to divide by sd(y)
-    sigest <- usr_args[["sig_est"]]
+    sigest <- usr_args[["sigest"]]
     if(sigest < 0){
       stop(paste("[flexBART]: supplied sigest =", sigest, ". Estimate of residual sd must be positive!"))
     }
