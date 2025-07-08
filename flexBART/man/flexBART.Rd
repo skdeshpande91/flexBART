@@ -23,11 +23,14 @@ flexBART(formula, train_data,
   Default is \code{NULL}.}
   \item{initialize_sigma}{a logical value for whether the residual variance 
   should be initialized using regularized regression (\code{inform_sigm=TRUE}) or not (\code{inform_sigma=FALSE}). Default is \code{TRUE}.}
-  \item{\dots}{additional arguments to be passed to the low-level model fitting function (see below)}
+  \item{\dots}{Additional arguments for setting prior hyperparameters and MCMC control parameters (e.g., number of chains, iterations, etc.). 
+  See \sQuote{Details} below for more details.}
 }
 \details{
 \code{flexBART} allows users to specify and fit varying coefficient models using ensembles of binary regression trees.
-Given \eqn{p}{p} predictors \eqn{X_{1}, \ldots, X_{p}}{X_1, ..., X_p} and \eqn{R}{R} covariates \eqn{Z_{1}, \ldots, Z_{R}}{Z_1, ..., Z_R},
+Given a continuous response \eqn{Y}, 
+\eqn{p}{p} predictors \eqn{X_{1}, \ldots, X_{p}}{X_1, ..., X_p},
+and \eqn{R}{R} covariates \eqn{Z_{1}, \ldots, Z_{R}}{Z_1, ..., Z_R},
 the varying coefficient model asserts that \eqn{Y \sim N(\beta_{1}(X)Z_{1} + \cdots + \beta_{r}(X)Z_{R}, \sigma^{2})}{Y ~ N(beta_1(X)*Z1 + ... beta_{R}(x)*Z_{R}, sigma^2)}
 That is, for all p-vectors X, the relationships between Z and Y is linear but the relationship is allowed to vary across X's.
 \code{flexBART} approximates each function \eqn{\beta_{r}(X)}{beta_r(X)} with its own regression tree ensemble and returns posterior samples of all R tree ensembles.
@@ -156,7 +159,7 @@ can be supplied using the \code{\dots}:
 }
 }
 \value{
-An object of \code{class} \dQuote{flexBART} containing
+An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{dinfo}{Essentially a list containing information about the input and output variables used for \code{\link{predict.flexBART}}.}
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}
 \item{scaling_info}{Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale \code{\link{predict.flexBART}}}

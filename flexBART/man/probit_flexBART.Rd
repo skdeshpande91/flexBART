@@ -18,20 +18,44 @@ probit_flexBART(formula, train_data, test_data = NULL,...)
   As usual, rows (resp. columns) correspond to observations (resp. variables)}
   \item{test_data}{an optional object of class \code{data.frame} containing test-set (i.e., out-of-sample) data. 
   Default is \code{NULL}.}
-  \item{\dots}{additional arguments to be passed to the low-level model fitting function 
-  (see \code{\link{flexBART}} for details about additional arguments).}
+  \item{\dots}{Additional arguments for setting prior hyperparameters (e.g., number of trees, \eqn{\mu_{0}}{mu_0}, \eqn{\tau}{tau}, etc.) and MCMC control parameters (e.g., number of chains, iterations, etc.) 
+  See \code{\link{flexBART}} for details about additional arguments.}
 }
 \details{
-Implements the Albert & Chib (1993) data augmentation strategy for probit regression and 
-models the regression function with a sum-of-trees.
-The marginal prior of any evaluation of the regression function \eqn{f(x)}{f(x)} is a normal distribution centered at \code{mu0*M} with standard deviation \code{tau * sqrt(M)}. 
-As such, for each x, the induced prior for \eqn{P(Y = 1 \vert x)}{P(Y=1|x)} places 95\% probability on the interval \code{pnorm(mu0*M -2 * tau * sqrt(M)), pnorm(mu0*M + 2 * tau * sqrt(M))}. 
-By default, we set \code{tau = 1/sqrt(M)} and \code{mu0 = qnorm(mean(Y_train))/M} to shrink towards the observed mean.
+For a binary response \eqn{Y}, 
+\eqn{p}{p} predictors \eqn{X_{1}, \ldots, X_{p}}{X_1, ..., X_p},
+\code{probit_flexBART} models
+\eqn{P(Y=1 \vert X = x) = \Phi(f(x)}{P(Y=1|x) = Phi(f(x))},
+where \eqn{\Phi}{Phi} is the standard normal cumulative distribution function. 
+\code{probit_flexBART} combines the Albert & Chib (1993) data augmentation strategy for probit regression
+with the usual Bayesian backfitting used to fit (VC)BART models.
 
+\subsection{The formula argument}{
+\strong{Currently, \code{probit_flexBART} only supports fitting single ensemble probit BART models.}
+So, the only valid formula will look something like \code{Y~bart(.)} or \code{Y ~ bart(x1+x2)}.
+As with \code{\link{flexBART}}, you must include the string \dQuote{bart} on the right-hand side of the formula object.
+}
+
+\subsection{Prior specification}{
+\code{probit_flexBART} approximates the function \eqn{f(x)}{f(x)} with an ensemble of binary regression trees.
+It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by \code{\link{flexBART}}.
+That is, the tree structure is generated using a branching process in which
+the probability that a node at depth \eqn{d}{d} is non-terminal is \eqn{\alpha \times (1 + d)^{-\beta}}{alpha * (1 + d)^(-beta)}.
+Then, decision rules are drawn sequentially from the root down to each leaf.
+Finally, independent \eqn{N(\mu_0, \tau^2)}{N(mu_0, tau^2)} priors are specified for the outputs in each leaf.
+
+With this specification, the marginal prior of any evaluation of the regression function 
+\eqn{f(x)}{f(x)} is \eqn{N(M \times \mu_{0}, \tau^{2} \times M)}{N(M * mu_0, M*tau^2)}, where \eqn{M}{M} is the number of trees in the ensemble.
+Thus, for each \eqn{x}{x}, the induced prior for \eqn{P(Y = 1 \vert X = x)}{P(Y = 1|X = x)} places 95\% probability on the interval
+\eqn{[\Phi(M \times \mu_{0} - 2 \times \tau \times \sqrt{M}), \Phi(M \times \mu_{0} + 2 \times \tau \times \sqrt{M})]}{[Phi(M*mu_0 - 2*tau*sqrt(M)),Phi(M*mu0 + 2 *tau*sqrt(M))]}.
+By default, \code{probit_flexBART} sets \eqn{\tau = 1/\sqrt{M}}{tau=1/sqrt(M)} and \eqn{\Phi^{-1}(\overline{y})/M}{Phi^{-1}(bar{y})/M} 
+(i.e., \code{qnorm(mean(Y))/M}).
+Use the \code{mu0_vec} and \code{tau_vec} arguments to set other hyperparameter values.
+}
 
 }
 \value{
-An object of \code{class} "flexBART" containing
+An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{dinfo}{Essentially a list containing information about the input and output variables used for \code{\link{predict.flexBART}}.}
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. 
 These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}

@@ -1,4 +1,4 @@
-predict.flexBART <- function(object, ...)
+predict.flexBART <- function(object, newdata, ...)
 {
   ###############################
   # Capture additional arguments
@@ -6,8 +6,9 @@ predict.flexBART <- function(object, ...)
   usr_args <- list(...)
   usr_names <- names(usr_args)
   
-  if(!"newdata" %in% usr_names) stop("Must provide an argument newdata")
-  else newdata <- usr_args[["newdata"]]
+  #if(!"newdata" %in% usr_names) stop("Must provide an argument newdata")
+  #else newdata <- usr_args[["newdata"]]
+  if(!is.data.frame(newdata)) stop("newdata must be a data.frame")
 
   if(! "verbose" %in% usr_names) verbose <- FALSE
   else{
@@ -34,11 +35,11 @@ predict.flexBART <- function(object, ...)
     for(j in object$dinfo$cont_names){
       x_max <- object$dinfo$x_max[j]
       x_min <- object$dinfo$x_min[j]
-      if(any(newdata[,j] > x_max) || any(newdata[,j] < x_min)){
+      if(any(newdata[[j]] > x_max) || any(newdata[[j]] < x_min)){
         warning(paste0("[predict_flexBART]: found value for", j, "outside range of training data."))
       }
       X_cont[,j] <- 
-        convert_continuous(x = newdata[,j],
+        convert_continuous(x = newdata[[j]],
                            x_min = x_min,
                            x_max = x_max,
                            discrete = is.null(object$dinfo$x_sd[j]))$std_x
@@ -54,7 +55,7 @@ predict.flexBART <- function(object, ...)
                     dimnames = list(c(), object$dinfo$cat_names))
     for(j in object$dinfo$cat_names){
       X_cat[,j] <- 
-        convert_categorical(x = newdata[,j], name = j,
+        convert_categorical(x = newdata[[j]], name = j,
                             mapping = object$dinfo$cat_mapping_list[[j]])
     }
   } else{
@@ -82,7 +83,7 @@ predict.flexBART <- function(object, ...)
       # There are non-intercept terms
       nonint_names <- colnames(cov_ensm)[!is.na(colnames(cov_ensm))]
       for(j in nonint_names){
-        Z[,j] <- newdata[,j]
+        Z[,j] <- newdata[[j]]
       }
     }
     ########################################
