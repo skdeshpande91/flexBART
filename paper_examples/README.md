@@ -1,5 +1,10 @@
-## Overview
+## Update (July 2025)
 
+This directory contains code, data, and instructions for replicating the analyses reported in Sections 4 and 5 of the original [flexBART paper](https://doi.org/10.1080/10618600.2024.2431072). 
+These analyses were all performed using earlier versions (<= 1.2.0) of the package.
+The code will eventually be updated to showcase the new **flexBART** interface.
+
+## Overview
 This directory contains the code, data, and instructions for running the analyses reported in Sections 4 and 5 of the paper.
 Each subdirectory corresponds to a different experiment:
 

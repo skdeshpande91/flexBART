@@ -1,71 +1,81 @@
 \name{probit_flexBART}
 \alias{probit_flexBART}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Probit flexBART for binary outcomes
 }
 \description{
-Fit a BART model of a binary responses using the the Albert \& Chib (1993) data augmentation for probit models.
+Fit a BART model of a binary responses using the the Albert and Chib (1993) data augmentation for probit models.
 }
 \usage{
-probit_flexBART(Y_train,
-                X_cont_train = matrix(0, nrow = 1, ncol = 1),
-                X_cat_train = matrix(0, nrow = 1, ncol = 1),
-                X_cont_test = matrix(0, nrow = 1, ncol = 1),
-                X_cat_test = matrix(0L, nrow = 1, ncol = 1),
-                unif_cuts = rep(TRUE, times = ncol(X_cont_train)),
-                cutpoints_list = NULL,
-                cat_levels_list,
-                sparse = FALSE,
-                M = 200,
-                mu0 = stats::qnorm(mean(Y_train))/M, tau = 1/sqrt(M),
-                nd = 1000, burn = 1000, thin = 1, save_samples = TRUE,
-                save_trees = TRUE, verbose = TRUE, 
-                print_every = floor( (nd*thin + burn))/10)
+probit_flexBART(formula, train_data, test_data = NULL,...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{Y_train}{Integer vector of binary (i.e. 0/1) responses for training data}
-  \item{X_cont_train}{Matrix of continuous predictors for training data. Note, predictors must be re-scaled to lie in the interval [-1,1]. Default is a 1x1 matrix, which signals that there are no continuous predictors in the training data.}
-  \item{X_cat_train}{Integer matrix of categorical predictors for training data. Note categorical levels should be 0-indexed. That is, if a categorical predictor has 10 levels, the values should run from 0 to 9. Default is a 1x1 matrix, which signals that there are no categorical predictors in the training data.}
-  \item{X_cont_test}{Matrix of continuous predictors for testing data. Default is a 1x1 matrix, which signals that testing data is not provided.}
-  \item{X_cat_test}{Integer matrix of categorical predictors for testing data. Default is a 1x1 matrix, which signals that testing data is not provided.}
-  \item{unif_cuts}{Vector of logical values indicating whether cutpoints for each continuous predictor should be drawn from a continuous uniform distribution (\code{TRUE}) or a discrete set (\code{FALSE}) specified in \code{cutpoints_list}. Default is \code{TRUE} for each variable in \code{X_cont_train}}
-  \item{cutpoints_list}{List of length \code{ncol(X_cont_train)} containing a vector of cutpoints for each continuous predictor. By default, this is set to \code{NULL} so that cutpoints are drawn uniformly from a continuous distribution.}
-  \item{cat_levels_list}{List of length \code{ncol(X_cat_train)} containing a vector of levels for each categorical predictor. If the j-th categorical predictor contains L levels, \code{cat_levels_list[[j]]} should be the vector \code{0:(L-1)}. Default is \code{NULL}, which corresponds to the case that no categorical predictors are available.}
-  \item{sparse}{Logical, indicating whether or not to perform variable selection based on a sparse Dirichlet prior rather than uniform prior; see Linero 2018. Default is \code{FALSE}}
-  \item{M}{Number of trees in the ensemble. Default is 200.}
-  \item{mu0}{Prior mean on the jumps/leaf parameters. See Details. Default is \code{qnorm(mean(Y_train))} so that the prior on the regression function is shrunk toward the empirical probability that Y = 1.}
-  \item{tau}{Prior standard deviation on the jumps/leaf parameters. See Details. Default is \code{1/sqrt(M)}. Smaller values of \code{tau} induce stronger shrinkage towards the empirical probability that Y = 1.}
-  \item{nd}{Number of posterior draws to return. Default is 1000.}
-  \item{burn}{Number of MCMC iterations to be treated as "warmup" or "burn-in". Default is 1000.}
-  \item{thin}{Number of post-warmup MCMC iteration by which to thin. Default is 1.}
-  \item{save_samples}{Logical, indicating whether to return all posterior samples. Default is \code{TRUE}. If \code{FALSE}, only posterior mean is returned.}
-  \item{save_trees}{Logical, indicating whether or not to save a text-based representation of the tree samples. This representation can be passed to \code{predict_flexBART} to make predictions at a later time. Default is \code{FALSE}.}
-  \item{verbose}{Logical, inciating whether to print progress to R console. Default is \code{TRUE}.}
-  \item{print_every}{As the MCMC runs, a message is printed every \code{print_every} iterations. Default is \code{floor( (nd*thin + burn)/10)} so that only 10 messages are printed.}
+  \item{formula}{an object of class \code{\link[stats:formula]{formula}} (or one that can be coerced to the class): 
+  a symbolic description of the model to be fitted. 
+  The details of model specification are given under 'Details'}
+  \item{train_data}{an object of class \code{data.frame} containing data used to train the model. 
+  As usual, rows (resp. columns) correspond to observations (resp. variables)}
+  \item{test_data}{an optional object of class \code{data.frame} containing test-set (i.e., out-of-sample) data. 
+  Default is \code{NULL}.}
+  \item{\dots}{Additional arguments for setting prior hyperparameters (e.g., number of trees, \eqn{\mu_{0}}{mu_0}, \eqn{\tau}{tau}, etc.) and MCMC control parameters (e.g., number of chains, iterations, etc.) 
+  See \code{\link{flexBART}} for details about additional arguments.}
 }
 \details{
-Implements the Albert & Chib (1993) data augmentation strategy for probit regression and models the regression function with a sum-of-trees.
-The marginal prior of any evaluation of the regression function f(x) is a normal distribution centered at \code{mu0*M} with standard deviation \code{tau * sqrt(M)}. 
-As such, for each x, the induced prior for P(Y = 1 | x) places 95\% probability on the interval \code{pnorm(mu0*M -2 * tau * sqrt(M)), pnorm(mu0*M + 2 * tau * sqrt(M))}. 
-By default, we set \code{tau = 1/sqrt(M)} and \code{mu0 = qnorm(mean(Y_train))/M} to shrink towards the observed mean.
+For a binary response \eqn{Y}, 
+\eqn{p}{p} predictors \eqn{X_{1}, \ldots, X_{p}}{X_1, ..., X_p},
+\code{probit_flexBART} models
+\eqn{P(Y=1 \vert X = x) = \Phi(f(x)}{P(Y=1|x) = Phi(f(x))},
+where \eqn{\Phi}{Phi} is the standard normal cumulative distribution function. 
+\code{probit_flexBART} combines the Albert & Chib (1993) data augmentation strategy for probit regression
+with the usual Bayesian backfitting used to fit (VC)BART models.
+
+\subsection{The formula argument}{
+\strong{Currently, \code{probit_flexBART} only supports fitting single ensemble probit BART models.}
+So, the only valid formula will look something like \code{Y~bart(.)} or \code{Y ~ bart(x1+x2)}.
+As with \code{\link{flexBART}}, you must include the string \dQuote{bart} on the right-hand side of the formula object.
+}
+
+\subsection{Prior specification}{
+\code{probit_flexBART} approximates the function \eqn{f(x)}{f(x)} with an ensemble of binary regression trees.
+It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by \code{\link{flexBART}}.
+That is, the tree structure is generated using a branching process in which
+the probability that a node at depth \eqn{d}{d} is non-terminal is \eqn{\alpha \times (1 + d)^{-\beta}}{alpha * (1 + d)^(-beta)}.
+Then, decision rules are drawn sequentially from the root down to each leaf.
+Finally, independent \eqn{N(\mu_0, \tau^2)}{N(mu_0, tau^2)} priors are specified for the outputs in each leaf.
+
+With this specification, the marginal prior of any evaluation of the regression function 
+\eqn{f(x)}{f(x)} is \eqn{N(M \times \mu_{0}, \tau^{2} \times M)}{N(M * mu_0, M*tau^2)}, where \eqn{M}{M} is the number of trees in the ensemble.
+Thus, for each \eqn{x}{x}, the induced prior for \eqn{P(Y = 1 \vert X = x)}{P(Y = 1|X = x)} places 95\% probability on the interval
+\eqn{[\Phi(M \times \mu_{0} - 2 \times \tau \times \sqrt{M}), \Phi(M \times \mu_{0} + 2 \times \tau \times \sqrt{M})]}{[Phi(M*mu_0 - 2*tau*sqrt(M)),Phi(M*mu0 + 2 *tau*sqrt(M))]}.
+By default, \code{probit_flexBART} sets \eqn{\tau = 1/\sqrt{M}}{tau=1/sqrt(M)} and \eqn{\Phi^{-1}(\overline{y})/M}{Phi^{-1}(bar{y})/M} 
+(i.e., \code{qnorm(mean(Y))/M}).
+Use the \code{mu0_vec} and \code{tau_vec} arguments to set other hyperparameter values.
+}
+
 }
 \value{
-A list containing
+An object of \code{class} \dQuote{flexBART} (essentially a list) containing
+\item{dinfo}{Essentially a list containing information about the input and output variables used for \code{\link{predict.flexBART}}.}
+\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. 
+These strings are parsed by \code{predict_flexBART} to reconstruct the C++ representations of the sampled trees.}
+\item{scaling_info}{Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale \code{\link{predict.flexBART}}}
+\item{M}{A copy of the argument \code{M_vec}, which is used for \code{\link{predict.flexBART}}.}
+\item{cov_ensm}{An \eqn{p \times R}{p x R} binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \eqn{\beta_{r}(X)}{beta_r(X)} can split on \eqn{X_{j}}{X_j}.}
+\item{is.probit}{Logical with value \code{TRUE}. Used by \code{\link{predict.flexBART}}.}
 \item{prob.train.mean}{Vector containing posterior mean of P(y = 1 | x) for the training data.}
 \item{prob.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns containing posterior samples of P(y = 1 | x) for the training data Each row corresponds to a posterior sample of the regression functionand each column corresponds to a training observation. Only returned if \code{save_samples == TRUE}.}
 \item{prob.test.mean}{Vector containing posterior mean of P(y = 1 | x) on testing data, if testing data is provided.}
 \item{prob.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}. Only returned if testing data is passed and \code{save_samples == TRUE}.}
 \item{varcounts}{Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of \code{prob_train}, with rows corresponding to MCMC iteration and columns corresponding to predictors}
-\item{diag}{A list containing diagnostic information about the Metropolis-Hastings step. Separate elements for numbers of tree proposals accepted and the number of axis-aligned and categorical rules proposed and rejected in each MCMC iteration.}
-\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict_flexBART}} to reconstruct the C++ representations of the sampled trees.}
-\item{is.probit}{Logical with value \code{TRUE}. Used by \code{\link{predict_flexBART}}.}
+\item{timing}{Vector of runtimes for each chain}
 }
 \seealso{
-\code{\link{probit_networkBART}} for network-indexed regression with binary outcomes.
+\code{\link{flexBART}} for continuous outcomes.
 }
 \references{
 %% ~put references to the literature/web site here ~
-Albert, J.H. and Chib, S. (1993), "Bayesian analysis of binary and polychotomous data". \emph{Journal of the American Statistical Association}. 88(422):669--679.
+Albert, J.H. and Chib, S. (1993) Bayesian analysis of binary and polychotomous data. 
+\emph{Journal of the American Statistical Association}. \bold{88}(422):669--679.
+\doi{doi:10.2307/2290350}.
 }

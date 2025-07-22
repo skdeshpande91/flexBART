@@ -5,6 +5,8 @@
 // sometimes it's convenient to have a redundant (i.e. symmetric) representation of the edges
 // each edge represented in two elements of the map with keys correspond to the "source" and "sink"
 // will call this specifically in boruvka's and in the LERW style code
+/*
+  // APRIL 22: deprecate this, as its main functionality is going into parse_graphs
 void parse_edge_mat(std::vector<edge> &edges, Rcpp::NumericMatrix &edge_mat, int &n_vertex)
 {
   int n_edges = edge_mat.rows();
@@ -21,7 +23,43 @@ void parse_edge_mat(std::vector<edge> &edges, Rcpp::NumericMatrix &edge_mat, int
     Rcpp::stop("[parse_edge_mat]: The matrix edge_mat must have 2 columns (unweighted graph) or 3 columns (weighted graph)");
   }
 }
+*/
+// parse list of supplied edge matrices
+void parse_graphs(std::vector<std::vector<edge>> &edges, int &p_cat, Rcpp::Nullable<Rcpp::List> &edge_mat_list)
+{
+  edges.clear();
+  edges.resize(p_cat, std::vector<edge>());
+  if(edge_mat_list.isNotNull()){
+    Rcpp::List tmp_edge_mats = Rcpp::List(edge_mat_list);
+    if(tmp_edge_mats.size() == p_cat){
+      for(int j = 0; j < p_cat; ++j){
+        if(tmp_edge_mats[j] != R_NilValue){
+          // j-th categorical variable is network-structured
+          Rcpp::NumericMatrix edge_mat = Rcpp::as<Rcpp::NumericMatrix>(tmp_edge_mats[j]);
+          int n_edges = edge_mat.rows();
+          if(edge_mat.cols() == 3){
+            for(int i = 0; i < n_edges; ++i){
+              edges[j].push_back( edge((int) edge_mat(i,0), (int) edge_mat(i,1), edge_mat(i,2)) );
+            }
+          } else if(edge_mat.cols() == 2){
+            for(int i = 0; i < n_edges; ++i){
+              edges[j].push_back( edge( (int) edge_mat(i,0), (int) edge_mat(i,1)) );
+            }
+          } else{
+            Rcpp::stop("[parse_graphs]: edge_mat must have 2 or 3 columns");
+          }
+        } // closes if checking that there is actually an edge_mat.
+      } // closes loop over categorical predictors
+    } else{
+      Rcpp::Rcout << "[parse_graphs]: detected " << p_cat << " categorical variables";
+      Rcpp::Rcout << " edge_mat_list has length " << tmp_edge_mats.size() << std::endl;
+      Rcpp::stop("edge_mat_list must have length equal to p_cat!");    } // close if/else checking that supplied edge_mat_list has length p_cat
+  }
+}
 
+
+
+/*
 // takes in the List of edge_mat's
 void parse_graphs(std::vector<std::vector<edge>> &edges, int &p_cat, std::vector<int> &K, Rcpp::List &tmp_edge_mats, Rcpp::LogicalVector &graph_split)
 {
@@ -42,7 +80,40 @@ void parse_graphs(std::vector<std::vector<edge>> &edges, int &p_cat, std::vector
     Rcpp::stop("edge_mat_list must have length equal to p_cat!");
   }
 }
+*/
 
+// useful for nesting variables
+void build_in_out_edge_map(edge_map &in_emap, edge_map &out_emap, std::vector<edge> &edges, std::set<int> &vertices)
+{
+  in_emap.clear();
+  out_emap.clear();
+  
+  for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it){
+    in_emap.insert(std::pair<int, std::vector<edge>>(*v_it, std::vector<edge>()));
+    out_emap.insert(std::pair<int, std::vector<edge>>(*v_it, std::vector<edge>()));
+  }
+  
+  for(edge_vec_it it = edges.begin(); it != edges.end(); ++it){
+    if(in_emap.count(it->sink) != 1){
+      Rcpp::Rcout << "[build_in_out_edge_map]: Supplied set includes an edge with one vertex outside set of supplied vertices!" << std::endl;
+      Rcpp::Rcout << "  edge's sink is " << it->sink << std::endl;
+      Rcpp::Rcout << "  Supplied vertices:";
+      for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it) Rcpp::Rcout << " " << *v_it;
+      Rcpp::Rcout << std::endl;
+    } else{
+      in_emap.find(it->sink)->second.push_back(edge(it->source, it->sink, it->weight));
+    }
+    if(out_emap.count(it->source) != 1){
+      Rcpp::Rcout << "[build_in_out_edge_map]: Supplied set includes an edge with one vertex outside set of supplied vertices!" << std::endl;
+      Rcpp::Rcout << "  edge's source is " << it->source << std::endl;
+      Rcpp::Rcout << "  Supplied vertices:";
+      for(std::set<int>::iterator v_it = vertices.begin(); v_it != vertices.end(); ++v_it) Rcpp::Rcout << " " << *v_it;
+      Rcpp::Rcout << std::endl;
+    } else{
+      out_emap.find(it->source)->second.push_back(edge(it->source, it->sink, it->weight));
+    }
+  } // closes loop over all edges
+}
 
 
 void build_symmetric_edge_map(edge_map &emap, std::vector<edge> &edges, std::set<int> &vertices)
@@ -67,7 +138,6 @@ void build_symmetric_edge_map(edge_map &emap, std::vector<edge> &edges, std::set
   } // finish looping over all of the edges
 }
 
-
 // in the main BART loop, we will often have a set of categories that form a subset of the vertices of a network
 // we will have to partition the subgraph induced by this set of vertices
 // get_induced_edges loops over all edges and pulls out those whose source & sink are in the vertex_subset
@@ -84,6 +154,7 @@ std::vector<edge> get_induced_edges(std::vector<edge> &edges, std::set<int> &ver
   }
   return subset_edges;
 }
+
 
 // stuff for finding connected components:
 //  depth-first search: we maintain a map with keys corresponding to vertices and boolean values; this records which vertices our DFS has visited
@@ -131,7 +202,6 @@ void dfs(int v, std::map<int, bool> &visited, std::vector<int> &comp, edge_map &
 void find_components(std::vector<std::vector<int> > &components, std::vector<edge> &edges, std::set<int> &vertices)
 {
   components.clear();
-  
   if(edges.size() == 0){
     // no edges: every vertex is is its own component
     //Rcpp::Rcout << "[find_components]: no edges" << std::endl;
@@ -253,72 +323,6 @@ arma::mat floydwarshall(std::vector<edge> &edges, std::set<int> &vertices)
   return(D);
   
 }
-
-void boruvka(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int> &vertices)
-{
-  
-  mst_edges.clear();
-  
-  edge_map emap;
-  build_symmetric_edge_map(emap, edges, vertices);
-
-  std::vector<std::vector<int> > mst_components;
-  find_components(mst_components, mst_edges, vertices);
-  int n_vertex = vertices.size();
-  int counter = 0;
-  // Boruvka has worst-case complexity of O(log(n)), so we add a considerable buffer
-  while( mst_components.size() > 1 && counter < 2*n_vertex ){
-    std::vector<edge> new_edges; // the new edges that will get added to the MST
-    //Rcpp::Rcout << " Starting Round " << counter << " of Boruvka. Edges are:" << std::endl;
-    //for(std::vector<edge>::iterator mst_eit = mst_edges.begin(); mst_eit != mst_edges.end(); ++mst_eit){
-    //  Rcpp::Rcout << mst_eit->source << " to " << mst_eit->sink << std::endl;
-    //}
-    for(std::vector<std::vector<int> >::iterator comp_it = mst_components.begin(); comp_it != mst_components.end(); ++comp_it){
-      // looping over all of the existing components in the current MST
-      int min_source = 0;
-      int min_sink = 0;
-      double min_weight = 1.0;
-      for(std::vector<int>::iterator v_it = comp_it->begin(); v_it != comp_it->end(); ++v_it){
-        // v_it points to a particular vertex in the component *comp_it.
-        // We need to loop over all incident edges to *v_it
-        // we check whether (A) the "sink" is outside the component and (B) whether it has smallest weight
-        
-        //Rcpp::Rcout << "    Visiting vertex " << *v_it << std::endl;
-        
-        edge_map_it ve_it = emap.find(*v_it); // ve_it points to the vector of edges incident to *v_it
-        for(std::vector<edge>::iterator e_it = ve_it->second.begin(); e_it != ve_it->second.end(); ++e_it){
-          // e_it points to a specific edge
-          // we check whether (A) the "sink" is outside the component and (B) whether it has smallest weight
-          //Rcpp::Rcout << "   checking edge from " << e_it->source << " to " << e_it->sink << " count = " << std::count(comp_it->begin(), comp_it->end(), e_it->sink) << std::endl;
-          if(std::count(comp_it->begin(), comp_it->end(), e_it->sink) == 0 && e_it->weight < min_weight){
-            // found a new minimum edge weight leaving the component!
-            min_source = e_it->source; // this had better be *v_it
-            min_sink = e_it->sink;
-            min_weight = e_it->weight;
-          }
-        } // closes loop over edge incident to vertex *v_it
-      } // closes loop over vertices in component *comp_it
-      new_edges.push_back(edge(min_source, min_sink, min_weight));
-    } // closes loop over components
-    
-    // at this point, we've finished looping over all of the vertices in a particular component and we have found the edge
-    // that leaves the component and has minimum weight. we dump that edge into our running collection of edges in the MSt
-    
-    for(std::vector<edge>::iterator it = new_edges.begin(); it != new_edges.end(); ++it){
-      mst_edges.push_back(*it);
-    }
-    get_unique_edges(mst_edges); // we have may duplicate edges so kill them off here.
-    find_components(mst_components, mst_edges, vertices); // re-compute the number of components
-    counter++;
-  } // closes main while loop
-  
-  if(mst_components.size() > 1){
-    Rcpp::Rcout << "[boruvka]: after " << counter << " rounds, we have not yet formed a single connected MST" << std::endl;
-    Rcpp::Rcout << "  returning an empty set of edges" << std::endl;
-    mst_edges.clear();
-  }
-}
-
 
 void wilson(std::vector<edge> &mst_edges, std::vector<edge> &edges, std::set<int> &vertices, RNG &gen)
 {
@@ -575,10 +579,7 @@ void fiedler_split(std::set<int> &l_vals, std::set<int> &r_vals,
                    std::vector<edge> &edges, std::set<int> &vertices,
                    bool &random, RNG &gen)
 {
-  if(random){
-    // add random uniform weight to each edge
-    for(std::vector<edge>::iterator e_it = edges.begin(); e_it != edges.end(); ++e_it) e_it->weight = gen.uniform();
-  }
+
   // first we need our edge map
   edge_map emap;
   build_symmetric_edge_map(emap, edges, vertices);
@@ -623,14 +624,10 @@ void fiedler_split(std::set<int> &l_vals, std::set<int> &r_vals,
 
 
 /*
- cut_type = 0: randomly pick one of the processes
- cut_type = 1: fiedler on full graph (deterministic)
- cut_type = 2: fielder on re-weighted graph (random uniform weights)
- cut_type = 3: wilson + delete uniform edge
- cut_type = 4: wilson + delete based on largest csize weights
- cut_type = 5: wilson + delete based on randomly selected edge (csize weight)
- cut_type = 6: wilson + partition based on sign of Fiedler split of UST
- cut_type = 7: wilson + partition based on sign of Fiedler split of re-weighted UST
+ cut_type = 1: deterministic fiedler
+ cut_type = 2: wilson + uniform edge split
+ cut_type = 3: wilson + delete based on randomly selected edge (csize weight)
+ cut_type = 4: wilson + Fiedler on UST
 */
 void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<edge> &orig_edges,std::set<int> &avail_levels, int &cut_type, RNG &gen)
 {
@@ -667,45 +664,30 @@ void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<e
     }
   } else{
     // induced subgraph is connected and we try to partition it
-    int tmp_cut_type = cut_type;
-    while(tmp_cut_type == 0){
-      tmp_cut_type = floor(gen.uniform() * 7.0) + 1;
-    }
-    if(tmp_cut_type < 3){
-      // compute deterministic Fiedler split (tmp_cut_type == 1) or random (tmp_cut_type == 2)
-      bool reweight = (tmp_cut_type == 2);
+    if(cut_type == 1){
+      // compute deterministic Fiedler split
+      bool reweight = false;
       fiedler_split(l_vals, r_vals, edges, avail_levels, reweight, gen);
-    } else if(tmp_cut_type < 8){
+    } else{
       // run wilson first and then partition spanning tree
       std::vector<edge> ust_edges;
       wilson(ust_edges, edges, avail_levels, gen);
-      if(tmp_cut_type <= 5){
-        int cut_index = 0;
-        if(tmp_cut_type == 3) cut_index = floor(gen.uniform() * ust_edges.size());
-        else{
-          std::vector<double> csize_weights = get_csize_weights(ust_edges, avail_levels);
-          if(tmp_cut_type == 4){
-            double max_size = 0.0;
-            for(int ix = 0; ix < csize_weights.size(); ++ix){
-              if(csize_weights[ix] > max_size){
-                max_size = csize_weights[ix];
-                cut_index = ix;
-              }
-            } // closes loop trying to get max csize weight
-          } else{
-            cut_index = gen.categorical(csize_weights);
-          }
-        } // close if/else determining which edge to cut
-        // actually cut edge from the UST
+      int cut_index = 0;
+      if(cut_type == 2){
+        // uniformly select an edge from the UST to delete
+        cut_index = floor(gen.uniform() * ust_edges.size());
         delete_edge(cut_index, l_vals, r_vals, ust_edges, avail_levels);
-      } else{
-        bool reweight = (tmp_cut_type == 7);
+      } else if(cut_type == 3){
+        //
+        std::vector<double> csize_weights = get_csize_weights(ust_edges, avail_levels);
+        cut_index = gen.categorical(csize_weights);
+        delete_edge(cut_index, l_vals, r_vals, ust_edges, avail_levels);
+      } else if(cut_type == 4){
+        bool reweight = false;
         fiedler_split(l_vals, r_vals, ust_edges, avail_levels, reweight, gen);
+      } else{
+        Rcpp::stop("[graph_partition]: cut_type must be in 1, 2, 3, or 4");
       }
-    } else{
-      // invalid
-      Rcpp::Rcout << "[graph_partition]: tmp_cut_type = " << tmp_cut_type << std::endl;
-      Rcpp::stop("tmp_cut_type should never exceed 7!");
     }
     
     if(l_vals.size() == 0 || r_vals.size() == 0){
@@ -715,4 +697,3 @@ void graph_partition(std::set<int> &l_vals, std::set<int> &r_vals, std::vector<e
     
   } // closes if/else checking whether the graph induced by avail_levels is connected or not
 }
-

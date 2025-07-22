@@ -1,10 +1,10 @@
 network_linked_regression
 ================
-2024-03-31
+2025-05-08
 
 ## Overview
 
-In this example, we show how to use `flexBART::network_BART` for
+In this example, we show how to use `flexBART::flexBART` for
 network-linked regression. At each vertex $v$ of a given network
 $\mathcal{G},$ we observe $n_{v}$ covariate-response pairs
 $(\boldsymbol{x}_{vt}, y_{vt})$ of a $p$-dimensional covariate vector
@@ -26,14 +26,15 @@ $v \sim v',$ we might have
 $f(\boldsymbol{x}, v) \approx f(\boldsymbol{x},v').$ In the presence of
 such smoothness, it may be desirable to “partially pool” the
 observations across adjacent vertices. We now demonstrate how
-`flexBART::network_BART` can perform such partial pooling using the
+`flexBART::flexBART` can perform such partial pooling using the
 available adjacency information.
 
 To this end, we will simulate data on a real network that encodes the
 spatial adjacency of a subset of the 2010 Census tracts in the city of
 Philadelphia. The file `network_linked_regression_data.RData` contains
-an **igraph** object containing this network, a nice layout matrix, for
-plotting, and the adjacency matrix for this network.
+an **igraph** object containing this network, a nice layout matrix for
+plotting, and the adjacency matrix for this network. The row and column
+names of this matrix correspond to the vertex labels of the network.
 
 ``` r
 library(igraph)
@@ -53,18 +54,18 @@ library(igraph)
 ``` r
 load("network_linked_regression_data.RData")
 col_list <- colorBlindness::Blue2DarkRed18Steps
-my_colors <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
-    "#D55E00", "#CC79A7")
+my_colors <- c("#999999", "#E69F00", "#56B4E9", "#009E73", 
+               "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ```
 
 We can visualize the network using a couple of different layouts
 
 ``` r
-n <- nrow(A)  # number of vertices
+n <- nrow(A) # number of vertices
 cols <- rep(my_colors[1], times = n)
 V(g)$color <- cols
 
-par(mar = c(1, 1, 1, 1), mgp = c(1.8, 0.5, 0), mfrow = c(1, 3))
+par(mar = c(1,1,1,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,3))
 
 
 plot(g, layout = layout_nicely, vertex.size = 3.5, vertex.label.size = 2.5, main = "layout_nicely()")
@@ -76,7 +77,7 @@ plot(g, layout = my_layout, vertex.size = 3.5, vertex.label.size = 2.5, main = "
 
 ## Data Generation
 
-We will generate $n_{v} = 250$ observations at each vertex using the
+We will generate $n_{v} = 100$ observations at each vertex using the
 following steps
 
 1.  Create two connected clusters (`cluster1` and `cluster2`), each
@@ -94,8 +95,9 @@ following steps
     at each vertex $v$ and generate
     $y_{vt} \sim \mathcal{N}(f(\boldsymbol{x}_{vt}), 1)$ where the true
     regression function $f$ is convex combination of two base functions
-    where $\tilde{x}_{1} = (1 + x_{1})/2$ and
-    $\tilde{x}_{2} = \boldsymbol{1}(X_{2} > 0).$
+
+where $\tilde{x}_{1} = (1 + x_{1})/2$ and
+$\tilde{x}_{2} = \boldsymbol{1}(X_{2} > 0).$
 
 Here we form the clusters, compute the vertex weights, and then
 visualize the weights of each vertex
@@ -104,14 +106,17 @@ visualize the weights of each vertex
 cluster1 <- c(35, 37, 36, 40, 48, 44, 54, 67, 59)
 cluster2 <- c(20, 2, 18, 17, 21, 15, 16)
 cluster3 <- (1:n)[!(1:n) %in% c(cluster1, cluster2)]
-dist_to_cl1 <- apply(igraph::distances(graph = g, to = cluster1), FUN = min, MARGIN = 1)
-dist_to_cl2 <- apply(igraph::distances(graph = g, to = cluster2), FUN = min, MARGIN = 1)
+dist_to_cl1 <- apply(igraph::distances(graph = g, to = cluster1),
+                     FUN = min, MARGIN = 1)
+dist_to_cl2 <- apply(igraph::distances(graph = g, to = cluster2),
+                     FUN = min, MARGIN = 1)
 total_dist <- dist_to_cl1 + dist_to_cl2
-w <- dist_to_cl2/total_dist  # how much weight to give to f1
+w <- dist_to_cl2/total_dist # how much weight to give to f1
 g_weight <- g
 V(g_weight)$color <- rgb(colorRamp(col_list, bias = 1)(w)/255)
-par(mar = c(1, 1, 1, 1), mgp = c(1.8, 0.5, 0))
-plot(g_weight, layout = my_layout, vertex.label = NA, vertex.size = 3.5)
+par(mar = c(1,1,1,1), mgp = c(1.8, 0.5, 0))
+plot(g_weight, layout = my_layout, vertex.label = NA,
+     vertex.size = 3.5)
 ```
 
 ![](network_linked_regression_files/figure-gfm/form_clusters-1.png)<!-- -->
@@ -119,40 +124,39 @@ plot(g_weight, layout = my_layout, vertex.label = NA, vertex.size = 3.5)
 We can now define the base functions $f_{1}$ and $f_{2}$ and plot them.
 
 ``` r
-f1_true <- function(X_cont) {
-    scaled_X_cont <- (X_cont + 1)/2  # moves it to [0,1]
-    z1 <- scaled_X_cont[, 1]
-    z2 <- 1 * (scaled_X_cont[, 2] > 0.5)
-    return(3 * z1 + (2 - 5 * z2) * sin(pi * z1) - 2 * z2)
+f1_true <- function(X_cont){
+  scaled_X_cont <- (X_cont + 1)/2 # moves it to [0,1]
+  z1 <- scaled_X_cont[,1]
+  z2 <- 1*(scaled_X_cont[,2] > 0.5)
+  return(3 * z1 + (2 - 5 * z2) * sin(pi * z1) - 2 * z2)
 }
-f2_true <- function(X_cont) {
-    scaled_X_cont <- (X_cont + 1)/2
-    return((3 - 3 * cos(6 * pi * scaled_X_cont[, 1]) * scaled_X_cont[, 1]^2) * (scaled_X_cont[,
-        1] > 0.6) - (10 * sqrt(scaled_X_cont[, 1])) * (scaled_X_cont[, 1] < 0.25))
+f2_true <- function(X_cont){
+  scaled_X_cont <- (X_cont + 1)/2
+  return( (3 - 3*cos(6*pi*scaled_X_cont[,1]) * scaled_X_cont[,1]^2) * (scaled_X_cont[,1] > 0.6) - (10 * sqrt(scaled_X_cont[,1])) * (scaled_X_cont[,1] < 0.25) )
 }
-mu_true <- function(X_cont, vertex_id) {
-    tmp1 <- f1_true(X_cont)
-    tmp2 <- f2_true(X_cont)
-    tmp_w <- w[vertex_id]
-    return(tmp_w * tmp1 + (1 - tmp_w) * tmp2)
+mu_true <- function(X_cont, vertex_id){
+  tmp1 <- f1_true(X_cont)
+  tmp2 <- f2_true(X_cont)
+  tmp_w <- w[vertex_id]
+  return(tmp_w * tmp1 + (1 - tmp_w)*tmp2)
 }
 ```
 
 ``` r
-x1_seq <- seq(-1, 1, length = 1001)
+x1_seq <- seq(-1,1, length = 1001)
 x_plot <- cbind(c(x1_seq, x1_seq), c(rep(-0.5, times = 1001), rep(0.5, times = 1001)))
 f1_plot <- f1_true(x_plot)
-par(mar = c(3, 3, 2, 1), mgp = c(1.8, 0.5, 0), mfrow = c(1, 2))
-plot(x1_seq, f1_plot[1:1001], type = "l", xlim = c(-1, 1), ylim = range(f1_plot),
-    xlab = expression(x[1]), ylab = "", main = "Base function 1")
-lines(x1_seq, f1_plot[1002:2002], lty = 2)
+par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
+plot(x1_seq, f1_plot[1:1001], type = "l", xlim = c(-1,1), ylim = range(f1_plot),
+     xlab = expression(x[1]), ylab = "", main = "Base function 1")
+lines( x1_seq, f1_plot[1002:2002], lty = 2)
 legend("bottomright", legend = expression(x[2] > 0), lty = 2, bty = "n", cex = 1.1)
 legend("topleft", legend = expression(x[2] <= 0), lty = 1, bty = "n", cex = 1.1)
 
-f2_plot <- f2_true(x_plot[1:1001, ])
+f2_plot <- f2_true(x_plot[1:1001,])
 z1_seq <- (1 + x1_seq)/2
-plot(1, type = "n", xlim = c(-1, 1), ylim = range(f2_plot), xlab = expression(x[1]),
-    ylab = "", main = "Base function 2")
+plot(1, type = "n", xlim = c(-1,1), ylim = range(f2_plot),
+     xlab = expression(x[1]), ylab = "", main = "Base function 2")
 lines(x1_seq[z1_seq < 0.25], f2_plot[z1_seq < 0.25])
 lines(x1_seq[z1_seq >= 0.25 & z1_seq < 0.6], f2_plot[z1_seq >= 0.25 & z1_seq < 0.6])
 lines(x1_seq[z1_seq > 0.6], f2_plot[z1_seq > 0.6])
@@ -163,57 +167,57 @@ lines(x1_seq[z1_seq > 0.6], f2_plot[z1_seq > 0.6])
 ## Experimental Setup
 
 Now that we have defined the functions, we will generate $n_{v} = 250$
-observations at each vertex. To make things interesting, we will train
-our model using data from only 90% of all vertices. We will interested
-in understanding how well we can recover $f$ when we (i) have observed
-data at vertex $i$ and (ii) when we have not observed data at vertex
-$i$. Note: when training our model, we will use the full adjacency
-information. This way we can assess how well our model leverages the
-adjacency structure to predict $f$ at the held-out vertices.
-
-To compare our results with **BART**, which cannot account for any
-adjacency information, we create a data frame `X_bart_train`, which
-records the vertex label as a categorical variable (i.e. as a factor).
+observations at each vertex.
 
 ``` r
-set.seed(512)
-n_v <- 200  # how many observations per tract
+set.seed(508)
+n_v <- 200
 vertex_id_all <- rep(1:n, each = n_v)
-p <- 10
-X_cont_all <- matrix(runif(n * n_v * p, min = -1, max = 1), ncol = p)
-X_cat_all <- matrix(vertex_id_all - 1, ncol = 1)
-X_bart_all <- data.frame(X_cont_all, factor(vertex_id_all))
-mu_all <- mu_true(X_cont_all, vertex_id_all)
+p_cont <- 10
+p_cat <- 1
+full_data <- data.frame(Y = rep(NA, times = n*n_v))
+for(j in 1:p_cont) full_data[,paste0("X",j)] <- runif(n = n*n_v, min = -1, max = 1)
+full_data[,"vertex"] <- factor(vertex_id_all, levels = 1:n)
+mu_all <- mu_true(full_data[,paste0("X",1:p_cont)], vertex_id_all)
 sigma <- 1
-Y_all <- mu_all + sigma * rnorm(n * n_v, mean = 0, sd = 1)
+full_data[,"Y"] <- mu_all + sigma * rnorm(n = n*n_v, mean = 0, sd = 1)
+adjacency_list <- list(vertex = A)
+
+#model matrix needed for dbarts
+full_mm <- 
+  dbarts::makeModelMatrixFromDataFrame(full_data[,colnames(full_data) != "Y"])
+```
+
+To make things interesting, we will train our model using data from only
+90% of all vertices. We will interested in understanding how well we can
+recover $f$ when we (i) have observed data at vertex $i$ and (ii) when
+we have not observed data at vertex $i$. Note: when training our model,
+we will use the full adjacency information. This way we can assess how
+well our model leverages the adjacency structure to predict $f$ at the
+held-out vertices. To evaluate how we well can estimate
+$f(\boldsymbol{x},v)$ out-of-sample, we generate $50$ more observations
+at each vertex. We will evaluate performance using two sets of vertices,
+those which appeared in the training dataset and those which did not.
+
+``` r
 test_vertices <- sample(1:n, size = floor(0.1 * n), replace = FALSE)
 train_vertices <- (1:n)[-test_vertices]
 train_index <- which(vertex_id_all %in% train_vertices)
-Y_train <- Y_all[train_index]
-vertex_id_train <- vertex_id_all[train_index]
-X_cont_train <- X_cont_all[train_index, ]
-X_cat_train <- matrix(X_cat_all[train_index, ], ncol = 1)
-X_bart_train <- X_bart_all[train_index, ]
+train_data <- full_data[train_index,]
 mu_train <- mu_all[train_index]
-```
+train_mm <- full_mm[train_index,]
 
-To evaluate how we well can estimate $f(\boldsymbol{x},v)$
-out-of-sample, we generate $500$ more observations at each vertex. We
-will evaluate performance using two sets of vertices, those which
-appeared in the training dataset (`Test1` in the code below) and those
-which did not (`Test2` in the code below).
-
-``` r
-n_test <- 500
-X_cont_test <- matrix(runif(n * n_test * p, min = -1, max = 1), ncol = p)
-X_cat_test <- matrix(rep(1:n, each = n_test) - 1, ncol = 1)
+n_test <- 100
 vertex_id_test <- rep(1:n, each = n_test)
-X_bart_test <- data.frame(X_cont_test, factor(vertex_id_test))
+test_data <- data.frame(X1 = runif(n=n_test*n, min = -1, max = 1))
+for(j in 2:p_cont) test_data[,paste0("X",j)] <- runif(n=n_test*n, min = -1, max = 1)
+test_data[,"vertex"] <- factor(vertex_id_test, levels = 1:n)
+test_mm <- 
+  dbarts::makeModelMatrixFromDataFrame(test_data)
+mu_test <- mu_true(test_data[,paste0("X",1:p_cont)], vertex_id_test)
 
-mu_test <- mu_true(X_cont_test, vertex_id_test)
-
-test_index_1 <- which(vertex_id_test %in% train_vertices)
-test_index_2 <- which(vertex_id_test %in% test_vertices)
+test_index_1 <- which(vertex_id_test %in% train_vertices) # test obs for vertices in training
+test_index_2 <- which(vertex_id_test %in% test_vertices) # test obs for vertices not in training
 ```
 
 Here is a plot of the training (gray) and testing vertices (yellow).
@@ -228,65 +232,322 @@ plot(g_train, layout = my_layout, vertex.size = 3.5, vertex.label = NA)
 
 ![](network_linked_regression_files/figure-gfm/plot-training-testing-1.png)<!-- -->
 
-Finally, we’re going to want to evaluate the RMSE and coverage of the
-95% posterior credible intervals.
-
 ``` r
-######## Two helper functions
-compute_rmse <- function(truth, est) {
-    return(sqrt(mean((truth - est)^2)))
-}
-compute_cov <- function(truth, samples) {
-    l95 <- apply(samples, FUN = quantile, MARGIN = 2, probs = 0.025)
-    u95 <- apply(samples, FUN = quantile, MARGIN = 2, probs = 0.975)
-
-    return((mean((truth >= l95) & (truth <= u95))))
-}
-###########
-
-rmse <- matrix(NA, nrow = 2, ncol = 3, dimnames = list(c("flexBART", "BART"), c("Train",
-    "Test1", "Test2")))
-
+rmse <- matrix(NA, nrow = 7, ncol = 3,
+               dimnames = list(c("noadj", "gs1", "gs2", "gs3", "gs4", "bart", "dbart"), 
+                               c("Train", "Test1", "Test2")))
 coverage <- rmse
+timing <- 
+  c(noadj = NA, gs1 = NA, gs2 = NA, gs3 = NA, gs4 = NA, bart = NA, dbart = NA)
 ```
 
 ## Model fitting
 
-We’re now ready to fit our models.
-
 ``` r
-flexBART_timing <- system.time(flexBART_fit <- flexBART::network_BART(Y_train = Y_train,
-    vertex_id_train = vertex_id_train, X_cont_train = X_cont_train, vertex_id_test = vertex_id_test,
-    X_cont_test = X_cont_test, A = A))
+fit <-
+  flexBART::flexBART(formula = Y ~ bart(.),
+           train_data = train_data,
+           test_data = test_data)
+timing["noadj"] <- sum(fit$timing)
+rmse["noadj", "Train"] <-
+  sqrt(mean( (mu_train - fit$yhat.train.mean)^2 ))
+rmse["noadj", "Test1"] <- 
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
+rmse["noadj", "Test2"] <-
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
+
+l95_train <-
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_train <- 
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.975)
+
+l95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.975)
+
+coverage["noadj", "Train"] <-
+  mean(mu_train >= l95_train & 
+         mu_train <= u95_train)
+coverage["noadj", "Test1"] <-
+  mean(mu_test[test_index_1] >= l95_test[test_index_1] & 
+         mu_test[test_index_1] <= u95_test[test_index_1])
+coverage["noadj", "Test2"] <-
+  mean(mu_test[test_index_2] >= l95_test[test_index_2] & 
+         mu_test[test_index_2] <= u95_test[test_index_2])
+timing["noadj"] <- sum(fit$timing)
+rm(fit, l95_train, u95_train, l95_test, u95_test)
 ```
 
 ``` r
-BART_timing <- system.time(bart_fit <- BART::wbart(x.train = X_bart_train, y.train = Y_train,
-    x.test = X_bart_test, sparse = FALSE, ndpost = 1000, nskip = 1000))
+fit <-
+  flexBART::flexBART(formula = Y ~ bart(.),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 1)
+rmse["gs1", "Train"] <-
+  sqrt(mean( (mu_train - fit$yhat.train.mean)^2 ))
+rmse["gs1", "Test1"] <- 
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
+rmse["gs1", "Test2"] <-
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
+
+l95_train <-
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_train <- 
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.975)
+
+l95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.975)
+
+coverage["gs1", "Train"] <-
+  mean(mu_train >= l95_train & 
+         mu_train <= u95_train)
+coverage["gs1", "Test1"] <-
+  mean(mu_test[test_index_1] >= l95_test[test_index_1] & 
+         mu_test[test_index_1] <= u95_test[test_index_1])
+coverage["gs1", "Test2"] <-
+  mean(mu_test[test_index_2] >= l95_test[test_index_2] & 
+         mu_test[test_index_2] <= u95_test[test_index_2])
+
+timing["gs1"] <- sum(fit$timing)
+rm(fit, l95_train, u95_train, l95_test, u95_test)
 ```
 
 ``` r
-rmse["flexBART", "Train"] <- compute_rmse(mu_train, flexBART_fit$yhat.train.mean)
-rmse["BART", "Train"] <- compute_rmse(mu_train, bart_fit$yhat.train.mean)
+fit <-
+  flexBART::flexBART(formula = Y ~ bart(.),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 2)
+rmse["gs2", "Train"] <-
+  sqrt(mean( (mu_train - fit$yhat.train.mean)^2 ))
+rmse["gs2", "Test1"] <- 
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
+rmse["gs2", "Test2"] <-
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
 
-rmse["flexBART", "Test1"] <- compute_rmse(mu_test[test_index_1], flexBART_fit$yhat.test.mean[test_index_1])
-rmse["BART", "Test1"] <- compute_rmse(mu_test[test_index_1], bart_fit$yhat.test.mean[test_index_1])
+l95_train <-
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_train <- 
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.975)
 
-rmse["flexBART", "Test2"] <- compute_rmse(mu_test[test_index_2], flexBART_fit$yhat.test.mean[test_index_2])
-rmse["BART", "Test2"] <- compute_rmse(mu_test[test_index_2], bart_fit$yhat.test.mean[test_index_2])
+l95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.975)
 
-coverage["flexBART", "Train"] <- compute_cov(mu_train, flexBART_fit$yhat.train)
-coverage["BART", "Train"] <- compute_cov(mu_train, bart_fit$yhat.train)
+coverage["gs2", "Train"] <-
+  mean(mu_train >= l95_train & 
+         mu_train <= u95_train)
+coverage["gs2", "Test1"] <-
+  mean(mu_test[test_index_1] >= l95_test[test_index_1] & 
+         mu_test[test_index_1] <= u95_test[test_index_1])
+coverage["gs2", "Test2"] <-
+  mean(mu_test[test_index_2] >= l95_test[test_index_2] & 
+         mu_test[test_index_2] <= u95_test[test_index_2])
 
-coverage["flexBART", "Test1"] <- compute_cov(mu_test[test_index_1], flexBART_fit$yhat.test[,
-    test_index_1])
-coverage["BART", "Test1"] <- compute_cov(mu_test[test_index_1], bart_fit$yhat.test[,
-    test_index_1])
+timing["gs2"] <- sum(fit$timing)
+rm(fit, l95_train, u95_train, l95_test, u95_test)
+```
 
-coverage["flexBART", "Test2"] <- compute_cov(mu_test[test_index_2], flexBART_fit$yhat.test[,
-    test_index_2])
-coverage["BART", "Test2"] <- compute_cov(mu_test[test_index_2], bart_fit$yhat.test[,
-    test_index_2])
+``` r
+fit <-
+  flexBART::flexBART(formula = Y ~ bart(.),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 3)
+rmse["gs3", "Train"] <-
+  sqrt(mean( (mu_train - fit$yhat.train.mean)^2 ))
+rmse["gs3", "Test1"] <- 
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
+rmse["gs3", "Test2"] <-
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
+
+l95_train <-
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_train <- 
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.975)
+
+l95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.975)
+
+coverage["gs3", "Train"] <-
+  mean(mu_train >= l95_train & 
+         mu_train <= u95_train)
+coverage["gs3", "Test1"] <-
+  mean(mu_test[test_index_1] >= l95_test[test_index_1] & 
+         mu_test[test_index_1] <= u95_test[test_index_1])
+coverage["gs3", "Test2"] <-
+  mean(mu_test[test_index_2] >= l95_test[test_index_2] & 
+         mu_test[test_index_2] <= u95_test[test_index_2])
+
+timing["gs3"] <- sum(fit$timing)
+rm(fit, l95_train, u95_train, l95_test, u95_test)
+```
+
+``` r
+fit <-
+  flexBART::flexBART(formula = Y ~ bart(.),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 4)
+rmse["gs4", "Train"] <-
+  sqrt(mean( (mu_train - fit$yhat.train.mean)^2 ))
+rmse["gs4", "Test1"] <- 
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
+rmse["gs4", "Test2"] <-
+  sqrt(mean((mu_test[test_index_1] - fit$yhat.test.mean[test_index_1])^2 ))
+
+l95_train <-
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_train <- 
+  apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.975)
+
+l95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.025)
+u95_test <-
+  apply(fit$yhat.test, MARGIN = 2, FUN = quantile, probs = 0.975)
+
+coverage["gs4", "Train"] <-
+  mean(mu_train >= l95_train & 
+         mu_train <= u95_train)
+coverage["gs4", "Test1"] <-
+  mean(mu_test[test_index_1] >= l95_test[test_index_1] & 
+         mu_test[test_index_1] <= u95_test[test_index_1])
+coverage["gs4", "Test2"] <-
+  mean(mu_test[test_index_2] >= l95_test[test_index_2] & 
+         mu_test[test_index_2] <= u95_test[test_index_2])
+
+timing["gs4"] <- sum(fit$timing)
+rm(fit, l95_train, u95_train, l95_test, u95_test)
+```
+
+``` r
+bart_train <- list()
+bart_test <- list()
+bart_time <- rep(NA, times = 4)
+for(c_ix in 1:4){
+  tmp_time <-
+    system.time(
+      tmp_fit <-
+        BART::wbart(x.train = train_mm,
+                    y.train = train_data[,"Y"],
+                    x.test = test_mm,
+                    ntree = 50, sparse = TRUE,
+                    ndpost = 1000, nskip = 1000))
+  bart_train[[c_ix]] <- tmp_fit$yhat.train
+  bart_test[[c_ix]] <- tmp_fit$yhat.test
+  bart_time[c_ix] <- tmp_time["elapsed"]
+}
+train_samples <-
+  do.call(rbind, bart_train)
+test_samples <-
+  do.call(rbind, bart_test)
+rm(bart_train, bart_test)
+
+train_mean <- 
+  apply(train_samples, MAR = 2, FUN = mean)
+l95_train <-
+  apply(train_samples, MAR = 2, FUN = quantile, probs = 0.025)
+u95_train <-
+  apply(train_samples, MAR = 2, FUN = quantile, probs = 0.975)
+test_mean <- 
+  apply(test_samples, MAR = 2, FUN = mean)
+l95_test <-
+  apply(test_samples, MAR = 2, FUN = quantile, probs = 0.025)
+u95_test <-
+  apply(test_samples, MAR = 2, FUN = quantile, probs = 0.975)
+
+rmse["bart", "Train"] <-
+  sqrt(mean( (mu_train - train_mean)^2 ))
+rmse["bart", "Test1"] <-
+  sqrt(mean( (mu_test[test_index_1] - test_mean[test_index_1])^2 ))
+rmse["bart", "Test2"] <-
+  sqrt(mean( (mu_test[test_index_2] - test_mean[test_index_2])^2 ))
+
+coverage["bart", "Train"] <-
+  mean(mu_train >= l95_train & 
+         mu_train <= u95_train)
+coverage["bart", "Test1"] <-
+  mean(mu_test[test_index_1] >= l95_test[test_index_1] & 
+         mu_test[test_index_1] <= u95_test[test_index_1])
+coverage["bart", "Test2"] <-
+  mean(mu_test[test_index_2] >= l95_test[test_index_2] & 
+         mu_test[test_index_2] <= u95_test[test_index_2])
+
+timing["bart"] <- sum(bart_time)
+rm(train_mean, test_mean, l95_train, u95_train, l95_test, u95_test)
+```
+
+``` r
+dbart_train <- list()
+dbart_test <- list()
+dbart_time <- rep(NA, times = 4)
+
+for(c_ix in 1:4){
+  tmp_time <-
+    system.time(
+      tmp_fit <-
+        dbarts::bart(x.train = train_mm,
+                    y.train = train_data[,"Y"],
+                    x.test = test_mm,
+                    ntree = 50, 
+                    ndpost = 1000, nskip = 1000))
+  dbart_train[[c_ix]] <- tmp_fit$yhat.train
+  dbart_test[[c_ix]] <- tmp_fit$yhat.test
+  dbart_time[c_ix] <- tmp_time["elapsed"]
+}
+train_samples <-
+  do.call(rbind, dbart_train)
+test_samples <-
+  do.call(rbind, dbart_test)
+rm(dbart_train, dbart_test)
+
+train_mean <- 
+  apply(train_samples, MAR = 2, FUN = mean)
+l95_train <-
+  apply(train_samples, MAR = 2, FUN = quantile, probs = 0.025)
+u95_train <-
+  apply(train_samples, MAR = 2, FUN = quantile, probs = 0.975)
+test_mean <- 
+  apply(test_samples, MAR = 2, FUN = mean)
+l95_test <-
+  apply(test_samples, MAR = 2, FUN = quantile, probs = 0.025)
+u95_test <-
+  apply(test_samples, MAR = 2, FUN = quantile, probs = 0.975)
+
+rmse["dbart", "Train"] <-
+  sqrt(mean( (mu_train - train_mean)^2 ))
+rmse["dbart", "Test1"] <-
+  sqrt(mean( (mu_test[test_index_1] - test_mean[test_index_1])^2 ))
+rmse["dbart", "Test2"] <-
+  sqrt(mean( (mu_test[test_index_2] - test_mean[test_index_2])^2 ))
+
+coverage["dbart", "Train"] <-
+  mean(mu_train >= l95_train & 
+         mu_train <= u95_train)
+coverage["dbart", "Test1"] <-
+  mean(mu_test[test_index_1] >= l95_test[test_index_1] & 
+         mu_test[test_index_1] <= u95_test[test_index_1])
+coverage["dbart", "Test2"] <-
+  mean(mu_test[test_index_2] >= l95_test[test_index_2] & 
+         mu_test[test_index_2] <= u95_test[test_index_2])
+
+timing["dbart"] <- sum(dbart_time)
+rm(l95_train, u95_train, l95_test, u95_test)
 ```
 
 ## Results
@@ -296,15 +557,24 @@ Here are the RMSE, uncertainty interval coverage, and timing results.
 ``` r
 print(round(rmse, digits = 3))
 print(round(coverage, digits = 3))
-print(round(c(flexBART = flexBART_timing["elapsed"], BART = BART_timing["elapsed"]),
-    digits = 3))
+print(round(timing, digits = 3))
 ```
 
-    ##          Train Test1 Test2
-    ## flexBART 0.339 0.361 0.487
-    ## BART     0.529 0.555 1.351
-    ##          Train Test1 Test2
-    ## flexBART 0.820 0.807 0.808
-    ## BART     0.571 0.570 0.164
-    ## flexBART.elapsed     BART.elapsed 
-    ##           88.742          136.536
+    ##       Train Test1 Test2
+    ## noadj 0.322 0.338 0.338
+    ## gs1   0.360 0.374 0.374
+    ## gs2   0.260 0.270 0.270
+    ## gs3   0.237 0.244 0.244
+    ## gs4   0.241 0.250 0.250
+    ## bart  0.421 0.453 1.483
+    ## dbart 0.507 0.530 1.463
+    ##       Train Test1 Test2
+    ## noadj 0.942 0.937 0.818
+    ## gs1   0.682 0.683 0.755
+    ## gs2   0.937 0.938 0.965
+    ## gs3   0.939 0.941 0.982
+    ## gs4   0.918 0.919 0.968
+    ## bart  0.775 0.776 0.230
+    ## dbart 0.730 0.734 0.263
+    ##   noadj     gs1     gs2     gs3     gs4    bart   dbart 
+    ##  31.056  68.337  56.727 117.132  83.364 145.356  33.632

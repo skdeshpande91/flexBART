@@ -1,38 +1,32 @@
 Estimating a piecewise-constant signal on the 2d lattice
 ================
-2024-03-31
+2025-05-07
 
 ## Overview
 
-In this example, we show how to use `flexBART::networkBART` to estimate
-a piecewise-constant signal on a 2d lattice. To really highlight the
+In this example, we show how to use `flexBART::flexBART` to estimate a
+piecewise-constant signal on a 2d lattice. To really highlight the
 ability of **flexBART** to incorporate network-structure, in this
-example we will not have any covariates. That is, at vertex
-![i](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;i "i")
-in the network, we will observe
-![T](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;T "T")
-noisy realizations of a constant
-![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}"):
-![y\_{it} \sim \mathcal{N}(\mu\_{i}, 1)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;y_%7Bit%7D%20%5Csim%20%5Cmathcal%7BN%7D%28%5Cmu_%7Bi%7D%2C%201%29 "y_{it} \sim \mathcal{N}(\mu_{i}, 1)")
-for
-![t = 1, \ldots, T.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;t%20%3D%201%2C%20%5Cldots%2C%20T. "t = 1, \ldots, T.")
-Our goal will be to recover the vector
-![(\mu\_{1}, \ldots, \mu\_{n}).](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%28%5Cmu_%7B1%7D%2C%20%5Cldots%2C%20%5Cmu_%7Bn%7D%29. "(\mu_{1}, \ldots, \mu_{n}).")
+example we will not have any covariates. That is, at vertex $i$ in the
+network, we will observe $T$ noisy realizations of a constant $\mu_{i}$:
+$y_{it} \sim \mathcal{N}(\mu_{i}, 1)$ for $t = 1, \ldots, T.$ Our goal
+will be to recover the vector $(\mu_{1}, \ldots, \mu_{n}).$
 
 In this experiment, we will hold out all data from 10% of the vertices.
 The idea is to see how well `flexBART::networkBART` is able to predict
-![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")
-at these vertices. Note that when we train our model, we will give it
-the full network. In this way, our prediction task can be viewed as
-\`\`in-fill’’ rather predicting at a previously unobserved vertex in the
-network.
+$\mu_{i}$ at these vertices. Note that when we train our model, we will
+give it the full network. In this way, our prediction task can be viewed
+as \`\`in-fill’’ rather predicting at a previously unobserved vertex in
+the network.
 
 ## Data Generation
 
 We will start by creating our network, separating the vertices into five
-clusters, and setting the value of
-![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")
-in each cluster.
+clusters, and setting the value of $\mu_{i}$ in each cluster.
+
+The row and columns of the adjacency graph must be named and the names
+should be the levels of the categorical variable encoding vertex label.
+In this case, we’ll use the integers 0 to (n-1)
 
 ``` r
 library(igraph)
@@ -55,6 +49,8 @@ n <- 100
 
 g <- make_lattice(length = n_side, dim = 2)
 A <- as_adjacency_matrix(g, type = "both", sparse = FALSE)
+colnames(A) <- 0:(n-1)
+rownames(A) <- 0:(n-1)
 
 # make up 5 clusters
 cluster1 <- 81:100
@@ -75,8 +71,7 @@ mu[cluster4] <- cluster_means[4]
 mu[cluster5] <- cluster_means[5]
 ```
 
-Here is a plot of the
-![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")’s.
+Here is a plot of the $\mu_{i}$’s.
 
 ``` r
 col_list <- colorBlindness::Blue2DarkRed18Steps
@@ -89,30 +84,34 @@ par(mar = c(1,3,3,1), mgp = c(1.8, 0.5, 0))
 plot(g_true, layout = layout_on_grid, main = "True signal", vertex.label = "")
 legend_seq <- seq(-0.5, 0.5, length = 500)
 for(leg_ix in 1:499){
-  rect(par("usr")[1]-0.08, legend_seq[leg_ix], par("usr")[1]-0.02, legend_seq[leg_ix+1],
-       border = NA, col = rgb(colorRamp(col_list, bias = 1)((leg_ix-1)/500)/255))
+  rect(par("usr")[1]-0.08, legend_seq[leg_ix], 
+       par("usr")[1]-0.02, legend_seq[leg_ix+1],
+       border = NA, col = rgb(colorRamp(col_list, bias = 1)((leg_ix-1)/500)/255),
+       xpd = TRUE)
 }
 
-rect(par("usr")[1] - 0.08, -1 * 0.5, par("usr")[1]-0.02, 1 * 0.5)
+rect(par("usr")[1] - 0.08, -1 * 0.5, par("usr")[1]-0.02, 1 * 0.5,
+     xpd = TRUE)
 text(x = par("usr")[1]-0.2, y = 0.5* c(-1, -0.5, 0, 0.5, 1), labels = c(-8, -4, 0, 4, 8), xpd = TRUE)
-text(x = par("usr")[1]-0.05, y = par("usr")[4] * 0.5, labels =expression(mu))
+text(x = par("usr")[1]-0.05, y = par("usr")[4] * 0.5, labels =expression(mu),
+     xpd = TRUE)
 ```
 
 <img src="grid_constant_files/figure-gfm/plot_mu-1.png" style="display: block; margin: auto;" />
 
 ## Experimental Setup
 
-Now that we have
-![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}"),
-we will generate
-![T = 10](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;T%20%3D%2010 "T = 10")
-observations from each vertex.
+Now that we have $\mu_{i}$, we will generate $T = 10$ observations from
+each vertex.
 
 ``` r
 sigma <- 1
 t <- 10
 set.seed(624)
-Y_all <- rep(mu, each = t) + sigma * rnorm(n*t, mean = 0, sd = 1)
+
+full_data <- 
+  data.frame(X1 = factor(rep(0:(n-1), each = t), levels = 0:(n-1)))
+full_data[,"Y"] <- rep(mu, each = t) + sigma * rnorm(n*t, mean = 0, sd = 1)
 
 set.seed(129)
 vertex_id_all <- rep(1:n, each = t)
@@ -121,51 +120,160 @@ train_vertices <- (1:n)[-test_vertices]
 
 train_index <- which(vertex_id_all %in% train_vertices)
 
-Y_train <- Y_all[train_index]
+train_data <- full_data[train_index,]
 
-vertex_id_train <- vertex_id_all[train_index]
-vertex_id_test <- 1:n # make prediction at all nodes in network
+test_data <- data.frame(X1 = factor(0:(n-1), levels = 0:(n-1)))
+adjacency_list <- list(X1 = A)
+```
 
-rmse_train <- c("flexBART" = NA, "BART" = NA)
-rmse_test <- c("flexBART" = NA, "BART" = NA)
-timing <- c("flexBART" = NA, "BART" = NA)
+``` r
+rmse_train <- 
+  c(noadj = NA, gs1 = NA, gs2 = NA, gs3 = NA, gs4 = NA, dbart = NA, bart = NA)
+rmse_test <- 
+  c(noadj = NA, gs1 = NA, gs2 = NA, gs3 = NA, gs4 = NA, dbart = NA, bart = NA)
+timing <- 
+  c(noadj = NA, gs1 = NA, gs2 = NA, gs3 = NA, gs4 = NA, dbart = NA, bart = NA)
 ```
 
 To compare our results with **BART**, which cannot account for any
 adjacency information, we need to create a big model matrix
 
 ``` r
-df_all <- data.frame(X = factor(vertex_id_all))
-X_bart_all <- dbarts::makeModelMatrixFromDataFrame(df_all, drop = FALSE)
-X_bart_train <- X_bart_all[train_index,]
-X_bart_test <- unique(X_bart_all)
+full_model_mat <-
+  dbarts::makeModelMatrixFromDataFrame(data.frame(X1 = full_data[,"X1"]))
+train_model_mat <- full_model_mat[train_index,]
+test_model_mat <- unique(full_model_mat)
 ```
 
-We’re now ready to fit our models.
+We’re now ready to fit our models. In **flexBART**, we supply adjacency
+information using the optional argument `adjacency_list`. This needs to
+be a list that contains a (named) element for every categorical
+predictor. If that predictor is not network structured, the
+corresponding element can be `NULL`. Otherwise, it should be an
+adjacency matrix whose row and column names are the levels of the
+variable.
+
+We begin, however, with a version of flexBART that ignores adjacency
+information.
 
 ``` r
-flex_time <- system.time(
-  flex_fit <- 
-    flexBART::network_BART(Y_train= Y_train,
-                           vertex_id_train = vertex_id_train,
-                           vertex_id_test = vertex_id_test,
-                           A = A, graph_cut_type = 1, verbose = TRUE))
+fit_noadj <-
+  flexBART::flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data)
+rmse_train["noadj"] <-
+  sqrt(mean( (fit_noadj$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["noadj"] <-
+  sqrt(mean( (fit_noadj$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["noadj"] <- sum(fit_noadj$timing)
+```
 
-rmse_train["flexBART"] <- sqrt(mean( (mu[train_vertices] - flex_fit$yhat.test.mean[train_vertices])^2 ))
-rmse_test["flexBART"] <- sqrt(mean( (mu[test_vertices] - flex_fit$yhat.test.mean[test_vertices])^2 ))
-timing["flexBART"] <- flex_time["elapsed"]
+The original flexBART paper describes four different network
+partitioning processes. The process used by `flexBART::flexBART` is
+specified using the `graph_cut_option` argument.
+
+``` r
+fit_gs1 <-
+  flexBART::flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 1)
+rmse_train["gs1"] <-
+  sqrt(mean( (fit_gs1$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["gs1"] <-
+  sqrt(mean( (fit_gs1$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["gs1"] <- sum(fit_gs1$timing)
 ```
 
 ``` r
-bart_time <- system.time(
-    bart_fit <- 
-      BART::wbart(x.train = X_bart_train,
-                  y.train = Y_train, x.test = X_bart_test, 
-                  sparse = FALSE,
-                  ndpost = 1000, nskip = 1000, printevery = 2001))
-rmse_train["BART"] <- sqrt(mean( (mu[train_vertices] - bart_fit$yhat.test.mean[train_vertices])^2 ))
-rmse_test["BART"] <- sqrt(mean( (mu[test_vertices] - colMeans(bart_fit$yhat.test)[test_vertices])^2 ))
-timing["BART"] <- bart_time["elapsed"]
+fit_gs2 <-
+  flexBART::flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 2)
+rmse_train["gs2"] <-
+  sqrt(mean( (fit_gs2$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["gs2"] <-
+  sqrt(mean( (fit_gs2$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["gs2"] <- sum(fit_gs2$timing)
+```
+
+``` r
+fit_gs3 <-
+  flexBART::flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 3)
+rmse_train["gs3"] <-
+  sqrt(mean( (fit_gs3$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["gs3"] <-
+  sqrt(mean( (fit_gs3$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["gs3"] <- sum(fit_gs3$timing)
+```
+
+``` r
+fit_gs4 <-
+  flexBART::flexBART(formula = Y ~ bart(X1),
+           train_data = train_data,
+           test_data = test_data,
+           inform_sigma = TRUE,
+           adjacency_list = adjacency_list,
+           graph_cut_type = 4)
+rmse_train["gs4"] <-
+  sqrt(mean( (fit_gs4$yhat.test.mean[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["gs4"] <-
+  sqrt(mean( (fit_gs4$yhat.test.mean[test_vertices] - mu[test_vertices])^2 ))
+timing["gs4"] <- sum(fit_gs4$timing)
+```
+
+``` r
+tmp_bart <- matrix(nrow = n, ncol = 4)
+tmp_time <- 0
+for(cix in 1:4){
+  bart_time <-
+    system.time(
+      bart_fit <- BART::wbart(x.train = train_data[,colnames(train_data) != "Y"],
+                              y.train = train_data[,"Y"],
+                              x.test = test_data[,colnames(test_data) != "Y"],
+                              sparse = TRUE,
+                              ndpost = 1000, nskip = 1000))
+  tmp_bart[,cix] <- bart_fit$yhat.test.mean
+  tmp_time <- tmp_time + bart_time["elapsed"]
+}
+tmp_bart <- rowMeans(tmp_bart)
+rmse_train["bart"] <- 
+  sqrt(mean( (tmp_bart[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["bart"] <- 
+  sqrt(mean( (tmp_bart[test_vertices] - mu[test_vertices])^2 ))
+timing["bart"] <- tmp_time
+```
+
+``` r
+tmp_dbart <- matrix(nrow = n, ncol = 4)
+tmp_time <- 0
+for(cix in 1:4){
+  dbart_time <-
+    system.time(
+      dbart_fit <- dbarts::bart(x.train = train_model_mat,
+                                y.train = train_data[,"Y"],
+                                x.test = test_model_mat,
+                                ndpost = 1000, nskip = 1000, keeptrees = TRUE))
+  
+  tmp_dbart[,cix] <- dbart_fit$yhat.test.mean
+  tmp_time <- tmp_time + dbart_time["elapsed"]
+}
+tmp_dbart <- rowMeans(tmp_dbart)
+rmse_train["dbart"] <- 
+  sqrt(mean( (tmp_dbart[train_vertices] - mu[train_vertices])^2 ))
+rmse_test["dbart"] <- 
+  sqrt(mean( (tmp_dbart[test_vertices] - mu[test_vertices])^2 ))
+timing["dbart"] <- tmp_time
 ```
 
 ## Results
@@ -177,55 +285,89 @@ print("RMSE over training vertices:")
 print(round(rmse_train, digits = 3))
 print("RMSE over held-out vertices:")
 print(round(rmse_test, digits = 3))
+print("Time to run 4 chains:")
+print(round(timing, digits = 2))
 ```
 
     ## [1] "RMSE over training vertices:"
-    ## flexBART     BART 
-    ##    0.322    0.435 
+    ## noadj   gs1   gs2   gs3   gs4 dbart  bart 
+    ## 0.332 0.382 0.307 0.309 0.305 0.437 0.436 
     ## [1] "RMSE over held-out vertices:"
-    ## flexBART     BART 
-    ##    1.772    4.753
+    ## noadj   gs1   gs2   gs3   gs4 dbart  bart 
+    ## 5.022 3.872 1.898 1.413 1.848 4.753 4.756 
+    ## [1] "Time to run 4 chains:"
+    ##  noadj    gs1    gs2    gs3    gs4  dbart   bart 
+    ##   9.16  73.14  90.75 248.59 113.24   5.94  48.15
 
 To get a better idea of the differences, we can plot the estimated
-![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")’s
-from both implementation.
+$\mu_{i}$’s from each fitted model. First, we create appropriate igraph
+objects, re-scale the fitted values to \[0,1\], and assign each vertex
+colors.
 
 ``` r
-mu_lim <- c(-1,1) * max(abs(c(flex_fit$yhat.test.mean, bart_fit$yhat.test.mean, mu)))
-g_flex <- g
-g_bart <- g
+mu_lim <- 
+  c(-1,1) * 
+  max(abs(c(mu, fit_noadj$yhat.test.mean, 
+            fit_gs1$yhat.test.mean, fit_gs2$yhat.test.mean,
+            fit_gs3$yhat.test.mean, fit_gs4$yhat.test.mean,
+            tmp_bart, tmp_dbart)))
 g_heldout <- g
+g_noadj <- g
+g_gs1 <- g
+g_gs2 <- g
+g_gs3 <- g
+g_gs4 <- g
+g_bart <- g
+g_dbart <- g
 
 scaled_mu <- scales::rescale(mu, to = c(0,1), from = mu_lim)
-scaled_flex <- scales::rescale(flex_fit$yhat.test.mean, to = c(0,1), from = mu_lim)
-scaled_bart <- scales::rescale(bart_fit$yhat.test.mean, to = c(0,1), from = mu_lim)
+scaled_noadj <-
+  scales::rescale(fit_noadj$yhat.test.mean, to = c(0,1), from = mu_lim)
+scaled_gs1 <- 
+  scales::rescale(fit_gs1$yhat.test.mean, to = c(0,1), from = mu_lim)
+scaled_gs2 <- 
+  scales::rescale(fit_gs2$yhat.test.mean, to = c(0,1), from = mu_lim)
+scaled_gs3 <- 
+  scales::rescale(fit_gs3$yhat.test.mean, to = c(0,1), from = mu_lim)
+scaled_gs4 <- 
+  scales::rescale(fit_gs4$yhat.test.mean, to = c(0,1), from = mu_lim)
+
+scaled_bart <- scales::rescale(tmp_bart, to = c(0,1), from = mu_lim)
+scaled_dbart <- scales::rescale(tmp_dbart, to = c(0,1), from = mu_lim)
 
 V(g)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
-V(g_flex)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_flex)/255)
+V(g_heldout)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_mu)/255)
+V(g_heldout)$color[test_vertices] <- my_colors[1]
+V(g_noadj)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_noadj)/255)
+V(g_gs1)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_gs1)/255)
+V(g_gs2)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_gs2)/255)
+V(g_gs3)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_gs3)/255)
+V(g_gs4)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_gs4)/255)
 V(g_bart)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_bart)/255)
+V(g_dbart)$color <- rgb(colorRamp(col_list, bias = 1)(scaled_dbart)/255)
+```
 
-V(g_heldout)$color <- rep(my_colors[1], times = n)
-V(g_heldout)$color[test_vertices] <- my_colors[5]
-
-par(mar = c(1,1,1,1), mgp = c(1.8, 0.5, 0), mfrow = c(2,2))
-plot(g, layout= layout_on_grid, vertex.label = NA, main = "True signal")
-plot(g_heldout, layout = layout_on_grid, vertex.label = NA,main = "Train/Test split")
-
-plot(g_flex, layout = layout_on_grid, vertex.label = NA,main = "flexBART")
-plot(g_bart, layout = layout_on_grid, vertex.label = NA,main = "BART")
+``` r
+par(mar = c(1,1,1,1), mgp = c(1.8, 0.5, 0), mfrow = c(3,3))
+plot(g, layout = layout_on_grid, vertex.label = NA, main = "Truth")
+plot(g_heldout, layout = layout_on_grid, vertex.label = NA, main = "Train/Test Split")
+plot(g_noadj, layout = layout_on_grid, vertex.label = NA,main = "noadj")
+plot(g_gs1, layout = layout_on_grid, vertex.label = NA,main = "gs1")
+plot(g_gs2, layout = layout_on_grid, vertex.label = NA,main = "gs2")
+plot(g_gs3, layout = layout_on_grid, vertex.label = NA,main = "gs3")
+plot(g_gs4, layout = layout_on_grid, vertex.label = NA,main = "gs4")
+plot(g_bart, layout = layout_on_grid, vertex.label = NA,main = "bart")
+plot(g_dbart, layout = layout_on_grid, vertex.label = NA,main = "dbart")
 ```
 
 <img src="grid_constant_files/figure-gfm/plot_posterior_means-1.png" style="display: block; margin: auto;" />
 
 We see that on the training vertices, BART can get pretty accurate
-estimates of
-![\mu.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu. "\mu.")
-However, because BART does not know how to leverage the adjacency
-information, it is forced to make the same prediction at each of the
-heldout vertices. Specifically, at the heldout vertices, BART predicts
-![\mu\_{i}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cmu_%7Bi%7D "\mu_{i}")
-to be about equal to the grand mean of the data
-![\overline{y}.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Coverline%7By%7D. "\overline{y}.")
+estimates of $\mu.$ However, because BART does not know how to leverage
+the adjacency information, it is forced to make the same prediction at
+each of the heldout vertices. Specifically, at the heldout vertices,
+BART predicts $\mu_{i}$ to be about equal to the grand mean of the data
+$\overline{y}.$
 
 In contrast, **flexBART** is able to leverage the adjacency information
 and make much more accurate predictions at the heldout vertices.

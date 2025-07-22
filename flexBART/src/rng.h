@@ -20,6 +20,8 @@ public:
   double gumbel();
   double normal(double mu = 0.0, double sd = 1.0);
   double gamma(double shape, double scale);
+  double laplace(double mu, double b);
+  double cauchy(double loc, double scale);
   double chi_square(double df);
   
   double beta(double a1, double a2);
