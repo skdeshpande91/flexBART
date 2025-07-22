@@ -11,6 +11,7 @@ In addition to the flexible priors for categorical decision rules introduced in 
 
 It is highly recommended that you install R version 4.0.0 or later before installing **flexBART**.
 Before installing **flexBART**, ensure that you have set up an appropriate C++ toolchain for your system.
+
   * For macOS: we recommend using the [macrtools](https://github.com/coatless-mac/macrtools) package
   * For Windows: we recommend using Rtools, which can be downloaded [here](https://cran.r-project.org/bin/windows/Rtools/). Please make sure you download the version of Rtools that corresponds to your R version (e.g., RTools45 for R version 4.5.x) 
   * For Linux: we recommend following [these instructions](https://github.com/stan-dev/rstan/wiki/Configuring-C-Toolchain-for-Linux) from the Stan development team.
@@ -29,9 +30,11 @@ flexBART(formula = Y ~ bart(.), train_data = train_data)
 ```
 
 **flexBART** also supports fitting VCBART models of the form
-```math
+
+$$
 Y = \beta_{0}(X) + \beta_{1}(X)Z_{1} + \cdots + \beta_{R}Z_{R} + \sigma \epsilon; \epsilon \sim \mathcal{N}(0,1),
-```
+$$
+
 where each coefficient function $\beta_{r}(X)$ is approximated with its own tree ensemble.
 To fit such a model in **flexBART**, you can use a formula like `Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.)`, including a separate `bart()` for each coefficient function.
 

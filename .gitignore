@@ -13,3 +13,5 @@
 *Rcheck
 *.tar.gz
 docs
+inst/doc
+**/.quarto/
