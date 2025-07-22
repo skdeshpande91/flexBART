@@ -26,9 +26,9 @@ flexBART(formula = Y ~ bart(.), train_data = train_data)
 ```
 
 **flexBART** also supports fitting VCBART models of the form
-$$
+```math
 Y = \beta_{0}(X) + \beta_{1}(X)Z_{1} + \cdots + \beta_{R}Z_{R} + \sigma \epsilon; \epsilon \sim \mathcal{N}(0,1),
-$$
+```
 where each coefficient function $\beta_{r}(X)$ is approximated with its own tree ensemble.
 To fit such a model in **flexBART**, you can use a formula like `Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.)`, including a separate `bart()` for each coefficient function.
 
