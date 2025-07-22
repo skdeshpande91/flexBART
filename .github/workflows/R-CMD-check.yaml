@@ -39,11 +39,13 @@ jobs:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
+	  working-directory: flexBART/dotenv
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, local::.
+          extra-packages: any::rcmdcheck
           needs: check
+          working-directory: flexBART/dotenv
 
       - uses: r-lib/actions/check-r-package@v2
         with:
