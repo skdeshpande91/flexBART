@@ -33,8 +33,9 @@ where each coefficient function $\beta_{r}(X)$ is approximated with its own tree
 To fit such a model in **flexBART**, you can use a formula like `Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.)`, including a separate `bart()` for each coefficient function.
 
 The formula interface also provides fine control over the predictor variables used in each ensemble.
-To allow an ensemble to only split on a few variables (e.g., `X1`, `X2`, and `X3`), you would specify `bart(X1 + X2 + X3)` and to allow an ensemble to split on all variables except `X1` and `X2`, you would speify `bart(.-X1-X2)`. 
-
+To allow an ensemble to only split on a few variables (e.g., `X1`, `X2`, and `X3`), you would specify `bart(X1 + X2 + X3)` and to allow an ensemble to split on all variables except `X1` and `X2`, you would specify `bart(.-X1-X2)`. 
+Note that when it detects multiple ensembles in the formula, **flexBART** will *not* include any of the $Z_{r}$'s as splitting variables when it expands the `.`
+So, to include, say, a piecewise linear function, $X_{1} * \beta_{1}(X_{1}),$ you would need to specify `X1 * bart(X1)` in the formula argument. 
 
 By default, **flexBART** simulates 4 Markov chains with 2,000 iterations each and discards the first 1,000 iterations as "burn-in."
 The numbers of chains, burn-in iterations, and post-burn-in iterations can be adjusted using the optional arguments `n.chains`, `burn`, and `nd`. 
