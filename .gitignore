@@ -1,6 +1,7 @@
 *.DS_Store
 *.Rhistory
 *.o
+*.so
 *.RData
 *.out
 *.synctex.gz
@@ -11,3 +12,4 @@
 *.log
 *Rcheck
 *.tar.gz
+docs

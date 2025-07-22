@@ -4,7 +4,7 @@ Title: A More Flexible BART Model
 Version: 2.0.0
 Date: 2025-07-24
 Authors@R: c(
-  person(given = "Sameer K.", family = "Deshpande", role = c("aut", "cre"), email = "sameer.deshpande@wisc.edu"),
+  person(given = "Sameer K.", family = "Deshpande", role = c("aut", "cre"), email = "sameer.deshpande@wisc.edu", comment = c(ORCID = "0000-0003-4116-5533")),
   person(given = "Cecilia", family = "Balocchi", role = c("aut"), email = "cecilia.balocchi@ed.ac.uk"),
   person(given = "George", family = "Perrett", role = c("aut"), email = "gp77@nyu.edu"),
   person(given = "Jennifer", family = "Hill", role = c("aut"), email = "jennifer.hill@nyu.edu"))
@@ -13,3 +13,4 @@ License: GPL (>= 3)
 LinkingTo: Rcpp, RcppArmadillo
 Imports: Rcpp (>= 1.0.12), glmnet (>= 4.0), methods
 Suggests: igraph
+URL: https://skdeshpande91.github.io/flexBART/
