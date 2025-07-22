@@ -17,7 +17,7 @@ Before installing **flexBART**, ensure that you have set up an appropriate C++ t
 
 Once your C++ toolchain is configured, you can install **flexBART** using `devtools::install_github`:
 ```
-devtools::install_github(repo = "skdeshpande91/flexBART", subdir = "flexBART")
+devtools::install_github(repo = "skdeshpande91/flexBART")
 ```
 
 ### Basic Usage
