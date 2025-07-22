@@ -1,8 +1,5 @@
 # flexBART
 
-<!-- badges: start -->
-  [![R-CMD-check](https://github.com/skdeshpande91/flexBART/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/skdeshpande91/flexBART/actions/workflows/R-CMD-check.yaml)
-  <!-- badges: end -->
 
 Welcome to version 2.0 of the **flexBART** package!
 **flexBART** (>= 2.0.0) is a new implementation of BART and VCBART that is designed to fit flexible varying coefficient models using ensembles of binary regression trees.
