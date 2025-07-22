@@ -44,8 +44,36 @@ The numbers of chains, burn-in iterations, and post-burn-in iterations can be ad
 
 Like earlier version (e.g., 1.2.0 and earlier), the latest version of **flexBART** assumes that all continuous predictors are re-scaled to the interval [-1,1] and represents the distinct values of categorical predictors with non-negative integers.
 But unlike those earlier versions, which required users to perform such re-scaling and conversion themselves, **flexBART** now automates the pre-processing.
-The only requirement is that users store categorical predictors as `factor` variables.
 
+
+### Manually specifying cutpoints for numeric predictors
+
+Internally, **flexBART** treats all predictors passed as a `factor` or `character` as categorical.
+It then checks whether each numerical predictor is discrete (e.g., age measured in years) or whether it is continuous by looking at the number of pairwise differences between consecutive values.
+Decision rules based on numerical predictors take the form $\{X_{j} < c\}.$
+
+If **flexBART** detects that $X_{j}$ is continuous, it will rescale the supplied values of $X_{j}$ to the interval [-1,1] and allow regression trees to select the cutpoint $c$ uniformly from that interval.
+**flexBART** adds $0.1\text{sd}(X_{j})$ to the maximum value of $X_{j}$ and subtracts $0.1\text{sd}(X_{j})$ from the minimum value of $X_{j}$ before re-scaling the predictor.
+If testing data is provided, **flexBART** determines the min, max, and standard deviation of $X_{j}$ using both the training and testing data.
+
+If, on the other hand, **flexBART** determines that $X_{j}$ is discrete, it will not re-scale the predictor and instead forces regression trees to select the cutpoint $c$ from the unique values of $X_{j}.$
+If testing data is provided, **flexBART** determines the unique values of $X_{j}$ using both the training and testing data.
+
+### Priors for categorical predictors
+
+In **flexBART** ensembles, decision rules based on categorical predictors take the form $\{X_{j} \in \mathcal{C}\}$ where $\mathcal{C}$ is a random subset of the discrete values that $X_{j}$ can assume.
+This is in stark contrast to most other implementations of BART, which one-hot encode categorical predictors.
+Please see [Deshpande (2024)](https://doi.org/10.1080/10618600.2024.2431072) for arguments against the use of one-hot encoding with BART.
+
+Internally, **flexBART** determines the set of available values of $X_{j}$ by looking at the `levels()` of all predictors saved as `factor()` variables.
+As a result, **flexBART** is able to make predictions at new values of a categorical predictor not present in the training data *so long as these values are included as levels of that predictor.*
+
+
+**flexBART** also includes support for network-structured categorical predictors (e.g., spatial areas with known adjacency structure). 
+To force the "cutset" $\mathcal{C}$ to correspond to connect components of these networks, you should provide the corresponding adjacency matrices via the `adjacency_list` argument.
+This argument should be a named list with one element per network-structured predictor.
+Each element should be a binary or weighted adjacency matrix whose row and column names correspond to the levels of the predictor.
+**flexBART** implements four different priors over decision rues for network-structured predictors. See the documentation and Section 3.2 of [Deshpande (2024)](https://doi.org/10.1080/10618600.2024.2431072) for details about these priors.
 
 <!--
 The **flexBART** package overcomes this limitation by utilizing a new prior for decision trees.
