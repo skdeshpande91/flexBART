@@ -1,9 +1,5 @@
 ---
 title: "Friedman function example"
-vignette: >
-  %\VignetteIndexEntry{Friedman function example}
-  %\VignetteEngine{quarto::html}
-  %\VignetteEncoding{UTF-8}
 knitr:
   opts_chunk:
     collapse: true
