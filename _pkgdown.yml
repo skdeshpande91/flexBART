@@ -17,5 +17,3 @@ template:
   bootstrap: 5
   math-rendering: mathjax
 
-execute:
-  freeze: auto

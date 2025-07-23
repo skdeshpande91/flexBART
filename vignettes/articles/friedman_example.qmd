@@ -34,7 +34,8 @@ friedman_func <- function(df){
 Although the function depends on only 5 covariates, for this demonstration, we will create a total of $p = 50$ predictors, each drawn uniformly from the interval $[0,1].$
 We will also add $\mathcal{N}(0, 2.5^{2})$ noise 
 
-```{r generate_data}
+```{r}
+#| label: generate-data
 set.seed(214)
 n_train <- 10000
 n_test <- 1000
@@ -60,7 +61,7 @@ timing <- c("flexBART" = NA, "BART" = NA)
 By default, `flexBART::flexBART` simulates 4 Markov chains for 2000 iterations each.
 It also performs variable selection using [Linero (2018)](doi:10.1080/01621459.2016.1264957)'s sparse Dirichlet prior on splitting probabilities instead of using uniform splitting probabilities.
 ```{r}
-#| label: fit_flexBART
+#| label: fit-flexBART
 #| output: false
 #| message: false
 #| warning: false
@@ -76,7 +77,7 @@ timing["flexBART"] <- sum(flex_fit$timing) # total run time over all chains
 
 To make the comparison fair, we'll run 4 `BART::wbart` chains for the same number of iterations with the argument `sparse = TRUE`.
 ```{r}
-#| label: fit_bart
+#| label: fit-bart
 #| output: false
 #| message: false
 #| warning: false
@@ -106,7 +107,7 @@ timing["BART"] <- sum(bart_time)
 
 ```{r}
 #| label: performance
-#| 
+
 print("Training RMSE")
 print(round(rmse_train, digits = 3))
 
