@@ -17,4 +17,4 @@ Suggests:
     knitr,
     quarto
 URL: https://skdeshpande91.github.io/flexBART/
-Config/Needs/website: rmarkdown, quarto
+Config/Needs/website: rmarkdown, quarto, r-lib/pkgdown
