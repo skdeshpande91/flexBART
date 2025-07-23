@@ -1,6 +1,12 @@
+^src/*.o$
 ^\.github$
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
 ^vignettes/\.quarto$
 ^vignettes/*_files$
+^vignettes/articles$
+^vignettes/articles/\.quarto$
+^vignettes/articles/*_files$
+^README\.md$
+^NEWS\.md$
