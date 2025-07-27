@@ -68,7 +68,7 @@ timing["flexBART"] <- sum(flex_fit$timing) # total run time over all chains
 ```
 
 To make the comparison fair, we'll run 4 `BART::wbart` chains for the same number of iterations with the argument `sparse = TRUE`.
-```{r fit-bart, results='hide'}
+```{r fit-bart, results='hide', cache=TRUE}
 bart_time <- rep(NA, times = 4)
 bart_train <- rep(0, times = n_train)
 bart_test <- rep(0, times = n_test)
