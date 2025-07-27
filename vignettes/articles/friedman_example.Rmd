@@ -1,18 +1,19 @@
 ---
 title: "Friedman function example"
-knitr:
-  opts_chunk:
-    collapse: true
-    comment: '#>'
 ---
 
-## Overview
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
 
 We will demonstrate the basic functionality of **flexBART** using a slightly modified version of the [Friedman function](https://www.sfu.ca/~ssurjano/fried.html), which is often used to check and benchmark BART implementations.
 
 We begin by defining the Friedman function.
-```{r}
-#| label: define_friedman
+```{r, define_friedman}
 friedman_func <- function(df){
   if(!all(abs(df[,1:5]-0.5) <= 1)){
     stop("all entries in the first 5 columns of df must be between 0 and 1")
@@ -30,11 +31,10 @@ friedman_func <- function(df){
 Although the function depends on only 5 covariates, for this demonstration, we will create a total of $p = 50$ predictors, each drawn uniformly from the interval $[0,1].$
 We will also add $\mathcal{N}(0, 2.5^{2})$ noise 
 
-```{r}
-#| label: generate-data
-set.seed(214)
+```{r generate-data}
+set.seed(724)
 n_train <- 10000
-n_test <- 1000
+n_test <- 5000
 p_cont <- 50
 sigma <- 2.5
 
@@ -56,11 +56,7 @@ timing <- c("flexBART" = NA, "BART" = NA)
 
 By default, `flexBART::flexBART` simulates 4 Markov chains for 2000 iterations each.
 It also performs variable selection using [Linero (2018)](doi:10.1080/01621459.2016.1264957)'s sparse Dirichlet prior on splitting probabilities instead of using uniform splitting probabilities.
-```{r}
-#| label: fit-flexBART
-#| output: false
-#| message: false
-#| warning: false
+```{r fit-flexBART, results='hide'}
 flex_fit <-
   flexBART::flexBART(formula = Y~bart(.),
                      train_data = train_data,
@@ -72,11 +68,7 @@ timing["flexBART"] <- sum(flex_fit$timing) # total run time over all chains
 ```
 
 To make the comparison fair, we'll run 4 `BART::wbart` chains for the same number of iterations with the argument `sparse = TRUE`.
-```{r}
-#| label: fit-bart
-#| output: false
-#| message: false
-#| warning: false
+```{r fit-bart, results='hide'}
 bart_time <- rep(NA, times = 4)
 bart_train <- rep(0, times = n_train)
 bart_test <- rep(0, times = n_test)
@@ -100,10 +92,16 @@ rmse_test["BART"] <- sqrt(mean( (mu_test - bart_test)^2 ))
 timing["BART"] <- sum(bart_time)
 ```
 
+Besides the handling of categorical covariates, there are some important implementation differences between **BART** and **flexBART**.
+First, **BART** creates a grid of 100 potential cutpoints (this is controlled by the `numcut` argument of `BART::wbart()`) for each continuous predictor
+**flexBART**, by contrast, draws cutpoints uniformly from the interval of available values. 
+Second, **BART** initializes the residual standard deviation $\sigma$ based on an estimated linear model (see [here](https://github.com/cran/BART/blob/master/R/wbart.R#L95-L101)).
+**flexBART** instead uses the root mean square of the residuals from a cross-validated LASSO fit. 
+Because of these differences, we would not expect to obtain identical results from **flexxBART** and **BART**.
+Nevertheless, at least for these data, the two implementations display similar in-sample and out-of-sample predictive performance.
+We see, additionally, that **flexBART** is much faster than **BART**.
 
-```{r}
-#| label: performance
-
+```{r performance}
 print("Training RMSE")
 print(round(rmse_train, digits = 3))
 
@@ -114,5 +112,3 @@ print("Timing (seconds):")
 print(round(timing, digits = 3))
 
 ```
-
-The slight difference in predictive performance is likely due to differences in how **flexBART** and **BART** initialize the residual variance $\sigma^{2}.$

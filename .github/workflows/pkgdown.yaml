@@ -32,9 +32,8 @@ jobs:
           use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2
-      #https://github.com/ethanbass/quartoArticleError/blob/master/.github/workflows/pkgdown.yaml
         with:
-          extra-packages: github::r-lib/pkgdown, local::.
+          extra-packages: any::pkgdown, local::.
           needs: website
 
       - name: Build site
