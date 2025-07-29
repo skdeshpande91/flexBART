@@ -134,8 +134,10 @@ validate_flexBART_data_info <- function(dinfo)
   if(!identical(sort(names(x_uncl)), sort(exp_names))){
     stop("[validate_flexBART_data_info]: dinfo does not have valid names")
   }
+  # Eventually we should check things like
   # check that length(cont_names) == p_cont
   # check that length(cat_names) == p_cat
   # check that cat_mapping_list has exactly p_cat elements
+  # But this is not urgent
 }
 
