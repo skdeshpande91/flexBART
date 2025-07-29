@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="index.html">flexBART</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,6 +51,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/skdeshpande91/flexBART" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -61,7 +62,7 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="flexbart">flexBART<a class="anchor" aria-label="anchor" href="#flexbart"></a>
 </h1></div>
-<p><!-- badges: start --> <a href="https://github.com/skdeshpande91/flexBART/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/skdeshpande91/flexBART/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <!-- badges: end --></p>
+<p><!-- badges: start --> <a href="https://github.com/skdeshpande91/flexBART/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/skdeshpande91/flexBART/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://CRAN.R-project.org/package=flexBART" class="external-link"><img src="https://www.r-pkg.org/badges/version/flexBART" alt="CRAN status"></a> <!-- badges: end --></p>
 <p>Welcome to version 2.0 of the <strong>flexBART</strong> package! <strong>flexBART</strong> (&gt;= 2.0.0) is a new implementation of BART and VCBART that is designed to fit flexible varying coefficient models using ensembles of binary regression trees. In addition to the flexible priors for categorical decision rules introduced in earlier versions, this new version introduces a formula interface and implements a lot of data pre-processing that (hopefully) makes it easier than ever fit BART models.</p>
 <div class="section level2">
 <h2 id="installation--basic-usage">Installation &amp; Basic Usage<a class="anchor" aria-label="anchor" href="#installation--basic-usage"></a>
@@ -140,7 +141,14 @@ In the code, we represent the partition as a `std::map<int,std::vector<int>>` wh
 </div>
 </div>
 </div>
-  </main><aside class="col-md-3"><div class="license">
+  </main><aside class="col-md-3"><div class="links">
+<h2 data-toc-skip>Links</h2>
+<ul class="list-unstyled">
+<li><a href="https://github.com/skdeshpande91/flexBART" class="external-link">Browse source code</a></li>
+</ul>
+</div>
+
+<div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
 <li>GPL (&gt;= 3)</li>
