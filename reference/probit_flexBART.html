@@ -58,7 +58,7 @@
 <dl><dt id="arg-formula">formula<a class="anchor" aria-label="anchor" href="#arg-formula"></a></dt>
 <dd><p>an object of class <code><a href="https://rdrr.io/r/stats/formula.html" class="external-link">formula</a></code> (or one that can be coerced to the class):
   a symbolic description of the model to be fitted.
-  The details of model specification are given under 'Details'</p></dd>
+  The details of model specification are given under 'Details'.</p></dd>
 
   <dt id="arg-train-data">train_data<a class="anchor" aria-label="anchor" href="#arg-train-data"></a></dt>
 <dd><p>an object of class <code>data.frame</code> containing data used to train the model.
@@ -112,17 +112,17 @@ Use the <code>mu0_vec</code> and <code>tau_vec</code> arguments to set other hyp
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of <code>class</code> “flexBART” (essentially a list) containing</p>
 <dl><dt>dinfo</dt>
-<dd><p>Essentially a list containing information about the input and output variables used for <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
+<dd><p>Essentially a list containing information about the input and output variables. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>trees</dt>
 <dd><p>A list (or length <code>nd</code>) of character vectors (of lenght <code>M</code>) containing textual representations of the regression trees.
-These strings are parsed by <code>predict_flexBART</code> to reconstruct the C++ representations of the sampled trees.</p></dd>
+These strings are parsed by <code><a href="predict.flexBART.html">predict.flexBART</a></code> to reconstruct the C++ representations of the sampled trees.</p></dd>
 
 <dt>scaling_info</dt>
-<dd><p>Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale <code><a href="predict.flexBART.html">predict.flexBART</a></code></p></dd>
+<dd><p>Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>M</dt>
-<dd><p>A copy of the argument <code>M_vec</code>, which is used for <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
+<dd><p>A copy of the argument <code>M_vec</code>. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>cov_ensm</dt>
 <dd><p>An \(p \times R\) binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \(\beta_{r}(X)\) can split on \(X_{j}\).</p></dd>
@@ -131,19 +131,24 @@ These strings are parsed by <code>predict_flexBART</code> to reconstruct the C++
 <dd><p>Logical with value <code>TRUE</code>. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>prob.train.mean</dt>
-<dd><p>Vector containing posterior mean of P(y = 1 | x) for the training data.</p></dd>
+<dd><p>Vector containing posterior mean of \(P(Y=1 \vert X = x)\) for the training data.</p></dd>
 
 <dt>prob.train</dt>
-<dd><p>Matrix with <code>nd</code> rows and <code>length(Y_train)</code> columns containing posterior samples of P(y = 1 | x) for the training data Each row corresponds to a posterior sample of the regression functionand each column corresponds to a training observation. Only returned if <code>save_samples == TRUE</code>.</p></dd>
+<dd><p>Matrix with <code>nd</code> rows and <code>length(Y_train)</code> columns containing posterior samples of \(P(Y=1 \vert X = x)\) for the training data.
+Each row corresponds to a posterior sample of the regression functionand each column corresponds to a training observation.
+Only returned if <code>save_samples = TRUE</code>.</p></dd>
 
 <dt>prob.test.mean</dt>
-<dd><p>Vector containing posterior mean of P(y = 1 | x) on testing data, if testing data is provided.</p></dd>
+<dd><p>Vector containing posterior mean of \(P(Y=1 \vert X = x)\) on testing data, if testing data is provided.</p></dd>
 
 <dt>prob.test</dt>
-<dd><p>If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of <code>yhat_train</code>. Only returned if testing data is passed and <code>save_samples == TRUE</code>.</p></dd>
+<dd><p>If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data.
+Structure is similar to that of <code>prob.train</code>.
+Only returned if testing data is passed and <code>save_samples = TRUE</code>.</p></dd>
 
 <dt>varcounts</dt>
-<dd><p>Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of <code>prob_train</code>, with rows corresponding to MCMC iteration and columns corresponding to predictors</p></dd>
+<dd><p>Matrix that counts the number of times a variable was used in a decision rule in each MCMC iteration.
+Structure is similar to that of <code>prob.train</code>, with rows corresponding to MCMC iteration and columns corresponding to predictors</p></dd>
 
 <dt>timing</dt>
 <dd><p>Vector of runtimes for each chain</p></dd>

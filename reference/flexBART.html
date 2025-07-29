@@ -79,7 +79,7 @@ Trees directly partition the levels of categorical predictors, enabling much mor
 
   <dt id="arg-initialize-sigma">initialize_sigma<a class="anchor" aria-label="anchor" href="#arg-initialize-sigma"></a></dt>
 <dd><p>a logical value for whether the residual variance
-  should be initialized using regularized regression (<code>inform_sigm=TRUE</code>) or not (<code>inform_sigma=FALSE</code>). Default is <code>TRUE</code>.</p></dd>
+  should be initialized using regularized regression (<code>inform_sigma = TRUE</code>) or not (<code>inform_sigma = FALSE</code>). Default is <code>TRUE</code>.</p></dd>
 
   <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments for setting prior hyperparameters and MCMC control parameters (e.g., number of chains, iterations, etc.).
@@ -97,6 +97,19 @@ That is, for all p-vectors X, the relationships between Z and Y is linear but th
 <code>flexBART</code> approximates each function \(\beta_{r}(X)\) with its own regression tree ensemble and returns posterior samples of all R tree ensembles.</p>
 <div class="section">
 <h3 id="the-formula-argument">The formula argument<a class="anchor" aria-label="anchor" href="#the-formula-argument"></a></h3>
+
+
+<p>Models for <code>flexBART</code> are specified symbolically.
+A simple, single ensemble model has the form <code>response ~ bart(terms)</code> where <code>response</code> is the numeric response and <code>terms</code> specifies the predictors on which the trees in the ensemble
+are allowed to split.
+A <code>terms</code> specification of the form <code>.</code> will include all variables <em>except</em> <code>response</code> that are found in <code>train_data</code>.
+A <code>terms</code> specification of the form <code>x1 + x2</code> will include just the variables <code>x1</code> and <code>x2</code>.
+A <code>terms</code> specification of the form <code>.-x1-x2</code> will include all variales found in <code>train_data</code> <em>except</em> <code>response</code>, <code>x1</code>, and <code>x2</code>.
+Of course, you can specify more than two variables in <code>terms</code>.</p>
+<p>To fit a varying coefficient model, the formula argument takes the form <code>response ~ z1 * bart(terms1) + z2 * bart(terms2) + ...</code> where <code>response</code> is the numeric response and
+<code>z1</code>, <code>z2</code>, etc. are numeric covariates and <code>terms1</code>, <code>terms2</code> are like above.
+For varying coefficient models, if you specify terms using <code>.</code>, then the trees are not able to split on the covariates used to weight the different ensembles (i.e., <code>z1</code>,<code>z2</code>, ...).
+To allow trees to split on these outer weighting covariates, you must manually specify them inside of the terms.</p>
 <p><strong>You must include the string “bart” on the right-hand side of the supplied formula.
 Expressions like <code>Y~Z1+Z2</code> or <code>Y~Z1 + Z2*bart(.)</code> will not work.</strong></p>
 </div>
@@ -118,25 +131,25 @@ This argument should be a <strong>named</strong> <code>list</code> with one elem
 Each element should be a binary or weighted adjacency matrix whose row and column names correspond to the unique values of the corresponding predictor.
 <code>flexBART</code> implements four different priors over decision rules for network-structured predictors.
 Each prior recursively partitions the network into two pieces.
-The argument <code>graph_cut_type</code> determines which prior is implemented:</p><ul><li><p><code>graph_cut_type=1</code>: A deterministic partition is formed based on the signs of entries in the second smallest eigenvector of the unweighted graph Laplacian (i.e., the Fiedler vector).</p></li>
-<li><p><code>graph_cut_type=2</code>: The partition is formed by first drawing a uniformly random spanning tree using Wilson's algorithm and then deleting a uniformly random edge from the tree.</p></li>
-<li><p><code>graph_cut_type=3</code>: Like <code>graph_split_type=2</code> but the probability of deleting a spanning tree edge is proportional to the size of the smallest cluster that results from that deletion.</p></li>
-<li><p><code>graph_cut_type=4</code>: The partition is formed by first drawing a uniformly random spanning tree and computing the Fiedler vector of the spanning tree</p></li>
-</ul><p>If unspecific, the default value of <code>graph_cut_type</code> is set to 2.
+The argument <code>graph_cut_type</code> determines which prior is implemented:</p><ul><li><p><code>graph_cut_type = 1</code>: A deterministic partition is formed based on the signs of entries in the second smallest eigenvector of the unweighted graph Laplacian (i.e., the Fiedler vector).</p></li>
+<li><p><code>graph_cut_type = 2</code>: The partition is formed by first drawing a uniformly random spanning tree using Wilson's algorithm and then deleting a uniformly random edge from the tree.</p></li>
+<li><p><code>graph_cut_type = 3</code>: Like <code>graph_split_type=2</code> but the probability of deleting a spanning tree edge is proportional to the size of the smallest cluster that results from that deletion.</p></li>
+<li><p><code>graph_cut_type = 4</code>: The partition is formed by first drawing a uniformly random spanning tree and computing the Fiedler vector of the spanning tree</p></li>
+</ul><p>If unspecified, the default value of <code>graph_cut_type</code> is 2.
 If no adjacency information is provided, <code>graph_cut_type</code> is ignored.</p>
 </div>
 <div class="section">
 <h4 id="decision-rules-for-nested-predictors">Decision rules for nested predictors<a class="anchor" aria-label="anchor" href="#decision-rules-for-nested-predictors"></a></h4>
 <p><code>flexBART</code> can automatically detect potential nesting structure between categorical predictors.
 It implements eight different decision rule priors, which are based on the arguments <code>nest_v</code>, <code>nest_v_option</code>, and <code>nest_c</code>.</p>
-<p>The Boolean argument <code>nest_v</code> indicates whether nesting structure is used when selecting the splitting variable (<code>nest_v=TRUE</code>) or not (<code>nest_v=FALSE</code>).
+<p>The Boolean argument <code>nest_v</code> indicates whether nesting structure is used when selecting the splitting variable (<code>nest_v = TRUE</code>) or not (<code>nest_v = FALSE</code>).
 When <code>nest_v = TRUE</code>, the argument <code>nest_v_option</code> determines how <code>flexBART</code> selects a splitting variable.
 Say it is trying to draw a decision rule at a tree node whose ancestor splits on a nested predictor \(X_v\).
-In addition to predictors that are not (i) nested within \(X_v\) and (ii) nest \(X_v\), <code>flexBART</code> places positive probability on splitting on</p><ul><li><p><code>nest_v_option=0</code>: \(X_v\) but not variables that are nested within or that nest \(X_v\).</p></li>
-<li><p><code>nest_v_option=1</code>: \(X_v\) and variables that are nested within \(X_v\) but not variables that nest \(X_v\).</p></li>
-<li><p><code>nest_v_option=2</code>: \(X_v\) and variables that nest \(X_v\) but not variables nested within \(X_v\).</p></li>
-<li><p><code>nest_v_option=3</code>: \(X_v\) and variables that nest or are nested within \(X_v\).</p></li>
-</ul><p>The Boolean argument <code>nest_c</code> contrils whether nesting structure is used when selecting the set of levels assigned to the left branch of
+In addition to predictors that are not (i) nested within \(X_v\) and (ii) nest \(X_v\), <code>flexBART</code> places positive probability on splitting on</p><ul><li><p><code>nest_v_option = 0</code>: \(X_v\) but not variables that are nested within or that nest \(X_v\).</p></li>
+<li><p><code>nest_v_option = 1</code>: \(X_v\) and variables that are nested within \(X_v\) but not variables that nest \(X_v\).</p></li>
+<li><p><code>nest_v_option = 2</code>: \(X_v\) and variables that nest \(X_v\) but not variables nested within \(X_v\).</p></li>
+<li><p><code>nest_v_option = 3</code>: \(X_v\) and variables that nest or are nested within \(X_v\).</p></li>
+</ul><p>The Boolean argument <code>nest_c</code> controls whether nesting structure is used when selecting the set of levels assigned to the left branch of
 a decision node (<code>nest_c = TRUE</code>) or not (<code>nest_c = FALSE</code>).
 Default is <code>nest_c = TRUE</code>.
 This argument is ignored when nested structure is not detected.</p>
@@ -146,7 +159,7 @@ This argument is ignored when nested structure is not detected.</p>
 
 <div class="section">
 <h3 id="prior-specification-and-standardization">Prior specification and standardization<a class="anchor" aria-label="anchor" href="#prior-specification-and-standardization"></a></h3>
-<p>Internally <code>flexBART</code> re-centers and re-scales the outcome Y to have mean 0 and standard deviation 1.
+<p>Internally, <code>flexBART</code> re-centers and re-scales the outcome Y to have mean 0 and standard deviation 1.
 Except when \(Z_{r}\) is all ones (i.e., for intercept terms), <code>flexBART</code> also standardizes the covariates to have mean 0 and standard deviation 1.
 It then places independent BART priors on the coefficients for the varying coefficient model on the standardized scale.</p>
 <div class="section">
@@ -156,23 +169,23 @@ Under this prior, the tree structure is generated using a branching process in w
 the probability that a node at depth \(d\) is non-terminal is \(\alpha \times (1 + d)^{-\beta}\).
 Then, decision rules are drawn sequentially from the root down to each leaf.
 Finally, independent \(N(\mu_0, \tau^2)\) priors are specified for the outputs in each leaf.</p>
-<p>Users can specify prior hyperparameters for each ensemble using the following optional arguments (passed through ...):</p><ul><li><p>M_vec: Vector of number of trees used in each ensemble. Default is 50 trees for each ensemble.</p></li>
-<li><p>alpha_vec: Vector of base parameter \(\alpha\) in branching process tree prior for each ensemble. Default is 0.95 for all ensembles.</p></li>
-<li><p>beta_vec: Vector of power parameter \(\beta\) in the branching process tree prior for each ensemble. Default is 2 for all ensembles.</p></li>
-<li><p>mu0_vec: Vector of prior means \(\mu_0\) at each leaf in each ensemble. Default is 0 for all ensembles.</p></li>
-<li><p>tau_vec: Vector of prior standard deviations in each leaf \(\tau\) in each ensemble.
-  When there is only one ensemble, default value is <code>y_range/(2 * 2 * sqrt($M_vec[1])</code> where <code>y_range</code> is the range of the standardized response.
+<p>Users can specify prior hyperparameters for each ensemble using the following optional arguments (passed through ...):</p><ul><li><p><code>M_vec</code>: Vector of number of trees used in each ensemble. Default is 50 trees for each ensemble.</p></li>
+<li><p><code>alpha_vec</code>: Vector of base parameter \(\alpha\) in branching process tree prior for each ensemble. Default is 0.95 for all ensembles.</p></li>
+<li><p><code>beta_vec</code>: Vector of power parameter \(\beta\) in the branching process tree prior for each ensemble. Default is 2 for all ensembles.</p></li>
+<li><p><code>mu0_vec</code>: Vector of prior means \(\mu_0\) at each leaf in each ensemble. Default is 0 for all ensembles.</p></li>
+<li><p><code>tau_vec</code>: Vector of prior standard deviations in each leaf \(\tau\) in each ensemble.
+  When there is only one ensemble, default value is <code>y_range/(2 * 2 * sqrt(M_vec[1])</code> where <code>y_range</code> is the range of the standardized response.
   When there are multiple ensembles, default is <code>1/sqrt(M_vec)</code> for all ensembles.</p></li>
 </ul></div>
 <div class="section">
 <h4 id="prior-for-the-residual-variance">Prior for the residual variance<a class="anchor" aria-label="anchor" href="#prior-for-the-residual-variance"></a></h4>
-<p><code>flexBART</code> specifies an \(Inv. Gamma(\nu/2, \nu*\lambda/2)\) prior on the residual variance <em>on the standardized outcome scale</em>.
+<p><code>flexBART</code> specifies an \(Inv.\ Gamma(\nu/2, \nu*\lambda/2)\) prior on the residual variance <em>on the standardized outcome scale</em>.
 The prior is calibrated so that this prior places a user-specified amount of prior probability on the event that this residual variance
 is less than some initial over-estimate \(\hat{\sigma}^2_0\).
 Users can control this prior with the optional arguments</p><ul><li><p><code>nu</code>: Degrees of freedom \(\nu\) for inverse gamma prior on the residual variance (on the standardized scale). Default is 3.</p></li>
 <li><p><code>sigest</code>: Initial over-estimate of the residual variance (\(\hat{\sigma}^2_0\)).
-  If not provided, it is set based on a fitted l1-regularized regression model (if <code>initialize_sigma=TRUE</code>) or
-  to the variance of the outcome variable (if <code>initialize_sigma=FALSE</code>).</p></li>
+  If not provided, it is set based on a fitted l1-regularized regression model (if <code>initialize_sigma = TRUE</code>) or
+  to the variance of the outcome variable (if <code>initialize_sigma = FALSE</code>).</p></li>
 <li><p><code>sigquant</code>: Amount of prior probability on the event that residual variance is less than initial over-estimate
   (i.e., \(\sigma &lt; \hat{\sigma}_0\)). Default is 0.9.</p></li>
 </ul></div>
@@ -196,7 +209,7 @@ can be supplied using the <code>...</code>:</p>
 <li><p><code>save_samples</code>: Logical, indicating whether to return all posterior samples.
   Default is <code>TRUE</code>. If <code>FALSE</code>, only posterior mean is returned.
   <strong>If you have more than 10,000 observations in the training data,
-  it is recommended to set <code>save_samples=FALSE</code></strong>.</p></li>
+  it is recommended to set <code>save_samples = FALSE</code></strong>.</p></li>
 <li><p><code>save_trees</code>: Logical, indicating whether or not to save a text-based representation of the tree samples.
   This representation can be passed to <code><a href="predict.flexBART.html">predict.flexBART</a></code> to make predictions at a later time.
   Default is <code>TRUE</code>.</p></li>
@@ -210,16 +223,16 @@ can be supplied using the <code>...</code>:</p>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of <code>class</code> “flexBART” (essentially a list) containing</p>
 <dl><dt>dinfo</dt>
-<dd><p>Essentially a list containing information about the input and output variables used for <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
+<dd><p>Essentially a list containing information about the input and output variables. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>trees</dt>
-<dd><p>A list (or length <code>nd</code>) of character vectors (of lenght <code>M</code>) containing textual representations of the regression trees. These strings are parsed by <code>predict_flexBART</code> to reconstruct the C++ representations of the sampled trees.</p></dd>
+<dd><p>A list (or length <code>nd</code>) of character vectors (of lenght <code>M</code>) containing textual representations of the regression trees. These strings are parsed by <code><a href="predict.flexBART.html">predict.flexBART</a></code> to reconstruct the C++ representations of the sampled trees.</p></dd>
 
 <dt>scaling_info</dt>
-<dd><p>Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale <code><a href="predict.flexBART.html">predict.flexBART</a></code></p></dd>
+<dd><p>Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>M</dt>
-<dd><p>A copy of the argument <code>M_vec</code>, which is used for <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
+<dd><p>A copy of the argument <code>M_vec</code>. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>cov_ensm</dt>
 <dd><p>An \(p \times R\) binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \(\beta_{r}(X)\) can split on \(X_{j}\).</p></dd>
@@ -231,27 +244,27 @@ can be supplied using the <code>...</code>:</p>
 <dd><p>Vector containing posterior mean of evaluations of regression function on training data.</p></dd>
 
 <dt>yhat.train</dt>
-<dd><p>Matrix with <code>nd</code> rows and <code>length(Y_train)</code> columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if <code>save_samples == TRUE</code>.</p></dd>
+<dd><p>Matrix with <code>nd</code> rows and <code>length(Y_train)</code> columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if <code>save_samples = TRUE</code>.</p></dd>
 
 <dt>yhat.test.mean</dt>
 <dd><p>Vector containing posterior mean of evaluations of regression function on testing data, if testing data is provided.</p></dd>
 
 <dt>yhat.test</dt>
-<dd><p>If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of <code>yhat_train</code>. Only returned if testing data is passed and <code>save_samples == TRUE</code>.</p></dd>
+<dd><p>If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of <code>yhat_train</code>. Only returned if testing data is passed and <code>save_samples = TRUE</code>.</p></dd>
 
 <dt>beta.train.mean</dt>
 <dd><p>Matrix containing posterior mean of evaluations of coefficient function on training data.</p></dd>
 
 <dt>beta.train</dt>
 <dd><p>Array of posterior samples of slope function evaluations.
-Only returned if <code>save_samples == TRUE</code>.</p></dd>
+Only returned if <code>save_samples = TRUE</code>.</p></dd>
 
 <dt>beta.test.mean</dt>
 <dd><p>Matrix containing posterior mean of evaluations of coefficient function on test data.</p></dd>
 
 <dt>beta.test</dt>
 <dd><p>Array of posterior samples of slope function evaluations on test data.
-Only returned if <code>save_samples == TRUE</code>.</p></dd>
+Only returned if <code>save_samples = TRUE</code>.</p></dd>
 
 <dt>sigma</dt>
 <dd><p>Vector containing post-burnin samples of the residual standard deviation.</p></dd>
@@ -260,7 +273,7 @@ Only returned if <code>save_samples == TRUE</code>.</p></dd>
 <dd><p>Array that counts the number of times a variable was used in a decision rule in each MCMC iteration. Structure is similar to that of <code>beta_train</code>, with rows corresponding to MCMC iteration and columns corresponding to predictors, with continuous predictors listed first followed by categorical predictors</p></dd>
 
 <dt>timing</dt>
-<dd><p>Vector of runtimes for each chain</p></dd>
+<dd><p>Vector of runtimes for each chain.</p></dd>
 
 </dl></div>
     <div class="section level2">
