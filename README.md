@@ -1,6 +1,7 @@
 # flexBART
   <!-- badges: start -->
   [![R-CMD-check](https://github.com/skdeshpande91/flexBART/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/skdeshpande91/flexBART/actions/workflows/R-CMD-check.yaml)
+  [![CRAN status](https://www.r-pkg.org/badges/version/flexBART)](https://CRAN.R-project.org/package=flexBART)
   <!-- badges: end -->
 
 Welcome to version 2.0 of the **flexBART** package!
