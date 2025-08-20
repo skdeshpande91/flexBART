@@ -37,6 +37,10 @@ rescale_beta <- function(beta_input, y_mean, y_sd, z_mean, z_sd, z_col_id) {
     .Call('_flexBART_single_fit', PACKAGE = 'flexBART', Y_train, cov_ensm, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M, alpha, beta, mu0, tau, sigest, nu, lambda, nd, burn, thin, save_samples, save_trees, verbose, print_every)
 }
 
+._single_fit_logit <- function(Y_train, cov_ensm, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M, alpha, beta, mu0, tau, nd, burn, thin, save_samples, save_trees, verbose, print_every) {
+    .Call('_flexBART_single_logit_fit', PACKAGE = 'flexBART', Y_train, cov_ensm, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M, alpha, beta, mu0, tau, nd, burn, thin, save_samples, save_trees, verbose, print_every)
+}
+
 ._single_fit_probit <- function(Y_train, cov_ensm, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M, alpha, beta, mu0, tau, nd, burn, thin, save_samples, save_trees, verbose, print_every) {
     .Call('_flexBART_single_probit_fit', PACKAGE = 'flexBART', Y_train, cov_ensm, tX_cont_train, tX_cat_train, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M, alpha, beta, mu0, tau, nd, burn, thin, save_samples, save_trees, verbose, print_every)
 }
