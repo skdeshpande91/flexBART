@@ -11,7 +11,6 @@
 #include <cstddef>
 #include <vector>
 
-
 typedef std::vector<int>::iterator int_it; // iterator type for vectors of ints
 typedef std::vector<double>::iterator dbl_it; // iterator type vectors of doubles
 typedef std::set<int>::iterator set_it; // iterator type for sets of integers
@@ -33,9 +32,6 @@ struct edge{
 typedef std::map<int, std::vector<edge> > edge_map;
 typedef std::vector<edge>::iterator edge_vec_it;
 typedef std::map<int, std::vector<edge>>::iterator edge_map_it;
-
-
-
 
 class rule_t{
 public:
@@ -67,6 +63,11 @@ public:
   }
 };
 
+struct laplace_approx{
+  double m;
+  double v;
+  laplace_approx(){m = 0.0; v = 1.0;}
+};
 
 struct jump_post{
   double P;
@@ -100,6 +101,7 @@ public:
   double* x_cont; // pointer to the matrix of continuous predictors
   int* x_cat; // pointer to matrix of categorical predictors (levels coded as integers, beginning with 0)
   double* rp; // partial residual;
+  double* lambda; // partial tree fit for generalized model
   data_info(){n = 0; R = 0; p_cont = 0; p_cat = 0; p = 0; z = 0; x_cont = 0; x_cat = 0;rp = 0;}
 };
 
@@ -154,7 +156,6 @@ public:
   std::vector<double>* theta; // prob. that we pick one variable out of p_cont + p_cat
   std::vector<int> *var_count; // counts how many times we split on a single variable
   int* rule_count; // how many total rules are there in the ensemble
-
   
   // constructor
   tree_prior_info(){
