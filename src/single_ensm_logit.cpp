@@ -302,11 +302,11 @@ Rcpp::List single_logit_fit(Rcpp::IntegerVector Y_train,
         
         if(save_samples){
           for(int i = 0; i < n_test; ++i){
-            fit_test(sample_index, i) = R::pnorm(tmp_fit_test[i], 0.0, 1.0, true, false);
-            fit_test_mean(i) += R::pnorm(tmp_fit_test[i], 0.0, 1.0, true, false);
+            fit_test(sample_index, i) = gmp->inv_link(tmp_fit_test[i]);
+            fit_test_mean(i) += gmp->inv_link(tmp_fit_test[i]);
           }
         } else{
-          for(int i = 0; i < n_test; ++i) fit_test_mean(i) += R::pnorm(tmp_fit_test[i], 0.0, 1.0, true, false);
+          for(int i = 0; i < n_test; ++i) fit_test_mean(i) += gmp->inv_link(tmp_fit_test[i]);
         } // closes if/else checking whether we're saving samples or just posterior mean
       } // close if checking that there are test set observations
     } // closes if that checks whether we should save anything in this iteration
