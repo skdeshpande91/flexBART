@@ -159,7 +159,7 @@ void compute_ss_grow_gen_multi(suff_stat &ss, std::map<int, laplace_approx> &lap
       double xx_cont = 0.0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        z = di.z[r + i*di.R];
+        z = di.z[r + i * di.R];
         xx_cont = *(di.x_cont + i*di.p_cont + rule.v_aa);
         if(xx_cont < rule.c){
           nxl_it->second.push_back(i);
@@ -499,106 +499,125 @@ void grow_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std:
   }
 }
 
-// void grow_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, jump_post> &jp_map, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
-// {
-//   std::vector<int> bn_nid_vec; // vector to hold the id's of all of the bottom nodes in the tree
-//   for(suff_stat_it ss_it = ss_train.begin(); ss_it != ss_train.end(); ++ss_it) bn_nid_vec.push_back(ss_it->first);
+void grow_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, jump_post> &jp_map, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
+{
+  std::vector<int> bn_nid_vec; // vector to hold the id's of all of the bottom nodes in the tree
+  for(suff_stat_it ss_it = ss_train.begin(); ss_it != ss_train.end(); ++ss_it) bn_nid_vec.push_back(ss_it->first);
   
-//   int ni = floor(gen.uniform() * bn_nid_vec.size()); // randomly pick the index of the node from which we will grow
-//   int nx_nid = bn_nid_vec[ni]; // id of the node from which we are growing.
-//   tree::tree_p nx = t.get_ptr(nx_nid); // pointer to the node from which we are growing. refer to this node as nx
-//   tree::tree_cp nxp = nx->get_p(); // pointer to parent of nx in tree
+  int ni = floor(gen.uniform() * bn_nid_vec.size()); // randomly pick the index of the node from which we will grow
+  int nx_nid = bn_nid_vec[ni]; // id of the node from which we are growing.
+  tree::tree_p nx = t.get_ptr(nx_nid); // pointer to the node from which we are growing. refer to this node as nx
+  tree::tree_cp nxp = nx->get_p(); // pointer to parent of nx in tree
   
-//   // we are ready to compute the log transition ratio:
-//   double q_grow_old = tree_pi.prob_b; // transition prob. of growing old tree into new tree
-//   double q_prune_new = 1.0 - tree_pi.prob_b; // transition prob. of pruning new true into old tree
+  // we are ready to compute the log transition ratio:
+  double q_grow_old = tree_pi.prob_b; // transition prob. of growing old tree into new tree
+  double q_prune_new = 1.0 - tree_pi.prob_b; // transition prob. of pruning new true into old tree
   
-//   int nleaf_old = t.get_nbots(); // number of leaves in old tree
-//   int nnog_old = t.get_nnogs(); // number of nodes in old tree with no grandchildren (nog node)
-//   int nnog_new = nnog_old; // number of nodes in new tree with no grandchildren
+  int nleaf_old = t.get_nbots(); // number of leaves in old tree
+  int nnog_old = t.get_nnogs(); // number of nodes in old tree with no grandchildren (nog node)
+  int nnog_new = nnog_old; // number of nodes in new tree with no grandchildren
   
-//   if(nxp == 0){
-//     // nx is the root node so transition always propose growing it
-//     q_grow_old = 1.0; //
-//     nnog_new = 1; // nx has no grandchildren in new tree
-//   } else if(nxp->is_nog()){
-//     // parent of nx has no grandchildren in old tree
-//     // in new tree nxp has grandchildren but nx does not
-//     // hence nnog_new = nnod_old
-//     nnog_new = nnog_old;
-//   } else{
-//     // parent of nx has grandchildren in old tree and will continue to do so in new tree
-//     // nx has no grandchildren in the new tree
-//     nnog_new = 1 + nnog_old;
-//   }
+  if(nxp == 0){
+    // nx is the root node so transition always propose growing it
+    q_grow_old = 1.0; //
+    nnog_new = 1; // nx has no grandchildren in new tree
+  } else if(nxp->is_nog()){
+    // parent of nx has no grandchildren in old tree
+    // in new tree nxp has grandchildren but nx does not
+    // hence nnog_new = nnod_old
+    nnog_new = nnog_old;
+  } else{
+    // parent of nx has grandchildren in old tree and will continue to do so in new tree
+    // nx has no grandchildren in the new tree
+    nnog_new = 1 + nnog_old;
+  }
   
-//   // numerator of transition ratio: P(uniformly pick a nog node in new tree) * P(decide to prune new tree)
-//   // denominator of transition rate: P(uniformly pick a leaf node in old tree) * P(decide to grow old tree)
+  // numerator of transition ratio: P(uniformly pick a nog node in new tree) * P(decide to prune new tree)
+  // denominator of transition rate: P(uniformly pick a leaf node in old tree) * P(decide to grow old tree)
   
-//   double log_trans_ratio = (log(q_prune_new) - log( (double) nnog_new)) - (log(q_grow_old) - log( (double) nleaf_old));
+  double log_trans_ratio = (log(q_prune_new) - log( (double) nnog_new)) - (log(q_grow_old) - log( (double) nleaf_old));
 
-//   // for prior ratio:
-//   // numerator: p(grow at nx) * (1 - p(grow at nxl)) * (1 - p(grow at nxr))
-//   // denominator: (1 - p(grow at nx))
-//   // we need 1 - P(grow at nx in old tree) = 1 - alpha(1 + depth(nx))^(-beta) in denominator
-//   // we need P(grow at nx in new) (1 - P(grow at nxl in Tnew))(1 - P(grow at nxr in Tnew)) in numerator
+  // for prior ratio:
+  // numerator: p(grow at nx) * (1 - p(grow at nxl)) * (1 - p(grow at nxr))
+  // denominator: (1 - p(grow at nx))
+  // we need 1 - P(grow at nx in old tree) = 1 - alpha(1 + depth(nx))^(-beta) in denominator
+  // we need P(grow at nx in new) (1 - P(grow at nxl in Tnew))(1 - P(grow at nxr in Tnew)) in numerator
   
-//   double p_grow_nx = tree_pi.alpha/pow(1.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nx
-//   double p_grow_nxl = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nxl. remember depth of nxl is 1 + depth of nx
-//   double p_grow_nxr = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nxr. remember depth of nxr is 1 + depth of nx
+  double p_grow_nx = tree_pi.alpha/pow(1.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nx
+  double p_grow_nxl = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nxl. remember depth of nxl is 1 + depth of nx
+  double p_grow_nxr = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nxr. remember depth of nxr is 1 + depth of nx
   
-//   double log_prior_ratio = log(p_grow_nx) + log(1.0 - p_grow_nxl) + log(1.0 - p_grow_nxr) - log(1.0 - p_grow_nx);
+  double log_prior_ratio = log(p_grow_nx) + log(1.0 - p_grow_nxl) + log(1.0 - p_grow_nxr) - log(1.0 - p_grow_nx);
   
-//   // we now are ready to draw a decision rule
-//   rule_t rule;
-//   draw_rule(rule, t, nx_nid, di_train, tree_pi, gen); // draw the actual rule
+  // we now are ready to draw a decision rule
+  rule_t rule;
+  draw_rule(rule, t, nx_nid, di_train, tree_pi, gen); // draw the actual rule
 
-//   compute_ss_grow_multi(ss_train, jp_map, nx_nid, rule, r, sigma, di_train, tree_pi);
-//   int nxl_nid = 2*nx_nid;
-//   int nxr_nid = 2*nx_nid+1;
-  
-//   double nxl_lil = compute_lil(nxl_nid, jp_map); // nxl's contribution to log marginal likelihood of new tree
-//   double nxr_lil = compute_lil(nxr_nid, jp_map); // nxr's contribution to log marginal likelihood of new tree
-//   double nx_lil = compute_lil(nx_nid, jp_map); // nx's contribution to log marginal likelihood of old tree
+  compute_ss_grow_gen_multi(ss_train, lap_map, nx_nid, rule, r, sigma, di_train, tree_pi);
+  int nxl_nid = 2*nx_nid;
+  int nxr_nid = 2*nx_nid+1;
 
-//   // likelihood ratio also needs to include some constants from prior on jumps condition on tree
-//   // in GROW move, the new tree has one extra leaf so there's an additional factor of tau^(-1) * exp(-mu0^2/2tau^2) from leaf prior in the numerator
-//   double log_like_ratio = nxl_lil + nxr_lil - nx_lil - 1.0 * log(tree_pi.tau) - 0.5 * pow(tree_pi.mu0/tree_pi.tau,2.0);
-  
-//   double log_alpha = log_like_ratio + log_prior_ratio + log_trans_ratio; // MH ratio
-//   if(log_alpha > 0) log_alpha = 0.0; // if MH ratio greater than 1, we set it equal to 1. this is almost never needed
-//   if(gen.log_uniform() <= log_alpha){
-//     // accept the transition!
+  // draw leaf parameters
+  std::map<int, laplace_approx>::iterator lap_nxl_it = lap_map.find(nxl_nid); // points to nxl's element in lap_map
+  double ml = lap_nxl_it->second.m;
+  double vl = lap_nxl_it->second.v;
+  double prop_mul = gen.normal(ml, vl);
+
+  std::map<int, laplace_approx>::iterator lap_nxr_it = lap_map.find(nxr_nid); // points to nxr's element in lap_map
+  double mr = lap_nxr_it->second.m;
+  double vr = lap_nxr_it->second.v;
+  double prop_mur = gen.normal(mr, vr);
+
+  // compute log marginal likelihood of new tree
+  double mup = t.get_ptr(nx_nid)->get_mu();
+  double F_nx = gmp.compute_node_lik_multi(mup, nx_nid, ss_train, r, di_train, tree_pi);
+  double F_nxl = gmp.compute_node_lik_multi(prop_mul, nxl_nid, ss_train, r, di_train, tree_pi);
+  double F_nxr = gmp.compute_node_lik_multi(prop_mur, nxr_nid, ss_train, r, di_train, tree_pi);
+  double log_lik_tree_ratio = F_nxl + F_nxr - F_nx;
+
+  // compute leaf prior ratio
+  std::map<int, laplace_approx>::iterator lap_nx_it = lap_map.find(nx_nid); // points to nx's element in lap_map
+  double mp = lap_nx_it->second.m;
+  double vp = lap_nx_it->second.v;  
+  double g_nx = - 0.5 * log(2 * M_PI) - log(vp) - 0.5 * pow(((mup - mp) / vp), 2.0);
+  double g_nxl = - 0.5 * log(2 * M_PI) - log(vl) - 0.5 * pow(((prop_mul - ml) / vl), 2.0);
+  double g_nxr = - 0.5 * log(2 * M_PI) - log(vr) - 0.5 * pow(((prop_mur - mr) / vr), 2.0);
+  double log_lik_leaf_ratio = g_nx - g_nxl - g_nxr;
+
+  double log_alpha = log_lik_tree_ratio + log_prior_ratio + log_trans_ratio + log_lik_leaf_ratio; // MH ratio
+  if(log_alpha > 0) log_alpha = 0.0; // if MH ratio greater than 1, we set it equal to 1. this is almost never needed
+  if(gen.log_uniform() <= log_alpha){
+    // accept the transition!
     
-//     ++(*tree_pi.rule_count); // increment running count of total number of splitting rules
-//     if(!rule.is_cat){
-//       ++(tree_pi.var_count->at(rule.v_aa)); // in our bookkeeping, continuous variables come first
-//     } else {
-//       int v_raw = rule.v_cat + di_train.p_cont;
-//       ++(tree_pi.var_count->at(v_raw));
-//     }
+    ++(*tree_pi.rule_count); // increment running count of total number of splitting rules
+    if(!rule.is_cat){
+      ++(tree_pi.var_count->at(rule.v_aa)); // in our bookkeeping, continuous variables come first
+    } else {
+      int v_raw = rule.v_cat + di_train.p_cont;
+      ++(tree_pi.var_count->at(v_raw));
+    }
     
-//     // we are accepting the grow move, so we can eliminate the element for nx in ss_train
-//     ss_train.erase(nx_nid);
-//     jp_map.erase(nx_nid);
+    // we are accepting the grow move, so we can eliminate the element for nx in ss_train
+    ss_train.erase(nx_nid);
+    lap_map.erase(nx_nid);
     
-//     if(di_test.n > 0){
-//       compute_ss_grow(ss_test, nx_nid, rule, di_test);
-//       // at this point, ss_test has elements for nx, nxl, and nxr
-//       ss_test.erase(nx_nid);
-//     }
-//     t.birth(nx_nid, rule); // actually do the birth
-//     accept = 1;
-//   } else{
-//     accept = 0;
-//     // we did not accept the move and so we need to remove element for nxl and nxr from ss_train
-//     ss_train.erase(nxl_nid);
-//     ss_train.erase(nxr_nid);
+    if(di_test.n > 0){
+      compute_ss_grow(ss_test, nx_nid, rule, di_test);
+      // at this point, ss_test has elements for nx, nxl, and nxr
+      ss_test.erase(nx_nid);
+    }
+    t.birth(nx_nid, rule); // actually do the birth
+    accept = 1;
+  } else{
+    accept = 0;
+    // we did not accept the move and so we need to remove element for nxl and nxr from ss_train
+    ss_train.erase(nxl_nid);
+    ss_train.erase(nxr_nid);
     
-//     jp_map.erase(nxl_nid);
-//     jp_map.erase(nxr_nid);
-//   }
-// }
+    lap_map.erase(nxl_nid);
+    lap_map.erase(nxr_nid);
+  }
+}
 
 void prune_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
 {
@@ -812,20 +831,20 @@ void update_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, in
 }
 
 
-// void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
-// {
-//   accept = 0; // initialize indicator of MH acceptance to 0 (reject)
-//   double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
-//   if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
+void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
+{
+  accept = 0; // initialize indicator of MH acceptance to 0 (reject)
+  double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
+  if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
   
-//   std::map<int, jump_post> jp_map;
-//   compute_jump_posterior_multi(jp_map, ss_train, r, sigma, di_train, tree_pi, gmp);
+  std::map<int, laplace_approx> lap_map;
+  compute_laplace_approx_multi(lap_map, ss_train, r, di_train, tree_pi, gmp);
   
   
-//   if(gen.uniform() < PBx) grow_tree_multi(t, ss_train, ss_test, jp_map, accept, r, sigma, di_train, di_test, tree_pi, gmp, gen);
-//   else prune_tree_multi(t, ss_train, ss_test, jp_map, accept, r, sigma, di_train, di_test, tree_pi, gmp, gen);
+  if(gen.uniform() < PBx) grow_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, sigma, di_train, di_test, tree_pi, gmp, gen);
+  else prune_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, sigma, di_train, di_test, tree_pi, gmp, gen);
   
-//   draw_mu(t, jp_map, gen);
+  draw_mu_gen(t, lap_map, gen);
 
-// }
+}
 
