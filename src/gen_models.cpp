@@ -116,7 +116,7 @@ double GenModel::proposal_var_multi(double m, const int &nid, suff_stat &ss, int
     if(ss_it->second.size() > 0){
       for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
         double z = di.z[r + (*it) * di.R];
-        double theta = di.lambda[*it] + z * m;
+        double theta = inv_link(di.lambda[*it] + z * m);
         I += pow(z, 2.0) * jacobian(theta);
       }
     }
