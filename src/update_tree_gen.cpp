@@ -411,7 +411,7 @@ void grow_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std:
   }
 }
 
-void grow_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, jump_post> &jp_map, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
+void grow_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
 {
   std::vector<int> bn_nid_vec; // vector to hold the id's of all of the bottom nodes in the tree
   for(suff_stat_it ss_it = ss_train.begin(); ss_it != ss_train.end(); ++ss_it) bn_nid_vec.push_back(ss_it->first);
@@ -465,7 +465,7 @@ void grow_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::
   rule_t rule;
   draw_rule(rule, t, nx_nid, di_train, tree_pi, gen); // draw the actual rule
 
-  compute_ss_grow_gen_multi(ss_train, lap_map, nx_nid, rule, r, sigma, di_train, tree_pi);
+  compute_ss_grow_gen_multi(ss_train, lap_map, nx_nid, rule, r, di_train, tree_pi, gmp);
   int nxl_nid = 2*nx_nid;
   int nxr_nid = 2*nx_nid+1;
 
@@ -639,7 +639,7 @@ void prune_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std
 }
 
 
-void prune_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+void prune_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
 {
   // first we randomly select a nog node
   tree::npv nogs_vec; // vector of pointers to nodes w/ no grandchildren
@@ -676,7 +676,7 @@ void prune_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std:
   int nx_nid = nx->get_nid(); // id for nx
   int nxl_nid = nxl->get_nid(); // id for nxl
   int nxr_nid = nxr->get_nid(); // id for nxr
-  compute_ss_prune_multi(ss_train, lap_map, nxl_nid, nxr_nid, nx_nid, r, di_train, tree_pi);
+  compute_ss_prune_gen_multi(ss_train, lap_map, nxl_nid, nxr_nid, nx_nid, r, di_train, tree_pi, gmp);
 
   // draw leaf parameters
   std::map<int, laplace_approx>::iterator lap_nx_it = lap_map.find(nx_nid); // points to nx's element in lap_map
@@ -764,7 +764,7 @@ void update_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, in
 }
 
 
-void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
+void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
 {
   accept = 0; // initialize indicator of MH acceptance to 0 (reject)
   double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
@@ -774,8 +774,8 @@ void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, int
   compute_laplace_approx_multi(lap_map, ss_train, r, di_train, tree_pi, gmp);
   
   
-  if(gen.uniform() < PBx) grow_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, sigma, di_train, di_test, tree_pi, gmp, gen);
-  else prune_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, sigma, di_train, di_test, tree_pi, gmp, gen);
+  if(gen.uniform() < PBx) grow_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, di_train, di_test, tree_pi, gmp, gen);
+  else prune_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, di_train, di_test, tree_pi, gmp, gen);
   
   draw_mu_gen(t, lap_map, gen);
 

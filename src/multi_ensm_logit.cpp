@@ -190,7 +190,7 @@ Rcpp::List multi_logit_fit(Rcpp::IntegerVector Y_train,
 
   // BEGIN: update lambda and residuals
   for(int r = 0; r < R; ++r){
-    for(int m = 0; m < M; ++m){
+    for(int m = 0; m < M_vec[r]; ++m){
         tree_traversal(ss_train_vec[r][m], t_vec[r][m], di_train); // populates ss_train_vec[m]
         for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
           tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
@@ -198,7 +198,7 @@ Rcpp::List multi_logit_fit(Rcpp::IntegerVector Y_train,
             for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += di_train.z[r + (*it) * R] * tmp_mu;
           } // closes if checking leaf is non-empty and updating initial value of residual
         }
-        if(n_test > 0) tree_traversal(ss_test_vec[m], t_vec[m], di_test);
+        if(n_test > 0) tree_traversal(ss_test_vec[r][m], t_vec[r][m], di_test);
       } // closes loop over trees in ensemble
       for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
   } // closes loop over ensembles
@@ -260,7 +260,7 @@ Rcpp::List multi_logit_fit(Rcpp::IntegerVector Y_train,
         // END: remove fit of m-th tree
         
         // BEGIN: update the tree
-        update_tree_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
+        update_tree_gen_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, di_train, di_test, tree_pi_vec[r], *gmp, gen); // update the tree
         total_accept += accept;
         // END: update the tree
         // BEGIN: restore fit of m-th tree
@@ -308,7 +308,7 @@ Rcpp::List multi_logit_fit(Rcpp::IntegerVector Y_train,
         // END: remove fit of m-th tree
         
         // BEGIN: update the tree
-        update_tree_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
+        update_tree_gen_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, di_train, di_test, tree_pi_vec[r], *gmp, gen); // update the tree
         total_accept += accept;
         // END: update the tree
         // BEGIN: restore fit of m-th tree
