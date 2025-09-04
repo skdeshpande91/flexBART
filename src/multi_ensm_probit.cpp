@@ -206,7 +206,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
         tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
         if(l_it->second.size() > 0){
           for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-            residual[r + (*it) * R] -= di_train.z[r + (*it)*R] * tmp_mu; // remove initial fit of each tree from residual
+            residual[*it] -= di_train.z[r + (*it)*R] * tmp_mu; // remove initial fit of each tree from residual
           }
         } // closes if checking leaf has training obs
       } // closes loop over leafs
