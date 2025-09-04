@@ -179,53 +179,53 @@ logit_flexBART <- function(formula,
                                verbose = control$verbose, 
                                print_every = control$print_every))
     } 
-    # else{
-    #   tmp_time <-
-    #     system.time(
-    #       fit <-
-    #         ._multi_fit_logit(Y_train = tmp_data$training_info$std_Y,
-    #                           cov_ensm = cov_ensm,
-    #                           tZ_train = t(tmp_data$training_info$Z),
-    #                           tX_cont_train = t(tmp_data$training_info$X_cont),
-    #                           tX_cat_train = t(tmp_data$training_info$X_cat),
-    #                           tZ_test = t(tmp_data$testing_info$Z),
-    #                           tX_cont_test = t(tmp_data$testing_info$X_cont),
-    #                           tX_cat_test = t(tmp_data$testing_info$X_cat),
-    #                           cutpoints_list = tmp_data$training_info$cutpoints,
-    #                           cat_levels_list = tmp_data$training_info$cat_levels_list,
-    #                           edge_mat_list = tmp_data$training_info$edge_mat_list,
-    #                           nest_list = tmp_data$training_info$nest_list,
-    #                           graph_cut_type = hyper$graph_cut_type,
-    #                           sparse = hyper$sparse, 
-    #                           a_u = hyper$a_u, 
-    #                           b_u = hyper$b_u,
-    #                           nest_v = hyper$nest_v,
-    #                           nest_v_option = hyper$nest_v_option,
-    #                           nest_c = hyper$nest_c,
-    #                           M_vec = hyper$M_vec,
-    #                           alpha_vec = hyper$alpha_vec,
-    #                           beta_vec = hyper$beta_vec,
-    #                           mu0_vec = hyper$mu0_vec,
-    #                           tau_vec = hyper$tau_vec,
-    #                           nd = control$nd, 
-    #                           burn = control$burn, 
-    #                           thin = control$thin,
-    #                           save_samples = control$save_samples, 
-    #                           save_trees = control$save_trees,
-    #                           verbose = control$verbose, 
-    #                           print_every = control$print_every))
-    #   raw_beta_train_mean <- raw_beta_train_mean + fit$beta_train_mean/control$n.chains
-    #   if(n_test > 0){
-    #     raw_beta_test_mean <- 
-    #       raw_beta_test_mean + fit$beta_test_mean/control$n.chains
-    #   }
-    #   if(control$save_samples){
-    #     raw_beta_train_samples[start_index:end_index,,] <- fit$beta_train
-    #     if(n_test > 0){
-    #       raw_beta_test_samples[start_index:end_index,,] <- fit$beta_test
-    #     }
-    #   }
-    # } # closes if/else checking how many ensembles there are
+    else{
+      tmp_time <-
+        system.time(
+          fit <-
+            ._multi_fit_logit(Y_train = tmp_data$training_info$std_Y,
+                              cov_ensm = cov_ensm,
+                              tZ_train = t(tmp_data$training_info$Z),
+                              tX_cont_train = t(tmp_data$training_info$X_cont),
+                              tX_cat_train = t(tmp_data$training_info$X_cat),
+                              tZ_test = t(tmp_data$testing_info$Z),
+                              tX_cont_test = t(tmp_data$testing_info$X_cont),
+                              tX_cat_test = t(tmp_data$testing_info$X_cat),
+                              cutpoints_list = tmp_data$training_info$cutpoints,
+                              cat_levels_list = tmp_data$training_info$cat_levels_list,
+                              edge_mat_list = tmp_data$training_info$edge_mat_list,
+                              nest_list = tmp_data$training_info$nest_list,
+                              graph_cut_type = hyper$graph_cut_type,
+                              sparse = hyper$sparse, 
+                              a_u = hyper$a_u, 
+                              b_u = hyper$b_u,
+                              nest_v = hyper$nest_v,
+                              nest_v_option = hyper$nest_v_option,
+                              nest_c = hyper$nest_c,
+                              M_vec = hyper$M_vec,
+                              alpha_vec = hyper$alpha_vec,
+                              beta_vec = hyper$beta_vec,
+                              mu0_vec = hyper$mu0_vec,
+                              tau_vec = hyper$tau_vec,
+                              nd = control$nd, 
+                              burn = control$burn, 
+                              thin = control$thin,
+                              save_samples = control$save_samples, 
+                              save_trees = control$save_trees,
+                              verbose = control$verbose, 
+                              print_every = control$print_every))
+      raw_beta_train_mean <- raw_beta_train_mean + fit$beta_train_mean/control$n.chains
+      if(n_test > 0){
+        raw_beta_test_mean <- 
+          raw_beta_test_mean + fit$beta_test_mean/control$n.chains
+      }
+      if(control$save_samples){
+        raw_beta_train_samples[start_index:end_index,,] <- fit$beta_train
+        if(n_test > 0){
+          raw_beta_test_samples[start_index:end_index,,] <- fit$beta_test
+        }
+      }
+    } # closes if/else checking how many ensembles there are
 
     prob_train_mean <- 
       prob_train_mean + 
