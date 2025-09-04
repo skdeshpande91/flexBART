@@ -49,14 +49,14 @@ double GenModel::proposal_mu_single(double &m, const int &nid, suff_stat &ss, da
   return m;
 }
 
-double GenModel::proposal_mu_multi(double &m, const int &nid, suff_stat &ss, int &ensm_id, data_info &di, tree_prior_info &tree_pi)
+double GenModel::proposal_mu_multi(double &m, const int &nid, suff_stat &ss, int &r, data_info &di, tree_prior_info &tree_pi)
 {
   // NOTE: assuming data_info has pointers to covariate matrix Z, current fit of parameters lambda, and response vector Y_train
   // pass m & v at desired initial values
   // j in the index of the covariate we are updating
   // function updates m & v for proposal distribution
   int iter = 0;
-  int max_iter = 1000;
+  int max_iter = 100;
   double U = 1;
   double I = 1;
 
@@ -70,14 +70,14 @@ double GenModel::proposal_mu_multi(double &m, const int &nid, suff_stat &ss, int
       if(ss_it->second.size() > 0){
         for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
           double y = inv_link(di.lambda[*it]) + di.rp[*it];
-          double z = di.z[ensm_id+(*it)*di.R];
+          double z = di.z[r + (*it) * di.R];
           double theta = inv_link(di.lambda[*it] + z * m);
           U += z * score(y, theta);
-          I -= pow(z, 2.0) * jacobian(theta);
+          I += pow(z, 2.0) * jacobian(theta);
         }
       }
     }
-    U -= (m - tree_pi.mu0) / pow(tree_pi.tau, 2);
+    U -= m / pow(tree_pi.tau, 2);
     I += pow(tree_pi.tau, -2);
     m += U/I; 
     iter += 1;
@@ -107,7 +107,7 @@ double GenModel::proposal_var_single(double m, const int &nid, suff_stat &ss, da
   return pow(I, -0.5);
 }
 
-double GenModel::proposal_var_multi(double m, const int &nid, suff_stat &ss, int &ensm_id, data_info &di, tree_prior_info &tree_pi)
+double GenModel::proposal_var_multi(double m, const int &nid, suff_stat &ss, int &r, data_info &di, tree_prior_info &tree_pi)
 {
   // compute v from m
   double I = pow(tree_pi.tau, -2);
@@ -115,29 +115,14 @@ double GenModel::proposal_var_multi(double m, const int &nid, suff_stat &ss, int
     suff_stat_it ss_it = ss.find(nid);
     if(ss_it->second.size() > 0){
       for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-        double z = di.z[ensm_id+(*it)*di.R];
+        double z = di.z[r + (*it) * di.R];
         double theta = di.lambda[*it] + z * m;
-        I -= pow(z, 2.0) * jacobian(theta);
+        I += pow(z, 2.0) * jacobian(theta);
       }
     }
   }
   return pow(I, -0.5);
 }
-
-// double GenModel::compute_log_lik(double &mu, suff_stat &ss, int &nid, data_info &di, tree_prior_info &tree_pi)
-// {
-//   double theta = 0.0;
-//   if(ss.count(nid) == 1){
-//     suff_stat_it ss_it = ss.find(nid);
-//     if(ss_it->second.size() > 0){
-//       for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-//         double y = inv_link(di.lambda[*it]) + di.rp[*it];
-//         theta += log_lik(y, di.lambda[*it] + mu);
-//       }
-//     }
-//   }
-//   return theta;
-// }
 
 double GenModel::compute_node_lik_single(double &mu, const int &nid, suff_stat &ss, data_info &di, tree_prior_info &tree_pi)
 {
@@ -148,6 +133,22 @@ double GenModel::compute_node_lik_single(double &mu, const int &nid, suff_stat &
       for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
         double y = inv_link(di.lambda[*it]) + di.rp[*it];
         theta += log_lik(y, di.lambda[*it] + mu);
+      }
+    }
+  }
+  return theta - 0.5 * log(2 * M_PI) - log(tree_pi.tau) - 0.5 * pow(((mu - tree_pi.mu0) / tree_pi.tau), 2.0);
+}
+
+double GenModel::compute_node_lik_multi(double &mu, const int &nid, suff_stat &ss, int &r, data_info &di, tree_prior_info &tree_pi)
+{
+  double theta = 0.0;
+  if(ss.count(nid) == 1){
+    suff_stat_it ss_it = ss.find(nid);
+    if(ss_it->second.size() > 0){
+      for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
+        double y = inv_link(di.lambda[*it]) + di.rp[*it];
+        double z = di.z[r + (*it) * di.R];
+        theta += log_lik(y, di.lambda[*it] + z * mu);
       }
     }
   }

@@ -15,10 +15,10 @@ class GenModel {
   
         double proposal_mu_single(double &m, const int &nid, suff_stat &ss, data_info &di, tree_prior_info &tree_pi);
         double proposal_var_single(double m, const int &nid, suff_stat &ss, data_info &di, tree_prior_info &tree_pi);
-        double proposal_mu_multi(double &m, const int &nid, suff_stat &ss, int &ensm_id, data_info &di, tree_prior_info &tree_pi);
-        double proposal_var_multi(double m, const int &nid, suff_stat &ss, int &ensm_id, data_info &di, tree_prior_info &tree_pi);
-        // double compute_log_lik(double &mu, suff_stat &ss, int &nid, data_info &di, tree_prior_info &tree_pi);
+        double proposal_mu_multi(double &m, const int &nid, suff_stat &ss, int &r, data_info &di, tree_prior_info &tree_pi);
+        double proposal_var_multi(double m, const int &nid, suff_stat &ss, int &r, data_info &di, tree_prior_info &tree_pi);
         double compute_node_lik_single(double &mu, const int &nid, suff_stat &ss, data_info &di, tree_prior_info &tree_pi);
+        double compute_node_lik_multi(double &mu, const int &nid, suff_stat &ss, int &r, data_info &di, tree_prior_info &tree_pi);
     };
 
 class Logit : public GenModel {
