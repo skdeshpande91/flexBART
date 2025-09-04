@@ -209,73 +209,6 @@ void compute_ss_grow_gen_multi(suff_stat &ss, std::map<int, laplace_approx> &lap
   lap_nxr_it->second.v = gmp.proposal_var_multi(lap_nxr_it->second.m, nxr_nid, ss, r, di, tree_pi);
 }
 
-// // in-place modification without worrying about jump_post objects (i.e. for testing)
-// void compute_ss_grow(suff_stat &ss, int &nx_nid, rule_t &rule, data_info &di)
-// {
-//   int i ;
-//   int nxl_nid = 2*nx_nid;
-//   int nxr_nid = 2*nx_nid+1;
-  
-//   // check that our data structures have element for nx but not for nxl or nxr (the proposed children)
-//   if(ss.count(nx_nid) == 0 || ss.count(nxl_nid) == 1 || ss.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow]: something is wrong with ss_train");
-
-  
-//   // if we get to here, data structure are fine
-//   suff_stat_it nx_it = ss.find(nx_nid); // points to nx's element in ss
-  
-//   // add elements to ss and jp_map for nxl
-//   ss.insert(std::pair<int, std::vector<int>>(nxl_nid, std::vector<int>()));
-//   suff_stat_it nxl_it = ss.find(nxl_nid); // points to nxl's element in ss
-  
-//   // add elements to ss and jp_map for nxr
-//   ss.insert(std::pair<int, std::vector<int>>(nxr_nid, std::vector<int>()));
-//   suff_stat_it nxr_it = ss.find(nxr_nid); // points to nxr's element in ss
-
-//   if(nx_it->second.size() > 0){
-//     if(!rule.is_cat){
-//       double xx_cont = 0.0;
-//       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
-//         i = *it;
-//         //xx_cont = di.x_cont + i*di.p_cont;
-//         xx_cont = *(di.x_cont + i*di.p_cont + rule.v_aa);
-//         if(xx_cont < rule.c){
-//           nxl_it->second.push_back(i);
-//         } else if(xx_cont >= rule.c){
-//           nxr_it->second.push_back(i);
-//         } else{
-//           Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont << " cutpoint = " << rule.c << std::endl;
-//           Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!");
-//         }
-//       } // closes loop over observations in nx
-//     } else{
-//       int xx_cat = 0;
-//       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
-//         i = *it;
-//         xx_cat = *(di.x_cat + i*di.p_cat + rule.v_cat);
-//         int l_count = rule.l_vals.count(xx_cat);
-//         int r_count = rule.r_vals.count(xx_cat);
-//         if(l_count != r_count){
-//           if(l_count == 1){
-//             nxl_it->second.push_back(i);
-//           } else{
-//             nxr_it->second.push_back(i);
-//           }
-//         } else{
-//           Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat << std::endl;
-//           Rcpp::Rcout << "left values:";
-//           for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-//           Rcpp::Rcout << std::endl;
-          
-//           Rcpp::Rcout << "right values:";
-//           for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-//           Rcpp::Rcout << std::endl;
-          
-//           Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
-//         } // closes if/else checking whether observation i goes to nxl or nxr
-//       } // closes loop over observations in nx
-//     } // closes if/else checking whether rule is axis-aligned or categorical
-//   } // closes if checking that leaf is non-empty
-// }
 
 // in-place modification of ss and jp for prune moves
 void compute_ss_prune_gen_single(suff_stat &ss, std::map<int, laplace_approx> &lap_map, int &nxl_nid, int &nxr_nid, int &nx_nid, data_info &di, tree_prior_info &tree_pi, GenModel &gmp)
@@ -357,27 +290,6 @@ void compute_ss_prune_gen_multi(suff_stat &ss, std::map<int, laplace_approx> &la
   lap_nx_it->second.v = gmp.proposal_var_multi(lap_nx_it->second.m, nx_nid, ss, r, di, tree_pi);
 }
 
-// // in-place modification of ss without worrying about jump posterior (i.e., for test data)
-// void compute_ss_prune(suff_stat &ss, int &nxl_nid, int &nxr_nid, int &nx_nid, data_info &di)
-// {
-
-//   // check that our data structures have element for nxl and nxr but not for nx
-//   if(ss.count(nxl_nid) == 0 || ss.count(nxr_nid) == 0 || ss.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune]: something's wrong with ss_train");
-  
-//   // if we get to here, data structure are fine
-//   suff_stat_it nxl_it = ss.find(nxl_nid); // points to nxl's element in ss
-//   suff_stat_it nxr_it = ss.find(nxr_nid); // points to nxr's element in ss
-  
-//   ss.insert(std::pair<int, std::vector<int>>(nx_nid, std::vector<int>())); // add element for nx in ss
-//   suff_stat_it nx_it = ss.find(nx_nid); // points to nx's element in ss
-  
-//   if(nxl_it->second.size() > 0){
-//     for(std::vector<int>::iterator it = nxl_it->second.begin(); it != nxl_it->second.end(); ++it) nx_it->second.push_back(*it);
-//   } // closes if checking that nxl is non-empty
-//   if(nxr_it->second.size() > 0){
-//     for(std::vector<int>::iterator it = nxr_it->second.begin(); it != nxr_it->second.end(); ++it) nx_it->second.push_back(*it);
-//   } // closes if checking that nxr is non-empty
-// }
 
 void grow_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
 {
@@ -727,91 +639,112 @@ void prune_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std
 }
 
 
-// void prune_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, jump_post> &jp_map, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
-// {
-//   // first we randomly select a nog node
-//   tree::npv nogs_vec; // vector of pointers to nodes w/ no grandchildren
-//   t.get_nogs(nogs_vec);
+void prune_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, int &r, double &sigma, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
+{
+  // first we randomly select a nog node
+  tree::npv nogs_vec; // vector of pointers to nodes w/ no grandchildren
+  t.get_nogs(nogs_vec);
 
-//   int ni = floor(gen.uniform() * nogs_vec.size());
-//   tree::tree_p nx = nogs_vec[ni]; // pointer to node whose children we will prune
-//   tree::tree_p nxl = nx->get_l(); // left child that will be pruned
-//   tree::tree_p nxr = nx->get_r(); // right child that will be pruned
+  int ni = floor(gen.uniform() * nogs_vec.size());
+  tree::tree_p nx = nogs_vec[ni]; // pointer to node whose children we will prune
+  tree::tree_p nxl = nx->get_l(); // left child that will be pruned
+  tree::tree_p nxr = nx->get_r(); // right child that will be pruned
   
-//   // transition ratio stuff
-//   double q_prune_old = 1.0 - tree_pi.prob_b; // transition prob that we prune old tree
-//   double q_grow_new = tree_pi.prob_b; // transition prob that we grow new tree
-//   tree::tree_p nxp = nx->get_p(); // pointer to parent node of nx in old tree
-//   if(nxp == 0) q_grow_new = 1.0; // nx is top node so new tree is just root and we'd always propose a GROW when encountering new tree
-//   else q_grow_new = tree_pi.prob_b; // nx is not top node so  given T_new, we propose grow with prob tree_pi.pb
+  // transition ratio stuff
+  double q_prune_old = 1.0 - tree_pi.prob_b; // transition prob that we prune old tree
+  double q_grow_new = tree_pi.prob_b; // transition prob that we grow new tree
+  tree::tree_p nxp = nx->get_p(); // pointer to parent node of nx in old tree
+  if(nxp == 0) q_grow_new = 1.0; // nx is top node so new tree is just root and we'd always propose a GROW when encountering new tree
+  else q_grow_new = tree_pi.prob_b; // nx is not top node so  given T_new, we propose grow with prob tree_pi.pb
 
-//   int nleaf_new = t.get_nbots() - 1; // new tree has one less leaf node than old tree
-//   int nnog_old = t.get_nnogs(); // number of nodes with no grandchildren in old tree
+  int nleaf_new = t.get_nbots() - 1; // new tree has one less leaf node than old tree
+  int nnog_old = t.get_nnogs(); // number of nodes with no grandchildren in old tree
   
-//   // numerator of transition ratio: P(uniformly pick a leaf node in new tree) * P(decide to grow newtree)
-//   // denominator of transition ratio: P(uniformly pick a nog node in old tree) * P(decide to prune old tree)
+  // numerator of transition ratio: P(uniformly pick a leaf node in new tree) * P(decide to grow newtree)
+  // denominator of transition ratio: P(uniformly pick a nog node in old tree) * P(decide to prune old tree)
 
-//   double log_trans_ratio = (log(q_grow_new) - log(nleaf_new)) - (log(q_prune_old) - log(nnog_old));
+  double log_trans_ratio = (log(q_grow_new) - log(nleaf_new)) - (log(q_prune_old) - log(nnog_old));
 
-//   // prior ratio
-//   // numerator: we need [1 - P(grow at nx in Tnew)] = 1 - tree_pi.alpha/pow(1 + nx->get_depth(), tree_pi.beta)
-//   // denom: we need [P(grow at nx in Told)] x [1 - P(grow at nxl in Told)] x [1 - P(grow at nxr in Told)]
-//   double p_grow_nx = tree_pi.alpha/pow(1.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nx
-//   double p_grow_nxl = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nxl, left child of nx
-//   double p_grow_nxr = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree nxr, right child of nx
-//   double log_prior_ratio = log(1.0 - p_grow_nx) - (log(1.0 - p_grow_nxl) + log(1.0 - p_grow_nxr) + log(p_grow_nx));
+  // prior ratio
+  // numerator: we need [1 - P(grow at nx in Tnew)] = 1 - tree_pi.alpha/pow(1 + nx->get_depth(), tree_pi.beta)
+  // denom: we need [P(grow at nx in Told)] x [1 - P(grow at nxl in Told)] x [1 - P(grow at nxr in Told)]
+  double p_grow_nx = tree_pi.alpha/pow(1.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nx
+  double p_grow_nxl = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree at nxl, left child of nx
+  double p_grow_nxr = tree_pi.alpha/pow(2.0 + (double) nx->get_depth(), tree_pi.beta); // prior prob of growing tree nxr, right child of nx
+  double log_prior_ratio = log(1.0 - p_grow_nx) - (log(1.0 - p_grow_nxl) + log(1.0 - p_grow_nxr) + log(p_grow_nx));
   
-//   int nx_nid = nx->get_nid(); // id for nx
-//   int nxl_nid = nxl->get_nid(); // id for nxl
-//   int nxr_nid = nxr->get_nid(); // id for nxr
-//   compute_ss_prune_multi(ss_train,jp_map, nxl_nid, nxr_nid, nx_nid, r, di_train, tree_pi);
+  int nx_nid = nx->get_nid(); // id for nx
+  int nxl_nid = nxl->get_nid(); // id for nxl
+  int nxr_nid = nxr->get_nid(); // id for nxr
+  compute_ss_prune_multi(ss_train, lap_map, nxl_nid, nxr_nid, nx_nid, r, di_train, tree_pi);
+
+  // draw leaf parameters
+  std::map<int, laplace_approx>::iterator lap_nx_it = lap_map.find(nx_nid); // points to nx's element in lap_map
+  double mp = lap_nx_it->second.m;
+  double vp = lap_nx_it->second.v;
+  double prop_mup = gen.normal(mp, vp);
+
+  // compute log marginal likelihood of new tree
+  double mul = t.get_ptr(nxl_nid)->get_mu();
+  double mur = t.get_ptr(nxr_nid)->get_mu();
+
+  double F_nx = gmp.compute_node_lik_multi(prop_mup, nx_nid, ss_train, r, di_train, tree_pi);
+  double F_nxl = gmp.compute_node_lik_multi(mul, nxl_nid, ss_train, r, di_train, tree_pi);
+  double F_nxr = gmp.compute_node_lik_multi(mur, nxr_nid, ss_train, r, di_train, tree_pi);
+  double log_lik_tree_ratio = F_nx - F_nxl - F_nxr;
   
-//   double nxl_lil = compute_lil(nxl_nid, jp_map);
-//   double nxr_lil = compute_lil(nxr_nid, jp_map);
-//   double nx_lil = compute_lil(nx_nid, jp_map);
-  
-//   // old tree has one more leaf node than new tree so there is additional factor of
-//   // (tau)^(-1) * exp(-mu0^2/(2 * tau^2)) in denominator of likelihood ratio that comes from the prior on leafs
-//   double log_like_ratio = nx_lil - nxl_lil - nxr_lil + log(tree_pi.tau) + 0.5 * pow(tree_pi.mu0/tree_pi.tau,2.0);
-  
-//   double log_alpha = log_like_ratio + log_prior_ratio + log_trans_ratio;
-//   if(log_alpha > 0) log_alpha = 0; // if MH greater than we, set it equal to 1
-//   if(gen.log_uniform() <= log_alpha){
-//     // accept the proposal!
-//     accept = 1;
-//     // need to decrement several counters
-//     --(*tree_pi.rule_count);
+  // compute leaf prior ratio
+  std::map<int, laplace_approx>::iterator lap_nxl_it = lap_map.find(nxl_nid); // points to nxl's element in lap_map
+  double ml = lap_nxl_it->second.m;
+  double vl = lap_nxl_it->second.v;  
+
+  std::map<int, laplace_approx>::iterator lap_nxr_it = lap_map.find(nxr_nid); // points to nxr's element in lap_map
+  double mr = lap_nxr_it->second.m;
+  double vr = lap_nxr_it->second.v;  
+
+  double g_nx = - 0.5 * log(2 * M_PI) - log(vp) - 0.5 * pow(((prop_mup - mp) / vp), 2.0);
+  double g_nxl = - 0.5 * log(2 * M_PI) - log(vl) - 0.5 * pow(((mul - ml) / vl), 2.0);
+  double g_nxr = - 0.5 * log(2 * M_PI) - log(vr) - 0.5 * pow(((mur - mr) / vr), 2.0);
+  double log_lik_leaf_ratio = g_nxl + g_nxr - g_nx;
+
+  double log_alpha = log_lik_tree_ratio + log_prior_ratio + log_trans_ratio + log_lik_leaf_ratio;
+  if(log_alpha > 0) log_alpha = 0; // if MH greater than we, set it equal to 1
+  if(gen.log_uniform() <= log_alpha){
+    // accept the proposal!
+    accept = 1;
+    // need to decrement several counters
+    --(*tree_pi.rule_count);
     
-//     if(!nx->get_is_cat()){
-//       // we pruned away an axis-aligned or categorical rule
-//      --(tree_pi.var_count->at(nx->get_v_aa()));
-//     } else{
-//       int v_raw = di_train.p_cont + nx->get_v_cat();
-//       --(tree_pi.var_count->at(v_raw));
-//     }
+    if(!nx->get_is_cat()){
+      // we pruned away an axis-aligned or categorical rule
+     --(tree_pi.var_count->at(nx->get_v_aa()));
+    } else{
+      int v_raw = di_train.p_cont + nx->get_v_cat();
+      --(tree_pi.var_count->at(v_raw));
+    }
 
-//     // need to adjust ss
-//     // ss_train contains element for nxl and nxr and these need to be removed
-//     ss_train.erase(nxl_nid);
-//     ss_train.erase(nxr_nid);
-//     jp_map.erase(nxl_nid);
-//     jp_map.erase(nxr_nid);
+    // need to adjust ss
+    // ss_train contains element for nxl and nxr and these need to be removed
+    ss_train.erase(nxl_nid);
+    ss_train.erase(nxr_nid);
+    lap_map.erase(nxl_nid);
+    lap_map.erase(nxr_nid);
         
-//     if(di_test.n > 0){
-//       compute_ss_prune(ss_test, nxl_nid, nxr_nid, nx_nid, di_train);
-//       ss_test.erase(nxl_nid);
-//       ss_test.erase(nxr_nid);
-//     }
+    if(di_test.n > 0){
+      compute_ss_prune(ss_test, nxl_nid, nxr_nid, nx_nid, di_train);
+      ss_test.erase(nxl_nid);
+      ss_test.erase(nxr_nid);
+    }
     
-//     t.death(nx_nid); // actually perform the death
-//   } else{
-//     accept = 0;
-//     // ss_train contains nx, nxl, and nxr
-//     // since prune was rejected, we have to get rid of nx!
-//     ss_train.erase(nx_nid);
-//     jp_map.erase(nx_nid);
-//   }
-// }
+    t.death(nx_nid); // actually perform the death
+  } else{
+    accept = 0;
+    // ss_train contains nx, nxl, and nxr
+    // since prune was rejected, we have to get rid of nx!
+    ss_train.erase(nx_nid);
+    lap_map.erase(nx_nid);
+  }
+}
 
 void update_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
 {
