@@ -62,7 +62,6 @@ These strings are parsed by \code{\link{predict.flexBART}} to reconstruct the C+
 \item{scaling_info}{Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by \code{\link{predict.flexBART}}.}
 \item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART}}.}
 \item{cov_ensm}{An \eqn{p \times R}{p x R} binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \eqn{\beta_{r}(X)}{beta_r(X)} can split on \eqn{X_{j}}{X_j}.}
-\item{is.probit}{Logical with value \code{TRUE}. Used by \code{\link{predict.flexBART}}.}
 \item{prob.train.mean}{Vector containing posterior mean of \eqn{P(Y=1 \vert X = x)}{P(Y=1|X=x)} for the training data.}
 \item{prob.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns containing posterior samples of \eqn{P(Y=1 \vert X = x)}{P(Y=1|X=x)} for the training data.
 Each row corresponds to a posterior sample of the regression functionand each column corresponds to a training observation. 

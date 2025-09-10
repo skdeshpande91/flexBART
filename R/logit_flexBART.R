@@ -59,7 +59,7 @@ logit_flexBART <- function(formula,
     
     if("nest_v" %in% usr_names) nest_v <- usr_args[["nest_v"]]
     else{
-      warning("[probit_flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
+      warning("[logit_flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
       nest_v <- TRUE
     }
     
@@ -71,7 +71,7 @@ logit_flexBART <- function(formula,
     
     if("nest_c" %in% usr_names) nest_c <- usr_args[["nest_c"]]
     else{
-      warning("[probit_flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
+      warning("[logit_flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
       nest_c <- TRUE
     }
   }
@@ -286,7 +286,9 @@ logit_flexBART <- function(formula,
          z_col_id = z_col_id)
   results[["M"]] <- hyper$M_vec
   results[["cov_ensm"]] <- cov_ensm
-  results[["is.probit"]] <- TRUE
+
+  results[["family"]] <- "binomial"
+  results[["link"]] <- "logit"
 
   results[["prob.train.mean"]] <- prob_train_mean
   if(R > 1){

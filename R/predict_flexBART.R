@@ -68,10 +68,11 @@ predict.flexBART <- function(object, newdata, ...)
                            tX_cont = t(X_cont),
                            tX_cat = t(X_cat),
                            M = object[["M"]][1],
-                           probit = object[["is.probit"]],
+                           family = object[["family"]],
+                           link = object[["link"]],
                            verbose = verbose,
                            print_every = print_every)
-    if(!object[["is.probit"]]) output <- object$scaling_info$y_mean + object$scaling_info$y_sd * tmp
+    if(object[["family"]] != "binomial") output <- object$scaling_info$y_mean + object$scaling_info$y_sd * tmp
     else output <- tmp
   } else{
     ###############################
@@ -101,6 +102,8 @@ predict.flexBART <- function(object, newdata, ...)
                           tX_cont = t(X_cont),
                           tX_cat = t(X_cat),
                           M_vec = object[["M"]],
+                          family = object[["family"]],
+                          link = object[["link"]],
                           verbose = verbose, print_every = print_every)
     yhat <- 
       object$scaling_info$y_mean + 

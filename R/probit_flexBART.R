@@ -8,7 +8,13 @@ probit_flexBART <- function(formula,
   ###############################
   usr_args <- list(...)
   usr_names <- names(usr_args)
-  
+
+  ###############################
+  # Set family and link arguments
+  ###############################
+  family <- "binomial"
+  link <- "probit"
+
   ###############################
   # Parse the formula
   ###############################
@@ -31,7 +37,9 @@ probit_flexBART <- function(formula,
                  outcome_name = outcome_name, 
                  cov_ensm = cov_ensm, 
                  test_data = test_data,
-                 probit = TRUE,...)
+                 family = family,
+                 link = link
+                 ,...)
   # It will be useful to have problem dimensions readily accessible
   R <- tmp_data$training_info$R
   n_train <- length(tmp_data$training_info$std_Y)
@@ -285,7 +293,9 @@ probit_flexBART <- function(formula,
          z_col_id = z_col_id)
   results[["M"]] <- hyper$M_vec
   results[["cov_ensm"]] <- cov_ensm
-  results[["is.probit"]] <- TRUE
+
+  results[["family"]] <- "binomial"
+  results[["link"]] <- "probit"
 
   results[["prob.train.mean"]] <- prob_train_mean
   if(R > 1){
