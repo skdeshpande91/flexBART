@@ -77,8 +77,8 @@ double GenModel::proposal_mu_multi(double &m, const int &nid, suff_stat &ss, int
         }
       }
     }
-    U -= m / pow(tree_pi.tau, 2);
-    I += pow(tree_pi.tau, -2);
+    U -= m / pow(tree_pi.tau, 2.0);
+    I += pow(tree_pi.tau, -2.0);
     m += U/I; 
     iter += 1;
     // output message for debugging
@@ -177,3 +177,23 @@ double Logit::jacobian(double theta) {
     return theta * (1 - theta);
 }
 
+double Poisson::link(double theta) {
+    return log(theta);
+}
+
+double Poisson::inv_link(double lambda) {
+    return exp(lambda);
+}
+
+double Poisson::log_lik(double y, double lambda) {
+    // use tgamma(y + 1) instead of factorial(y) to avoid overflow
+    return y * log(inv_link(lambda)) - inv_link(lambda) - log(tgamma(y + 1));
+}
+
+double Poisson::score(double y, double theta) {
+    return y - theta;
+}
+
+double Poisson::jacobian(double theta) {
+    return theta;
+}

@@ -30,4 +30,13 @@ class Logit : public GenModel {
         double log_lik(double y, double lambda);
     };
 
+class Poisson: public GenModel {
+    public:
+        double score(double y, double theta);
+        double jacobian(double theta);
+        double link(double param);
+        double inv_link(double lambda);
+        double log_lik(double y, double lambda);
+    };
+
 #endif
