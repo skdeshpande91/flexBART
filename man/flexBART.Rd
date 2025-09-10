@@ -142,6 +142,16 @@ Users can control this prior with the optional arguments
 
 }
 
+\subsection{Generalized BART models}{
+\code{flexBART} allows users to specify BART models with generalized likelihood functions with the \code{family} argument.
+The usage will be familiar to users of the \code{glm} package.
+For example, to fit a logistic regression model, you can use \code{flexBART(<args>, family = binomial(link = "logit"))}. 
+\strong{Note that the only currently-supported family is \code{binomial(link = "logit")}.}
+\itemize{
+  \item{family}{The model family name. Used by \code{\link{predict.flexBART}}.}
+}
+}
+
 }
 \subsection{Additional arguments}{
 The following arguments, which are passed to internal pre-processing and model fitting functions, 
@@ -178,7 +188,6 @@ An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{scaling_info}{Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by \code{\link{predict.flexBART}}.}
 \item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART}}.}
 \item{cov_ensm}{An \eqn{p \times R}{p x R} binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \eqn{\beta_{r}(X)}{beta_r(X)} can split on \eqn{X_{j}}{X_j}.}
-\item{is.probit}{Logical with value \code{FALSE}. Used by \code{\link{predict.flexBART}}.}
 \item{yhat.train.mean}{Vector containing posterior mean of evaluations of regression function on training data.}
 \item{yhat.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if \code{save_samples = TRUE}.}
 \item{yhat.test.mean}{Vector containing posterior mean of evaluations of regression function on testing data, if testing data is provided.}

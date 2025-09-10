@@ -1,8 +1,7 @@
 prepare_data <- function(train_data,
+                         test_data,
                          outcome_name,
                          cov_ensm, 
-                         test_data = NULL,
-                         probit = FALSE,
                          ...)
 {
   
@@ -11,6 +10,19 @@ prepare_data <- function(train_data,
   ###############################
   usr_args <- list(...)
   usr_names <- names(usr_args) # equivalent to `...names()`
+
+  if(!("family" %in% usr_names)){
+    # user didn't provide family and link arguments
+    # default to standard BART
+    family <- "gaussian"
+    link <- "identity"
+  } else if (class(usr_args[["family"]]) == "family"){
+    family <- usr_args[["family"]][["family"]]
+    link <- usr_args[["family"]][["link"]]
+  } else {
+    cat(paste("supplied family is class ", class(usr_args[["family"]]), " \n"))
+    stop("family must be a family object")
+  }
   
   # padding for re-scaling continuous covariates
   # default is 0.2 SD's
@@ -90,20 +102,20 @@ prepare_data <- function(train_data,
     stop("[prepare_data]: flexBART does not yet support missing outcomes. 
          Please re-run after removing observations w/ missing outcomes.")
   }
-  if(!probit){
-    trinfo$y_mean <- mean(y)
-    trinfo$y_sd <- sd(y)
-    trinfo$std_Y <- (y - trinfo$y_mean)/trinfo$y_sd 
-  } else{
+  if(family == "binomial"){
     if(!is.integer(y)){
-      stop("For probit regression ", outcome_name, " must be an integer")
+      stop("For binomial regression ", outcome_name, " must be an integer")
     }
     if(!all(y %in% c(0L,1L))){
-      stop("For probit regression ", outcome_name, " must take values in 0L or 1L")
+      stop("For binomial regression ", outcome_name, " must take values in 0L or 1L")
     }
     trinfo$y_mean <- 0 # to simply rescaling, set to 0
     trinfo$y_sd <- 1 # to simplify rescaling, set to 1
     trinfo$std_Y <- y
+  } else {
+    trinfo$y_mean <- mean(y)
+    trinfo$y_sd <- sd(y)
+    trinfo$std_Y <- (y - trinfo$y_mean)/trinfo$y_sd 
   }
 
   
