@@ -19,6 +19,8 @@ new_flexBART_training <- function()
   out["z_mean"] <- list(NULL)
   out["z_sd"] <- list(NULL)
   out["z_col_id"] <- list(NULL)
+
+  out["offset"] <- list(NULL)
   
   structure(out, class = "flexBART_training")
 }

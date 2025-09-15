@@ -54,6 +54,7 @@ flexBART <- function(formula,
   p_cat <- tmp_data$data_info$p_cat
   p <- tmp_data$data_info$p
   n_test <- 0
+  offset <- tmp_data$training_info$offset
   if(length(tmp_data$testing_info$Z) > 1) n_test <- nrow(tmp_data$testing_info$Z)
   
   ###############################
@@ -144,6 +145,14 @@ flexBART <- function(formula,
                   nest_v_option = nest_v_option, 
                   nest_c = nest_c, 
                   ...)
+  } else if (family == "poisson" && link == "log"){
+    y_mean <- mean(tmp_data$training_info$std_Y)
+    hyper <- 
+      parse_hyper_poisson(R = R, y_mean = y_mean,
+                  nest_v = nest_v, 
+                  nest_v_option = nest_v_option, 
+                  nest_c = nest_c, 
+                  ...)
   } else {
     cat(paste("supplied family = ", family, " and link = ", link, " \n"))
     stop("Unsupported family and link combination!")
@@ -212,6 +221,23 @@ flexBART <- function(formula,
       if(R > 1) raw_beta_train_samples <- array(NA, dim =c(total_samples, n_train, R))
       if(n_test > 0){
         prob_test_samples <- array(NA, dim = c(total_samples, n_test))
+        if(R > 1) raw_beta_test_samples <- array(NA, dim = c(total_samples, n_test, R))
+      }
+    }
+  } else if (family == "poisson" && link == "log"){
+    # Containers for posterior mean of total fit & each beta
+    yhat_train_mean <-rep(0, times = n_train)
+    if(R > 1) raw_beta_train_mean <- array(0, dim = c(n_train, R))
+    if(n_test > 0){
+      yhat_test_mean <- rep(0, times = n_test)
+      if(R > 1) raw_beta_test_mean <- array(0, dim = c(n_test, R))
+    }
+    # Containers for posterior samples
+    if(control$save_samples){
+      yhat_train_samples <- array(NA, dim = c(total_samples, n_train))
+      if(R > 1) raw_beta_train_samples <- array(NA, dim =c(total_samples, n_train, R))
+      if(n_test > 0){
+        yhat_test_samples <- array(NA, dim = c(total_samples, n_test))
         if(R > 1) raw_beta_test_samples <- array(NA, dim = c(total_samples, n_test, R))
       }
     }
@@ -527,7 +553,7 @@ flexBART <- function(formula,
             }
           }
         } # closes if/else checking how many ensembles there are
-      } # closes if/else checking whether it is logit or probit
+      } # closes if/else checking binomial link
       prob_train_mean <- prob_train_mean + fit$fit_train_mean/control$n.chains
       
       if(n_test > 0){
@@ -545,7 +571,103 @@ flexBART <- function(formula,
       if(control$save_trees){
         tree_list <- c(tree_list, fit$trees)
       }
-    } # closes if/else checking whether it is gaussian or binomial
+    } else if (family == "poisson" && link == "log"){
+      if(R == 1){
+          tmp_time <-
+            system.time(
+              fit <-
+                ._single_fit_poisson(Y_train = tmp_data$training_info$std_Y,
+                                     cov_ensm = cov_ensm,
+                                     tX_cont_train = t(tmp_data$training_info$X_cont),
+                                     tX_cat_train = t(tmp_data$training_info$X_cat),
+                                     tX_cont_test = t(tmp_data$testing_info$X_cont),
+                                     tX_cat_test = t(tmp_data$testing_info$X_cat),
+                                     cutpoints_list = tmp_data$training_info$cutpoints,
+                                     cat_levels_list = tmp_data$training_info$cat_levels_list,
+                                     edge_mat_list = tmp_data$training_info$edge_mat_list,
+                                     nest_list = tmp_data$training_info$nest_list,
+                                     graph_cut_type = hyper$graph_cut_type,
+                                     sparse = hyper$sparse, 
+                                     a_u = hyper$a_u, 
+                                     b_u = hyper$b_u,
+                                     nest_v = hyper$nest_v,
+                                     nest_v_option = hyper$nest_v_option,
+                                     nest_c = hyper$nest_c,
+                                     M = hyper$M_vec[1],
+                                     alpha = hyper$alpha_vec[1],
+                                     beta = hyper$beta_vec[1],
+                                     mu0 = hyper$mu0_vec[1],
+                                     tau = hyper$tau_vec[1],
+                                     nd = control$nd, 
+                                     burn = control$burn, 
+                                     thin = control$thin,
+                                     save_samples = control$save_samples, 
+                                     save_trees = control$save_trees,
+                                     verbose = control$verbose, 
+                                     print_every = control$print_every))
+        } else{
+          tmp_time <-
+            system.time(
+              fit <-
+                ._multi_fit_poisson(Y_train = tmp_data$training_info$std_Y,
+                                    cov_ensm = cov_ensm,
+                                    tZ_train = t(tmp_data$training_info$Z),
+                                    tX_cont_train = t(tmp_data$training_info$X_cont),
+                                    tX_cat_train = t(tmp_data$training_info$X_cat),
+                                    tZ_test = t(tmp_data$testing_info$Z),
+                                    tX_cont_test = t(tmp_data$testing_info$X_cont),
+                                    tX_cat_test = t(tmp_data$testing_info$X_cat),
+                                    cutpoints_list = tmp_data$training_info$cutpoints,
+                                    cat_levels_list = tmp_data$training_info$cat_levels_list,
+                                    edge_mat_list = tmp_data$training_info$edge_mat_list,
+                                    nest_list = tmp_data$training_info$nest_list,
+                                    graph_cut_type = hyper$graph_cut_type,
+                                    sparse = hyper$sparse, 
+                                    a_u = hyper$a_u, 
+                                    b_u = hyper$b_u,
+                                    nest_v = hyper$nest_v,
+                                    nest_v_option = hyper$nest_v_option,
+                                    nest_c = hyper$nest_c,
+                                    M_vec = hyper$M_vec,
+                                    alpha_vec = hyper$alpha_vec,
+                                    beta_vec = hyper$beta_vec,
+                                    mu0_vec = hyper$mu0_vec,
+                                    tau_vec = hyper$tau_vec,
+                                    nd = control$nd, 
+                                    burn = control$burn, 
+                                    thin = control$thin,
+                                    save_samples = control$save_samples, 
+                                    save_trees = control$save_trees,
+                                    verbose = control$verbose, 
+                                    print_every = control$print_every))
+          raw_beta_train_mean <- raw_beta_train_mean + fit$beta_train_mean/control$n.chains
+          if(n_test > 0){
+            raw_beta_test_mean <- 
+              raw_beta_test_mean + fit$beta_test_mean/control$n.chains
+          }
+          if(control$save_samples){
+            raw_beta_train_samples[start_index:end_index,,] <- fit$beta_train
+            if(n_test > 0){
+              raw_beta_test_samples[start_index:end_index,,] <- fit$beta_test
+            }
+          }
+        }
+        yhat_train_mean <- fit$fit_train_mean/control$n.chains
+        if(n_test > 0){
+          yhat_test_mean <- 
+            yhat_test_mean + fit$fit_test_mean/control$n.chains
+        }
+        if(control$save_samples){
+          yhat_train_samples[start_index:end_index,] <- fit$fit_train
+          if(n_test > 0){
+            yhat_test_samples[start_index:end_index,] <- fit$fit_test
+          }
+        }
+        varcounts_samples[start_index:end_index,,] <- fit$var_count
+        if(control$save_trees){
+          tree_list <- c(tree_list, fit$trees)
+        }
+    } # closes if/else checking family
     timing[chain_num] <- tmp_time["elapsed"]
     if(control$verbose){
       cat("Ending chain", chain_num, "at", as.character(round(Sys.time())), "\n")
@@ -554,7 +676,7 @@ flexBART <- function(formula,
   ###############################
   # We have to rescale the posterior samples of beta
   # For notational compactness, will keep a copy of the relevant things
-  ###############################  
+  ###############################
   y_mean <- tmp_data$training_info$y_mean
   y_sd <- tmp_data$training_info$y_sd
   z_mean <- tmp_data$training_info$z_mean
@@ -563,6 +685,7 @@ flexBART <- function(formula,
   
   
   if (family == "gaussian" & link == "identity") yhat_train_mean <- y_mean + y_sd * yhat_train_mean
+  if (family == "poisson" & link == "log") yhat_train_mean <- yhat_train_mean * exp(offset)
   if(R > 1){
     beta_train_mean <- 
       rescale_beta_mean(raw_beta_train_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
@@ -570,6 +693,7 @@ flexBART <- function(formula,
   
   if(n_test > 0){
     if (family == "gaussian" & link == "identity") yhat_test_mean <- y_mean + y_sd * yhat_test_mean
+    if (family == "poisson" & link == "log") yhat_test_mean <- yhat_test_mean * exp(offset)
     if(R > 1){
       beta_test_mean <- 
         rescale_beta_mean(raw_beta_test_mean, y_mean, y_sd, z_mean, z_sd, z_col_id)
@@ -577,12 +701,14 @@ flexBART <- function(formula,
   }
   if(control$save_samples){
     if (family == "gaussian" & link == "identity") yhat_train_samples <- y_mean + y_sd * yhat_train_samples
+    if (family == "poisson" & link == "log") yhat_train_samples <- yhat_train_samples * exp(offset)
     if(R > 1){
       beta_train_samples <- 
         rescale_beta(raw_beta_train_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
     }
     if(n_test > 0){
       if (family == "gaussian" & link == "identity") yhat_test_samples <- y_mean + y_sd * yhat_test_samples
+      if (family == "poisson" & link == "log") yhat_test_samples <- yhat_test_samples * exp(offset)
       if(R > 1){
         beta_test_samples <- 
           rescale_beta(raw_beta_test_samples, y_mean, y_sd, z_mean, z_sd, z_col_id)
@@ -596,7 +722,7 @@ flexBART <- function(formula,
   results[["scaling_info"]] <- 
     list(y_mean = y_mean, y_sd = y_sd,
          z_mean = z_mean, z_sd = z_sd,
-         z_col_id = z_col_id)
+         z_col_id = z_col_id, offset = offset)
   results[["M"]] <- hyper$M_vec
   results[["cov_ensm"]] <- cov_ensm
   
@@ -659,6 +785,34 @@ flexBART <- function(formula,
       }
     }
     results[["sigma"]] <- sigma_samples * y_sd
+  } else if (family == "poisson" & link == "log") {
+    results[["yhat.train.mean"]] <- yhat_train_mean
+    if(R > 1){
+      results[["beta.train.mean"]] <- beta_train_mean
+      results[["raw_beta.train.mean"]] <- raw_beta_train_mean
+    }
+    if(n_test > 0){
+      results[["yhat.test.mean"]] <- yhat_test_mean
+      if(R > 1){
+        results[["beta.test.mean"]] <- beta_test_mean
+        results[["raw_beta.test.mean"]] <- raw_beta_test_mean
+      }
+    }
+    
+    if(control$save_samples){
+      results[["yhat.train"]] <- yhat_train_samples
+      if(R > 1){
+        results[["beta.train"]] <- beta_train_samples
+        results[["raw_beta.train"]] <- raw_beta_train_samples
+      }
+      if(n_test > 0){
+        results[["yhat.test"]] <- yhat_test_samples
+        if(R > 1){
+          results[["beta.test"]] <- beta_test_samples
+          results[["raw_beta.test"]] <- raw_beta_test_samples
+        }
+      }
+    }
   }
   
   results[["varcounts"]] <- varcounts_samples

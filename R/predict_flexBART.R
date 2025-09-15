@@ -72,8 +72,13 @@ predict.flexBART <- function(object, newdata, ...)
                            link = object[["link"]],
                            verbose = verbose,
                            print_every = print_every)
-    if(object[["family"]] != "binomial") output <- object$scaling_info$y_mean + object$scaling_info$y_sd * tmp
-    else output <- tmp
+    if(object[["family"]] == "gaussian" && object[["link"]] == "identity"){
+      output <- object$scaling_info$y_mean + object$scaling_info$y_sd * tmp
+    } else if(object[["family"]] == "poisson" && object[["link"]] == "log"){
+      output <- tmp * exp(object$scaling_info$offset)
+    } else {
+      output <- tmp
+    }
   } else{
     ###############################
     # Build Z
@@ -105,9 +110,15 @@ predict.flexBART <- function(object, newdata, ...)
                           family = object[["family"]],
                           link = object[["link"]],
                           verbose = verbose, print_every = print_every)
-    yhat <- 
+    if (object[["family"]] == "gaussian" && object[["link"]] == "identity") {
+      yhat <- 
       object$scaling_info$y_mean + 
       object$scaling_info$y_sd * tmp[["fit"]]
+    } else if (object[["family"]] == "poisson" && object[["link"]] == "log") {
+      yhat <- tmp[["fit"]] * exp(object$scaling_info$offset)
+    } else {
+      yhat <- tmp[["fit"]]
+    }
     
     beta_samples <-  
       rescale_beta(tmp[["raw_beta"]], 

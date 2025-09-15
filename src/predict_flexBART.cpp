@@ -94,6 +94,34 @@ Rcpp::NumericMatrix single_predict(Rcpp::List tree_draws,
         for(int i = 0; i < n; ++i) pred_out(iter,i) = gmp->inv_link(allfit[i]);
       } // closes if/else checking that we have string for every tree
     } // closes loop over tree samples
+  } else if (family == "poisson" && link == "log"){
+    GenModel* gmp = new Poisson(); // generalized model pointer
+    for(int iter = 0; iter < nd; ++iter){
+      if(iter % print_every == 0){
+        Rcpp::checkUserInterrupt();
+        if(verbose){
+          if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
+          else Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+        }
+      }
+
+      Rcpp::CharacterVector tmp_string_vec = tree_draws[iter];
+      if(tmp_string_vec.size() != M){
+        Rcpp::Rcout << "iter = " << iter << " # tree strings = " << tmp_string_vec.size() << std::endl;
+        Rcpp::stop("Unexpected number of tree strings!");
+      } else{
+        std::vector<tree> t_vec(M);
+        for(int m = 0; m < M; ++m){
+          // tmp_string_vec is an Rcpp::CharacterVector
+          // let's extract a single element from the CharacterVector and turn it into a std::string
+          // that can be passed to read_tree
+          std::string tmp_string = Rcpp::as<std::string>(tmp_string_vec[m]); // convert content of the
+          read_tree(t_vec[m], tmp_string, set_str);
+        } // closes loop populating vector of trees
+        fit_ensemble(allfit, t_vec, di);
+        for(int i = 0; i < n; ++i) pred_out(iter,i) = gmp->inv_link(allfit[i]);
+      } // closes if/else checking that we have string for every tree
+    } // closes loop over tree samples
   } else if(family == "gaussian" && link == "identity"){
     for(int iter = 0; iter < nd; ++iter){
       if(iter % print_every == 0){
@@ -172,6 +200,44 @@ Rcpp::List multi_predict(Rcpp::List tree_draws,
   
   if(family == "binomial" && link == "logit"){
     GenModel* gmp = new Logit(); // generalized model pointer
+    for(int iter = 0; iter < nd; ++iter){
+      if(iter % print_every == 0){
+        Rcpp::checkUserInterrupt();
+        if(verbose){
+          if(iter == 0 || iter == nd-1) Rcpp::Rcout << "  Iteration: " << iter+1 << " of " << nd << std::endl;
+          else Rcpp::Rcout << "  Iteration: " << iter << " of " << nd << std::endl;
+        }
+      }
+      Rcpp::List tmp_draw = tree_draws[iter];
+      if(tmp_draw.size() != R){
+        Rcpp::Rcout << "iter = " << iter << " found " << tmp_draw.size() << " ensembles." << std::endl;
+        Rcpp::Rcout << " Expected " << R << " ensembles" << std::endl;
+        Rcpp::stop("Unexpected number of tree ensembles detected");
+      } else{
+        std::vector<double> tmp_lambda(n);
+        for(int r = 0; r < R; ++r){
+          Rcpp::CharacterVector tmp_string_vec = tmp_draw[r];
+          if(tmp_string_vec.size() != M_vec[r]){
+            Rcpp::Rcout << "iter = " << iter << " # tree strings = " << tmp_string_vec.size() << std::endl;
+            Rcpp::stop("Unexpected number of tree strings!");
+          } else{
+            std::vector<tree> t_vec(M_vec[r]);
+            for(int m = 0; m < M_vec[r]; ++m){
+              std::string tmp_string = Rcpp::as<std::string>(tmp_string_vec[m]);
+              read_tree(t_vec[m], tmp_string, set_str);
+            } // closes loop populating vector of trees
+            fit_ensemble(allfit, t_vec, di);
+            for(int i = 0; i < n; ++i){
+              raw_beta_out(iter, i, r) = allfit[i];
+              tmp_lambda[i] += di.z[r + i*R] * allfit[i];
+            }
+          } // closes if/else checking that we have a string for every tree
+        } // closes loop over ensembles
+        for(int i = 0; i < n; ++i) pred_out(iter,i) = gmp->inv_link(tmp_lambda[i]);
+      } // closes if/else checking that we have enough tree ensemble draws
+    } // closes loop over tree ensemble samples
+  } else if(family == "poisson" && link == "log"){
+    GenModel* gmp = new Poisson(); // generalized model pointer
     for(int iter = 0; iter < nd; ++iter){
       if(iter % print_every == 0){
         Rcpp::checkUserInterrupt();

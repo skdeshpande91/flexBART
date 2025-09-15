@@ -112,7 +112,22 @@ prepare_data <- function(train_data,
     trinfo$y_mean <- 0 # to simply rescaling, set to 0
     trinfo$y_sd <- 1 # to simplify rescaling, set to 1
     trinfo$std_Y <- y
-  } else {
+  } else if (family == "poisson"){
+    if(!is.integer(y)){
+      stop("For poisson regression ", outcome_name, " must be an integer")
+    }
+    if(!all(y >= 0)){
+      stop("For poisson regression ", outcome_name, " must be greater than or equal to 0")
+    }
+    if ("offset" %in% usr_names){
+      trinfo$offset <- usr_args[["offset"]]
+    } else{
+      trinfo$offset <- 0
+    }
+    trinfo$y_mean <- mean(y)
+    trinfo$y_sd <- sd(y)
+    trinfo$std_Y <- y / exp(trinfo$offset)
+  } else{
     trinfo$y_mean <- mean(y)
     trinfo$y_sd <- sd(y)
     trinfo$std_Y <- (y - trinfo$y_mean)/trinfo$y_sd 
