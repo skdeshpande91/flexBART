@@ -152,7 +152,11 @@ parse_formula <- function(frmla, train_data){
   }
 
   # identify unique predictors (non-intercepts)
-  covariate_names <- unique(unlist(list(ensm_terms, var_terms)))
+  if (heteroskedastic){
+    covariate_names <- unique(unlist(list(ensm_terms, var_terms)))
+  } else{
+    covariate_names <- unique(unlist(list(ensm_terms)))
+  }
   p <- length(covariate_names)
 
   ###############################
@@ -233,4 +237,5 @@ parse_formula <- function(frmla, train_data){
   out[["cov_ensm"]] <- cov_ensm
   out[["heteroskedastic"]] <- heteroskedastic
   out[["cov_var"]] <- cov_var
+  return(out)
 }

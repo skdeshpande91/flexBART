@@ -124,7 +124,7 @@ prepare_data <- function(train_data,
     } else{
       trinfo$offset <- 0
     }
-    trinfo$y_mean <- mean(y)
+    trinfo$y_mean <- 0 # to simply rescaling, set to 0
     trinfo$y_sd <- sd(y)
     trinfo$std_Y <- y / exp(trinfo$offset)
   } else{

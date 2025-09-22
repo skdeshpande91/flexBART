@@ -36,6 +36,13 @@ flexBART <- function(formula,
   tmp_form <- parse_formula(frmla, train_data)
   outcome_name <- tmp_form$outcome_name
   cov_ensm <- tmp_form$cov_ensm
+  heteroskedastic <- tmp_form$heteroskedastic
+  if(heteroskedastic){
+    if (!(family == "gaussian" && link == "identity")){
+      stop("[flexBART]: heteroskedasticity is only supported for gaussian family with identity link")
+    }
+    cov_var <- tmp_form$cov_var
+  }
   
   ###############################
   # Prepare the data to be passed to 
@@ -47,6 +54,7 @@ flexBART <- function(formula,
                  outcome_name = outcome_name, 
                  cov_ensm = cov_ensm, 
                  ...)
+  cat("Made it past prepare_data\n")
   # It will be useful to have problem dimensions readily accessible
   R <- tmp_data$training_info$R
   n_train <- length(tmp_data$training_info$std_Y)
@@ -124,11 +132,19 @@ flexBART <- function(formula,
         sigest <- 1
       }
     }
-    hyper <- 
-      parse_hyper(R = R,
-                  y_range = y_range,
-                  nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
-                  sigest = sigest, ...)
+    if (heteroskedastic){
+      hyper <- 
+        parse_hyper(R = R + 1,
+                    y_range = y_range,
+                    nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
+                    sigest = sigest, ...)
+    } else{
+      hyper <- 
+        parse_hyper(R = R,
+                    y_range = y_range,
+                    nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
+                    sigest = sigest, ...)
+    }
   } else if (family == "binomial" && link == "logit"){
     y_mean <- mean(tmp_data$training_info$std_Y)
     hyper <- 
@@ -189,8 +205,13 @@ flexBART <- function(formula,
     # Container for sigma samples:
     # all_sigma could be useful for assessing convergence
     # sigma_samples will get passed to predict to do posterior predictive sampling
-    all_sigma <- array(NA, dim = c(total_draws, control$n.chains))
-    sigma_samples <- rep(NA, times = total_samples)
+    if (heteroskedastic){
+      all_sigma <- array(NA, dim = c(total_draws, n_train, control$n.chains))
+      sigma_samples <- array(NA, dim = c(total_samples, n_train))
+    } else{
+      all_sigma <- array(NA, dim = c(total_draws, control$n.chains))
+      sigma_samples <- rep(NA, times = total_samples)
+    }
     # Containers for posterior mean of total fit & each beta
     yhat_train_mean <-rep(0, times = n_train)
     if(R > 1) raw_beta_train_mean <- array(0, dim = c(n_train, R))
@@ -246,12 +267,21 @@ flexBART <- function(formula,
     stop("Unsupported family and link combination!")
   }
 
+  if (heteroskedastic){
   varcounts_samples <- 
+    array(NA, dim = c(total_samples, p, R+1), 
+
+          dimnames = list(c(), 
+                          c(tmp_data$data_info$cont_names, 
+                            tmp_data$data_info$cat_names), c()))
+  } else{
+    varcounts_samples <- 
     array(NA, dim = c(total_samples, p, R), 
 
           dimnames = list(c(), 
                           c(tmp_data$data_info$cont_names, 
                             tmp_data$data_info$cat_names), c()))
+  }
   # container for timing
   timing <- rep(NA, times = control$n.chains)
   if(control$verbose){
@@ -284,110 +314,171 @@ flexBART <- function(formula,
     start_index <- (chain_num-1)*control$nd + 1
     end_index <- chain_num*control$nd
     if (family == "gaussian" && link == "identity") {
-      if(R == 1){
-        tmp_time <- 
-          system.time(
-            fit <- 
-              ._single_fit(Y_train = tmp_data$training_info$std_Y,
-                          cov_ensm = cov_ensm,
-                          tX_cont_train = t(tmp_data$training_info$X_cont),
-                          tX_cat_train = t(tmp_data$training_info$X_cat),
-                          tX_cont_test = t(tmp_data$testing_info$X_cont),
-                          tX_cat_test = t(tmp_data$testing_info$X_cat),
-                          cutpoints_list = tmp_data$training_info$cutpoints,
-                          cat_levels_list = tmp_data$training_info$cat_levels_list,
-                          edge_mat_list = tmp_data$training_info$edge_mat_list,
-                          nest_list = tmp_data$training_info$nest_list,
-                          graph_cut_type = hyper$graph_cut_type,
-                          sparse = hyper$sparse, 
-                          a_u = hyper$a_u, 
-                          b_u = hyper$b_u,
-                          nest_v = hyper$nest_v,
-                          nest_v_option = hyper$nest_v_option,
-                          nest_c = hyper$nest_c,
-                          M = hyper$M_vec[1],
-                          alpha = hyper$alpha_vec[1],
-                          beta = hyper$beta_vec[1],
-                          mu0 = hyper$mu0_vec[1],
-                          tau = hyper$tau_vec[1],
-                          sigest = hyper$sigest,
-                          nu = hyper$nu,
-                          lambda = hyper$lambda,
-                          nd = control$nd, 
-                          burn = control$burn, 
-                          thin = control$thin,
-                          save_samples = control$save_samples, 
-                          save_trees = control$save_trees,
-                          verbose = control$verbose, 
-                          print_every = control$print_every))
+      if (heteroskedastic){
+        cat("Heteroskedasticity detected.")
+        if (R == 1){
+          tmp_time <- 
+            system.time(
+            fit <-
+              ._single_fit_heteroskedastic(Y_train = tmp_data$training_info$std_Y,
+                                          cov_ensm = cov_ensm,
+                                          cov_var = cov_var,
+                                          tX_cont_train = t(tmp_data$training_info$X_cont),
+                                          tX_cat_train = t(tmp_data$training_info$X_cat),
+                                          tX_cont_test = t(tmp_data$testing_info$X_cont),
+                                          tX_cat_test = t(tmp_data$testing_info$X_cat),
+                                          cutpoints_list = tmp_data$training_info$cutpoints,
+                                          cat_levels_list = tmp_data$training_info$cat_levels_list,
+                                          edge_mat_list = tmp_data$training_info$edge_mat_list,
+                                          nest_list = tmp_data$training_info$nest_list,
+                                          graph_cut_type = hyper$graph_cut_type,
+                                          sparse = hyper$sparse, 
+                                          a_u = hyper$a_u, 
+                                          b_u = hyper$b_u,
+                                          nest_v = hyper$nest_v,
+                                          nest_v_option = hyper$nest_v_option,
+                                          nest_c = hyper$nest_c,
+                                          M = hyper$M_vec,
+                                          alpha = hyper$alpha_vec,
+                                          beta = hyper$beta_vec,
+                                          mu0 = hyper$mu0_vec,
+                                          tau = hyper$tau_vec,
+                                          nd = control$nd, 
+                                          burn = control$burn, 
+                                          thin = control$thin,
+                                          save_samples = control$save_samples, 
+                                          save_trees = control$save_trees,
+                                          verbose = control$verbose, 
+                                          print_every = control$print_every)
+            )
+        } else{
+          cat("R > 1 not supported for heteroskedasticity yet\n")
+        }
+        all_sigma[,,chain_num] <- fit$sigma_train
+        sigma_samples[start_index:end_index,] <- fit$sigma_train[-(1:control$burn),]
         
-      } else{
-        tmp_time <-
-          system.time(
-            fit <- 
-              ._multi_fit(Y_train = tmp_data$training_info$std_Y,
-                          cov_ensm = cov_ensm,
-                          tZ_train = t(tmp_data$training_info$Z),
-                          tX_cont_train = t(tmp_data$training_info$X_cont),
-                          tX_cat_train = t(tmp_data$training_info$X_cat),
-                          tZ_test = t(tmp_data$testing_info$Z),
-                          tX_cont_test = t(tmp_data$testing_info$X_cont),
-                          tX_cat_test = t(tmp_data$testing_info$X_cat),
-                          cutpoints_list = tmp_data$training_info$cutpoints,
-                          cat_levels_list = tmp_data$training_info$cat_levels_list,
-                          edge_mat_list = tmp_data$training_info$edge_mat_list,
-                          nest_list = tmp_data$training_info$nest_list,
-                          graph_cut_type = hyper$graph_cut_type,
-                          sparse = hyper$sparse, 
-                          a_u = hyper$a_u, b_u = hyper$b_u,
-                          nest_v = hyper$nest_v,
-                          nest_v_option = hyper$nest_v_option,
-                          nest_c = hyper$nest_c,
-                          M_vec = hyper$M_vec,
-                          alpha_vec = hyper$alpha_vec, 
-                          beta_vec = hyper$beta_vec,
-                          mu0_vec = hyper$mu0_vec, 
-                          tau_vec = hyper$tau_vec,
-                          sigest = hyper$sigest,
-                          nu = hyper$nu,lambda = hyper$lambda, 
-                          nd = control$nd, 
-                          burn = control$burn, 
-                          thin = control$thin,
-                          save_samples = control$save_samples, 
-                          save_trees = control$save_trees,
-                          verbose = control$verbose,
-                          print_every = control$print_every))
-        raw_beta_train_mean <- raw_beta_train_mean + fit$beta_train_mean/control$n.chains
+        yhat_train_mean <- yhat_train_mean + fit$fit_train_mean/control$n.chains
+        
         if(n_test > 0){
-          raw_beta_test_mean <- 
-            raw_beta_test_mean + fit$beta_test_mean/control$n.chains
+          yhat_test_mean <- 
+            yhat_test_mean + fit$fit_test_mean/control$n.chains
         }
         if(control$save_samples){
-          raw_beta_train_samples[start_index:end_index,,] <- fit$beta_train
+          yhat_train_samples[start_index:end_index,] <- fit$fit_train
           if(n_test > 0){
-            raw_beta_test_samples[start_index:end_index,,] <- fit$beta_test
+            yhat_test_samples[start_index:end_index,] <- fit$fit_test
           }
         }
-      }
-      
-      all_sigma[,chain_num] <- fit$sigma
-      sigma_samples[start_index:end_index] <- fit$sigma[-(1:control$burn)]
-      
-      yhat_train_mean <- yhat_train_mean + fit$fit_train_mean/control$n.chains
-      
-      if(n_test > 0){
-        yhat_test_mean <- 
-          yhat_test_mean + fit$fit_test_mean/control$n.chains
-      }
-      if(control$save_samples){
-        yhat_train_samples[start_index:end_index,] <- fit$fit_train
-        if(n_test > 0){
-          yhat_test_samples[start_index:end_index,] <- fit$fit_test
+        varcounts_samples[start_index:end_index,,] <- fit$var_count
+        if(control$save_trees){
+          tree_list <- c(tree_list, fit$trees)
         }
-      }
-      varcounts_samples[start_index:end_index,,] <- fit$var_count
-      if(control$save_trees){
-        tree_list <- c(tree_list, fit$trees)
+      } else{
+        if(R == 1){
+          tmp_time <- 
+            system.time(
+              fit <- 
+                ._single_fit(Y_train = tmp_data$training_info$std_Y,
+                            cov_ensm = cov_ensm,
+                            tX_cont_train = t(tmp_data$training_info$X_cont),
+                            tX_cat_train = t(tmp_data$training_info$X_cat),
+                            tX_cont_test = t(tmp_data$testing_info$X_cont),
+                            tX_cat_test = t(tmp_data$testing_info$X_cat),
+                            cutpoints_list = tmp_data$training_info$cutpoints,
+                            cat_levels_list = tmp_data$training_info$cat_levels_list,
+                            edge_mat_list = tmp_data$training_info$edge_mat_list,
+                            nest_list = tmp_data$training_info$nest_list,
+                            graph_cut_type = hyper$graph_cut_type,
+                            sparse = hyper$sparse, 
+                            a_u = hyper$a_u, 
+                            b_u = hyper$b_u,
+                            nest_v = hyper$nest_v,
+                            nest_v_option = hyper$nest_v_option,
+                            nest_c = hyper$nest_c,
+                            M = hyper$M_vec[1],
+                            alpha = hyper$alpha_vec[1],
+                            beta = hyper$beta_vec[1],
+                            mu0 = hyper$mu0_vec[1],
+                            tau = hyper$tau_vec[1],
+                            sigest = hyper$sigest,
+                            nu = hyper$nu,
+                            lambda = hyper$lambda,
+                            nd = control$nd, 
+                            burn = control$burn, 
+                            thin = control$thin,
+                            save_samples = control$save_samples, 
+                            save_trees = control$save_trees,
+                            verbose = control$verbose, 
+                            print_every = control$print_every))
+          
+        } else{
+          tmp_time <-
+            system.time(
+              fit <- 
+                ._multi_fit(Y_train = tmp_data$training_info$std_Y,
+                            cov_ensm = cov_ensm,
+                            tZ_train = t(tmp_data$training_info$Z),
+                            tX_cont_train = t(tmp_data$training_info$X_cont),
+                            tX_cat_train = t(tmp_data$training_info$X_cat),
+                            tZ_test = t(tmp_data$testing_info$Z),
+                            tX_cont_test = t(tmp_data$testing_info$X_cont),
+                            tX_cat_test = t(tmp_data$testing_info$X_cat),
+                            cutpoints_list = tmp_data$training_info$cutpoints,
+                            cat_levels_list = tmp_data$training_info$cat_levels_list,
+                            edge_mat_list = tmp_data$training_info$edge_mat_list,
+                            nest_list = tmp_data$training_info$nest_list,
+                            graph_cut_type = hyper$graph_cut_type,
+                            sparse = hyper$sparse, 
+                            a_u = hyper$a_u, b_u = hyper$b_u,
+                            nest_v = hyper$nest_v,
+                            nest_v_option = hyper$nest_v_option,
+                            nest_c = hyper$nest_c,
+                            M_vec = hyper$M_vec,
+                            alpha_vec = hyper$alpha_vec, 
+                            beta_vec = hyper$beta_vec,
+                            mu0_vec = hyper$mu0_vec, 
+                            tau_vec = hyper$tau_vec,
+                            sigest = hyper$sigest,
+                            nu = hyper$nu,lambda = hyper$lambda, 
+                            nd = control$nd, 
+                            burn = control$burn, 
+                            thin = control$thin,
+                            save_samples = control$save_samples, 
+                            save_trees = control$save_trees,
+                            verbose = control$verbose,
+                            print_every = control$print_every))
+          raw_beta_train_mean <- raw_beta_train_mean + fit$beta_train_mean/control$n.chains
+          if(n_test > 0){
+            raw_beta_test_mean <- 
+              raw_beta_test_mean + fit$beta_test_mean/control$n.chains
+          }
+          if(control$save_samples){
+            raw_beta_train_samples[start_index:end_index,,] <- fit$beta_train
+            if(n_test > 0){
+              raw_beta_test_samples[start_index:end_index,,] <- fit$beta_test
+            }
+          }
+        }
+        
+        all_sigma[,chain_num] <- fit$sigma
+        sigma_samples[start_index:end_index] <- fit$sigma[-(1:control$burn)]
+        
+        yhat_train_mean <- yhat_train_mean + fit$fit_train_mean/control$n.chains
+        
+        if(n_test > 0){
+          yhat_test_mean <- 
+            yhat_test_mean + fit$fit_test_mean/control$n.chains
+        }
+        if(control$save_samples){
+          yhat_train_samples[start_index:end_index,] <- fit$fit_train
+          if(n_test > 0){
+            yhat_test_samples[start_index:end_index,] <- fit$fit_test
+          }
+        }
+        varcounts_samples[start_index:end_index,,] <- fit$var_count
+        if(control$save_trees){
+          tree_list <- c(tree_list, fit$trees)
+        }
       }
     } else if (family == "binomial"){
       if (link == "logit"){
