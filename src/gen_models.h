@@ -11,7 +11,7 @@ class GenModel {
         virtual double inv_link(double lambda) = 0;
         virtual double log_lik(double r, double lambda, double m) = 0;
         virtual double score(double r, double lambda, double m) = 0;
-        virtual double jacobian(double theta) = 0;
+        virtual double jacobian(double r, double lambda, double m) = 0;
   
         double proposal_mu_single(double &m, const int &nid, suff_stat &ss, data_info &di, tree_prior_info &tree_pi);
         double proposal_var_single(double m, const int &nid, suff_stat &ss, data_info &di, tree_prior_info &tree_pi);
@@ -24,7 +24,7 @@ class GenModel {
 class Logit : public GenModel {
     public:
         double score(double r, double lambda, double m);
-        double jacobian(double theta);
+        double jacobian(double r, double lambda, double m);
         double link(double param);
         double inv_link(double lambda);
         double log_lik(double r, double lambda, double m);
@@ -33,7 +33,7 @@ class Logit : public GenModel {
 class Poisson: public GenModel {
     public:
         double score(double r, double lambda, double m);
-        double jacobian(double theta);
+        double jacobian(double r, double lambda, double m);
         double link(double param);
         double inv_link(double lambda);
         double log_lik(double r, double lambda, double m);
@@ -51,7 +51,7 @@ class Poisson: public GenModel {
 class Sigma: public GenModel {
     public:
         double score(double r, double lambda, double m);
-        double jacobian(double theta);
+        double jacobian(double r, double lambda, double m);
         double link(double param);
         double inv_link(double lambda);
         double log_lik(double r, double lambda, double m);

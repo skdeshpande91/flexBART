@@ -302,7 +302,7 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
       total_accept_samples(iter, 1) = total_accept; // how many trees changed in this iteration
     } // closes loop over all of the trees
     // save sigma samples
-    for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = gmp->inv_link(lambda[i]);
+    for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = sqrt(gmp->inv_link(lambda[i]));
     // END: update sigma
   } // closes burn-in
   // END: burn-in
@@ -372,7 +372,7 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
     } // closes loop over all of the trees
 
     // save sigma samples
-    for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = gmp->inv_link(lambda[i]);
+    for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = sqrt(gmp->inv_link(lambda[i]));
     // END: update sigma
 
     if( (iter - burn)%thin == 0 ){
@@ -450,6 +450,7 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   
   fit_train_mean /= ( (double) nd);
   sigma_train_mean /= ( (double) nd);
+  sigma_train_mean = sqrt(sigma_train_mean);
   if(n_test > 0){
     fit_test_mean /= ( (double) nd);
     sigma_test_mean /= ( (double) nd);

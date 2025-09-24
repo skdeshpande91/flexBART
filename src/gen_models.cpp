@@ -26,9 +26,8 @@ double GenModel::proposal_mu_single(double &m, const int &nid, suff_stat &ss, da
       if(ss_it->second.size() > 0){
         for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
           // Rcpp::Rcout << "Iteration " << *it << ": lambda = " << di.lambda[*it] << ", rp = " << di.rp[*it] << std::endl;
-          double theta = inv_link(di.lambda[*it] + m);
           U += score(di.rp[*it], di.lambda[*it], m);
-          I += jacobian(theta);
+          I += jacobian(di.rp[*it], di.lambda[*it], m);
           // output message for debugging
           // Rcpp::Rcout << "Iteration " << iter << ": y = " << y << ", theta = " << theta << ", U = " << U << ", I = " << I << std::endl;
         }
@@ -69,9 +68,8 @@ double GenModel::proposal_mu_multi(double &m, const int &nid, suff_stat &ss, int
       if(ss_it->second.size() > 0){
         for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
           double z = di.z[r + (*it) * di.R];
-          double theta = inv_link(di.lambda[*it] + z * m);
           U += z * score(di.rp[*it], di.lambda[*it], z * m);
-          I += pow(z, 2.0) * jacobian(theta);
+          I += pow(z, 2.0) * jacobian(di.rp[*it], di.lambda[*it], z * m);
         }
       }
     }
@@ -97,8 +95,7 @@ double GenModel::proposal_var_single(double m, const int &nid, suff_stat &ss, da
     suff_stat_it ss_it = ss.find(nid);
     if(ss_it->second.size() > 0){
       for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
-        double theta = inv_link(di.lambda[*it] + m);
-        I += jacobian(theta);
+        I += jacobian(di.rp[*it], di.lambda[*it], m);
       }
     }
   }
@@ -114,8 +111,7 @@ double GenModel::proposal_var_multi(double m, const int &nid, suff_stat &ss, int
     if(ss_it->second.size() > 0){
       for(int_it it = ss_it->second.begin(); it != ss_it->second.end(); ++it){
         double z = di.z[r + (*it) * di.R];
-        double theta = inv_link(di.lambda[*it] + z * m);
-        I += pow(z, 2.0) * jacobian(theta);
+        I += pow(z, 2.0) * jacobian(di.rp[*it], di.lambda[*it], z * m);
       }
     }
   }
@@ -173,7 +169,8 @@ double Logit::score(double r, double lambda, double m) {
   return y - theta;
 }
 
-double Logit::jacobian(double theta) {
+double Logit::jacobian(double r, double lambda, double m) {
+  double theta = inv_link(lambda + m);
   return theta * (1 - theta);
 }
 
@@ -198,7 +195,8 @@ double Poisson::score(double r, double lambda, double m) {
   return y - theta;
 }
 
-double Poisson::jacobian(double theta) {
+double Poisson::jacobian(double r, double lambda, double m) {
+  double theta = inv_link(lambda + m);
   return theta;
 }
 
@@ -222,24 +220,24 @@ double Poisson::jacobian(double theta) {
 //     return 0.5;
 // }
 
-double Sigma::link(double theta) {
+double Sigma::link(double theta){
   return log(theta);
 }
 
-double Sigma::inv_link(double lambda) {
+double Sigma::inv_link(double lambda){
   return exp(lambda);
 }
 
-double Sigma::log_lik(double r, double lambda, double m) {
+double Sigma::log_lik(double r, double lambda, double m){
   double theta = inv_link(lambda + m);
   return -0.5 * log(2 * M_PI) - theta - 0.5 * pow(r, 2.0) / theta;
 }
 
-double Sigma::score(double r, double lambda, double m) {
+double Sigma::score(double r, double lambda, double m){
   double theta = inv_link(lambda + m); // residual of the mean ensemble
   return pow(r, 2.0) / theta - 1;
 }
 
-double Sigma::jacobian(double theta) {
+double Sigma::jacobian(double r, double lambda, double m){
   return 0.5;
 }

@@ -14,7 +14,7 @@ void compute_jump_posterior_heteroskedastic_single(std::map<int, jump_post> &jp_
     if(l_it->second.size() > 0){
       for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
         i = *it;
-        sigma = exp(di.lambda[i]);
+        sigma = sqrt(exp(di.lambda[i]));
         jp_it->second.P += 1.0/pow(sigma, 2.0);
         jp_it->second.Theta += di.rp[i]/pow(sigma, 2.0);
       } // closes loop over observations in leaf
@@ -37,7 +37,7 @@ void compute_jump_posterior_heteroskedastic_multi(std::map<int, jump_post> &jp_m
     if(l_it->second.size() > 0){
       for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
         i = *it;
-        sigma = exp(di.lambda[i]);
+        sigma = sqrt(exp(di.lambda[i]));
         z = di.z[r + i*di.R];
         jp_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
         jp_it->second.Theta += z * di.rp[i]/pow(sigma, 2.0);
@@ -102,7 +102,7 @@ void compute_ss_grow_heteroskedastic_single(suff_stat &ss, std::map<int, jump_po
       double xx_cont = 0.0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        sigma = exp(di.lambda[i]);
+        sigma = sqrt(exp(di.lambda[i]));
         xx_cont = *(di.x_cont + i*di.p_cont + rule.v_aa);
         if(xx_cont < rule.c){
           nxl_it->second.push_back(i);
@@ -121,7 +121,7 @@ void compute_ss_grow_heteroskedastic_single(suff_stat &ss, std::map<int, jump_po
       int xx_cat = 0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        sigma = exp(di.lambda[i]);
+        sigma = sqrt(exp(di.lambda[i]));
         xx_cat = *(di.x_cat + i*di.p_cat + rule.v_cat);
         int l_count = rule.l_vals.count(xx_cat);
         int r_count = rule.r_vals.count(xx_cat);
@@ -191,7 +191,7 @@ void compute_ss_grow_heteroskedastic_multi(suff_stat &ss, std::map<int, jump_pos
       double xx_cont = 0.0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        sigma = exp(di.lambda[i]);
+        sigma = sqrt(exp(di.lambda[i]));
         z = di.z[r + i*di.R];
         xx_cont = *(di.x_cont + i*di.p_cont + rule.v_aa);
         if(xx_cont < rule.c){
@@ -211,7 +211,7 @@ void compute_ss_grow_heteroskedastic_multi(suff_stat &ss, std::map<int, jump_pos
       int xx_cat = 0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        sigma = exp(di.lambda[i]);
+        sigma = sqrt(exp(di.lambda[i]));
         z = di.z[r + i*di.R];
         xx_cat = *(di.x_cat + i*di.p_cat + rule.v_cat);
         int l_count = rule.l_vals.count(xx_cat);
@@ -335,7 +335,7 @@ void compute_ss_prune_heteroskedastic_single(suff_stat &ss, std::map<int, jump_p
   if(nxl_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxl_it->second.begin(); it != nxl_it->second.end(); ++it){
       i = *it;
-      sigma = exp(di.lambda[i]);
+      sigma = sqrt(exp(di.lambda[i]));
       nx_it->second.push_back(i);
       jp_it->second.P += 1.0/pow(sigma, 2.0);
       jp_it->second.Theta += di.rp[i]/pow(sigma, 2.0);
@@ -344,7 +344,7 @@ void compute_ss_prune_heteroskedastic_single(suff_stat &ss, std::map<int, jump_p
   if(nxr_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxr_it->second.begin(); it != nxr_it->second.end(); ++it){
       i = *it;
-      sigma = exp(di.lambda[i]);
+      sigma = sqrt(exp(di.lambda[i]));
       nx_it->second.push_back(i);
       jp_it->second.P += 1.0/pow(sigma, 2.0);
       jp_it->second.Theta += di.rp[i]/pow(sigma, 2.0);
@@ -376,7 +376,7 @@ void compute_ss_prune_heteroskedastic_multi(suff_stat &ss, std::map<int, jump_po
   if(nxl_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxl_it->second.begin(); it != nxl_it->second.end(); ++it){
       i = *it;
-      sigma = exp(di.lambda[i]);
+      sigma = sqrt(exp(di.lambda[i]));
       z = di.z[r + i*di.R];
       nx_it->second.push_back(i);
       jp_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
@@ -386,7 +386,7 @@ void compute_ss_prune_heteroskedastic_multi(suff_stat &ss, std::map<int, jump_po
   if(nxr_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxr_it->second.begin(); it != nxr_it->second.end(); ++it){
       i = *it;
-      sigma = exp(di.lambda[i]);
+      sigma = sqrt(exp(di.lambda[i]));
       z = di.z[r + i*di.R];
       nx_it->second.push_back(i);
       jp_it->second.P += pow(z, 2.0)/pow(sigma, 2.0);
