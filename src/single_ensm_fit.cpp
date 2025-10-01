@@ -225,7 +225,7 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
     sigma_samples(iter) = sigma;
     // END: update sigma
     // BEGIN: update theta (if sparse)
-    if(sparse) update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
+    if(sparse) update_theta_u_subset(theta, u, var_count, a_u, b_u, gen);
     // END: update theta (if sparse)
     
     total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
@@ -275,7 +275,7 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
     // END: update sigma
     
     //BEGIN: update theta (if sparse)
-    if(sparse) update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
+    if(sparse) update_theta_u_subset(theta, u, var_count, a_u, b_u, gen);
     // END: update theta (if sparse)
     
     total_accept_samples(iter) = total_accept; // how many trees changed in this iteration

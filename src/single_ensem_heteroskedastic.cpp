@@ -220,12 +220,13 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   
   arma::mat fit_train = arma::zeros<arma::mat>(1,1); // posterior samples for training data
   arma::mat fit_test = arma::zeros<arma::mat>(1,1); // posterior samples for testing data (if any)
-  arma::mat sigma_train = arma::zeros<arma::mat>(total_draws, n_train); 
+  arma::mat sigma_train = arma::zeros<arma::mat>(1,1); 
   arma::mat sigma_test = arma::zeros<arma::mat>(1,1);
 
   if(save_samples){
     // if we are saving all samples, then we resize the containers accordingly
     fit_train.zeros(nd, n_train);
+    sigma_train.zeros(total_draws, n_train); // total draws so we can assess sampler convergence
     if(n_test > 0){
       fit_test.zeros(nd, n_test);
       sigma_test.zeros(nd, n_test);
@@ -270,7 +271,7 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
         } // closes if checking that leaf is non-empty and computing full residual
       } // closes loop over leafs
       // END: restore fit of m-th tree
-      if(sparse) update_theta_u(theta[0], u[0], var_count[0], p, a_u, b_u, gen);
+      if(sparse) update_theta_u_subset(theta[0], u[0], var_count[0], a_u, b_u, gen);
       total_accept_samples(iter, 0) = total_accept; // how many trees changed in this iteration
     } // closes loop over all of the trees
     
@@ -298,11 +299,11 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
         } // closes if checking that leaf is non-empty and computing full residual
       } // closes loop over leafs
       // END: restore fit of m-th tree
-      if(sparse) update_theta_u(theta[1], u[1], var_count[1], p, a_u, b_u, gen);
+      if(sparse) update_theta_u_subset(theta[1], u[1], var_count[1], a_u, b_u, gen);
       total_accept_samples(iter, 1) = total_accept; // how many trees changed in this iteration
     } // closes loop over all of the trees
     // save sigma samples
-    for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = sqrt(gmp->inv_link(lambda[i]));
+    if(save_samples) for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = sqrt(gmp->inv_link(lambda[i]));
     // END: update sigma
   } // closes burn-in
   // END: burn-in
@@ -339,7 +340,7 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
         } // closes if checking that leaf is non-empty and computing full residual
       } // closes loop over leafs
       // END: restore fit of m-th tree
-      if(sparse) update_theta_u(theta[0], u[0], var_count[0], p, a_u, b_u, gen);
+      if(sparse) update_theta_u_subset(theta[0], u[0], var_count[0], a_u, b_u, gen);
       total_accept_samples(iter, 0) = total_accept; // how many trees changed in this iteration
     } // closes loop over all of the trees
     
@@ -367,12 +368,12 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
         } // closes if checking that leaf is non-empty and computing full residual
       } // closes loop over leafs
       // END: restore fit of m-th tree
-      if(sparse) update_theta_u(theta[1], u[1], var_count[1], p, a_u, b_u, gen);
+      if(sparse) update_theta_u_subset(theta[1], u[1], var_count[1], a_u, b_u, gen);
       total_accept_samples(iter, 1) = total_accept; // how many trees changed in this iteration
     } // closes loop over all of the trees
 
     // save sigma samples
-    for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = sqrt(gmp->inv_link(lambda[i]));
+    if(save_samples) for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = sqrt(gmp->inv_link(lambda[i]));
     // END: update sigma
 
     if( (iter - burn)%thin == 0 ){
@@ -460,7 +461,7 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   
   results["fit_train_mean"] = fit_train_mean;
   results["sigma_train_mean"] = sigma_train_mean;
-  results["sigma_train"] = sigma_train;
+  if(save_samples) results["sigma_train"] = sigma_train;
   if(save_samples) results["fit_train"] = fit_train;
   
   if(n_test > 0){

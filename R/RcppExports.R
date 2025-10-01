@@ -9,6 +9,10 @@
     .Call('_flexBART_multi_fit', PACKAGE = 'flexBART', Y_train, cov_ensm, tZ_train, tX_cont_train, tX_cat_train, tZ_test, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M_vec, alpha_vec, beta_vec, mu0_vec, tau_vec, sigest, nu, lambda, nd, burn, thin, save_samples, save_trees, verbose, print_every)
 }
 
+._multi_fit_heteroskedastic <- function(Y_train, cov_ensm, cov_var, tZ_train, tX_cont_train, tX_cat_train, tZ_test, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M_vec, alpha_vec, beta_vec, mu0_vec, tau_vec, nd, burn, thin, save_samples, save_trees, verbose, print_every) {
+    .Call('_flexBART_multi_fit_heteroskedastic', PACKAGE = 'flexBART', Y_train, cov_ensm, cov_var, tZ_train, tX_cont_train, tX_cat_train, tZ_test, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M_vec, alpha_vec, beta_vec, mu0_vec, tau_vec, nd, burn, thin, save_samples, save_trees, verbose, print_every)
+}
+
 ._multi_fit_logit <- function(Y_train, cov_ensm, tZ_train, tX_cont_train, tX_cat_train, tZ_test, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M_vec, alpha_vec, beta_vec, mu0_vec, tau_vec, nd, burn, thin, save_samples, save_trees, verbose, print_every) {
     .Call('_flexBART_multi_logit_fit', PACKAGE = 'flexBART', Y_train, cov_ensm, tZ_train, tX_cont_train, tX_cat_train, tZ_test, tX_cont_test, tX_cat_test, cutpoints_list, cat_levels_list, edge_mat_list, nest_list, graph_cut_type, sparse, a_u, b_u, nest_v, nest_v_option, nest_c, M_vec, alpha_vec, beta_vec, mu0_vec, tau_vec, nd, burn, thin, save_samples, save_trees, verbose, print_every)
 }

@@ -46,24 +46,6 @@ void compute_jump_posterior_heteroskedastic_multi(std::map<int, jump_post> &jp_m
   } // closes loop over leaf/ss_map elements
 }
 
-// double compute_lil(int &nid, std::map<int, jump_post> &jp_map)
-// {
-//   if(jp_map.count(nid) == 0) Rcpp::stop("[compute_lil]: Did not find element for node in jp_map");
-//   std::map<int, jump_post>::iterator jp_it = jp_map.find(nid);
-//   return(-0.5 * log(jp_it->second.P) + 0.5 * pow(jp_it->second.Theta, 2.0)/jp_it->second.P);
-// }
-
-// void draw_mu(tree &t, std::map<int, jump_post> &jp_map, RNG &gen)
-// {
-//   double post_mean;
-//   double post_sd;
-//   for(std::map<int,jump_post>::iterator l_it = jp_map.begin(); l_it != jp_map.end(); ++l_it){
-//     post_mean = l_it->second.Theta/l_it->second.P;
-//     post_sd = sqrt(1.0/l_it->second.P);
-//     t.get_ptr(l_it->first)->set_mu(gen.normal(post_mean, post_sd));
-//   }
-// }
-
 void compute_ss_grow_heteroskedastic_single(suff_stat &ss, std::map<int, jump_post> &jp_map, int &nx_nid, rule_t &rule, data_info &di, tree_prior_info &tree_pi)
 {
   int i = 0;
@@ -243,74 +225,6 @@ void compute_ss_grow_heteroskedastic_multi(suff_stat &ss, std::map<int, jump_pos
   } // closes if checking that leaf is non-empty
 }
 
-// // in-place modification without worrying about jump_post objects (i.e. for testing)
-// void compute_ss_grow(suff_stat &ss, int &nx_nid, rule_t &rule, data_info &di)
-// {
-//   int i ;
-//   int nxl_nid = 2*nx_nid;
-//   int nxr_nid = 2*nx_nid+1;
-  
-//   // check that our data structures have element for nx but not for nxl or nxr (the proposed children)
-//   if(ss.count(nx_nid) == 0 || ss.count(nxl_nid) == 1 || ss.count(nxr_nid) == 1) Rcpp::stop("[compute_ss_grow]: something is wrong with ss_train");
-
-  
-//   // if we get to here, data structure are fine
-//   suff_stat_it nx_it = ss.find(nx_nid); // points to nx's element in ss
-  
-//   // add elements to ss and jp_map for nxl
-//   ss.insert(std::pair<int, std::vector<int>>(nxl_nid, std::vector<int>()));
-//   suff_stat_it nxl_it = ss.find(nxl_nid); // points to nxl's element in ss
-  
-//   // add elements to ss and jp_map for nxr
-//   ss.insert(std::pair<int, std::vector<int>>(nxr_nid, std::vector<int>()));
-//   suff_stat_it nxr_it = ss.find(nxr_nid); // points to nxr's element in ss
-
-//   if(nx_it->second.size() > 0){
-//     if(!rule.is_cat){
-//       double xx_cont = 0.0;
-//       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
-//         i = *it;
-//         //xx_cont = di.x_cont + i*di.p_cont;
-//         xx_cont = *(di.x_cont + i*di.p_cont + rule.v_aa);
-//         if(xx_cont < rule.c){
-//           nxl_it->second.push_back(i);
-//         } else if(xx_cont >= rule.c){
-//           nxr_it->second.push_back(i);
-//         } else{
-//           Rcpp::Rcout << "  i = " << i << " v = " << rule.v_aa+1 << "  value = " << xx_cont << " cutpoint = " << rule.c << std::endl;
-//           Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in axis-aligned split!");
-//         }
-//       } // closes loop over observations in nx
-//     } else{
-//       int xx_cat = 0;
-//       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
-//         i = *it;
-//         xx_cat = *(di.x_cat + i*di.p_cat + rule.v_cat);
-//         int l_count = rule.l_vals.count(xx_cat);
-//         int r_count = rule.r_vals.count(xx_cat);
-//         if(l_count != r_count){
-//           if(l_count == 1){
-//             nxl_it->second.push_back(i);
-//           } else{
-//             nxr_it->second.push_back(i);
-//           }
-//         } else{
-//           Rcpp::Rcout << "i = " << i << "v = " << rule.v_cat+1 << "  value = " << xx_cat << std::endl;
-//           Rcpp::Rcout << "left values:";
-//           for(set_it levels_it = rule.l_vals.begin(); levels_it != rule.l_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-//           Rcpp::Rcout << std::endl;
-          
-//           Rcpp::Rcout << "right values:";
-//           for(set_it levels_it = rule.r_vals.begin(); levels_it != rule.r_vals.end(); ++levels_it) Rcpp::Rcout << " " << *levels_it;
-//           Rcpp::Rcout << std::endl;
-          
-//           Rcpp::stop("[compute_ss_grow]: could not assign observation to left or right child in categorical split!");
-//         } // closes if/else checking whether observation i goes to nxl or nxr
-//       } // closes loop over observations in nx
-//     } // closes if/else checking whether rule is axis-aligned or categorical
-//   } // closes if checking that leaf is non-empty
-// }
-
 // in-place modification of ss and jp for prune moves
 void compute_ss_prune_heteroskedastic_single(suff_stat &ss, std::map<int, jump_post> &jp_map, int &nxl_nid, int &nxr_nid, int &nx_nid, data_info &di, tree_prior_info &tree_pi)
 {
@@ -394,28 +308,6 @@ void compute_ss_prune_heteroskedastic_multi(suff_stat &ss, std::map<int, jump_po
     } // closes loop over observations in nxr
   } // closes if checking that nxr is non-empty
 }
-
-// // in-place modification of ss without worrying about jump posterior (i.e., for test data)
-// void compute_ss_prune(suff_stat &ss, int &nxl_nid, int &nxr_nid, int &nx_nid, data_info &di)
-// {
-
-//   // check that our data structures have element for nxl and nxr but not for nx
-//   if(ss.count(nxl_nid) == 0 || ss.count(nxr_nid) == 0 || ss.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune]: something's wrong with ss_train");
-  
-//   // if we get to here, data structure are fine
-//   suff_stat_it nxl_it = ss.find(nxl_nid); // points to nxl's element in ss
-//   suff_stat_it nxr_it = ss.find(nxr_nid); // points to nxr's element in ss
-  
-//   ss.insert(std::pair<int, std::vector<int>>(nx_nid, std::vector<int>())); // add element for nx in ss
-//   suff_stat_it nx_it = ss.find(nx_nid); // points to nx's element in ss
-  
-//   if(nxl_it->second.size() > 0){
-//     for(std::vector<int>::iterator it = nxl_it->second.begin(); it != nxl_it->second.end(); ++it) nx_it->second.push_back(*it);
-//   } // closes if checking that nxl is non-empty
-//   if(nxr_it->second.size() > 0){
-//     for(std::vector<int>::iterator it = nxr_it->second.begin(); it != nxr_it->second.end(); ++it) nx_it->second.push_back(*it);
-//   } // closes if checking that nxr is non-empty
-// }
 
 void grow_tree_heteroskedastic_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, jump_post> &jp_map, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, RNG &gen)
 {
