@@ -20,6 +20,7 @@ new_flexBART_hyper <- function()
   out["sparse"] <- TRUE
   out["a_u"] <- 0.5
   out["b_u"] <- 1
+  out["max_iter"] <- 100
   structure(out, class = "flexBART_hyper")
 }
 
@@ -35,7 +36,8 @@ validate_flexBART_hyper <- function(hyper)
       "nest_v", "nest_v_option", "nest_c",
       "sigest", "sigquant",
       "nu", "lambda", 
-      "sparse", "a_u", "b_u")
+      "sparse", "a_u", "b_u", 
+      "max_iter")
   
   if(!identical(sort(names(hyper)), sort(exp_names))){
     cat("[validate_flexBART_hyper]: supplied hyper names: \n", sort(names(hyper)), "\n")
@@ -78,7 +80,7 @@ validate_flexBART_hyper <- function(hyper)
   # Check positive valued hyperparameters
   ###############################
   pos_params <- 
-    c("sigest", "sigquant", "nu", "lambda", "a_u", "b_u")
+    c("sigest", "sigquant", "nu", "lambda", "a_u", "b_u", "max_iter")
   for(param in pos_params){
     if(any(hyper[[param]] <= 0)){
       message("[validate_flexBART_hyper]: supplied ", param, "=", hyper[[param]])
@@ -280,7 +282,7 @@ parse_hyper <- function(R, y_range, ...){
   ###############################
   param_names <- 
     c("graph_cut_type", "nest_v", "nest_v_option", "nest_c",
-      "sparse", "a_u", "b_u")
+      "sparse", "a_u", "b_u", "max_iter")
   for(param in param_names){
     if(param %in% usr_names){
       # override with user supplied value
@@ -440,7 +442,7 @@ parse_hyper_probit <- function(R, y_mean, ...){
   ###############################
   param_names <- 
     c("graph_cut_type", "nest_v", "nest_v_option", "nest_c",
-      "sparse", "a_u", "b_u")
+      "sparse", "a_u", "b_u", "max_iter")
   for(param in param_names){
     if(param %in% usr_names){
       # override with user supplied value
@@ -600,7 +602,7 @@ parse_hyper_logit <- function(R, y_mean, ...){
   ###############################
   param_names <- 
     c("graph_cut_type", "nest_v", "nest_v_option", "nest_c",
-      "sparse", "a_u", "b_u")
+      "sparse", "a_u", "b_u", "max_iter")
   for(param in param_names){
     if(param %in% usr_names){
       # override with user supplied value
@@ -760,7 +762,7 @@ parse_hyper_poisson <- function(R, y_mean, ...){
   ###############################
   param_names <- 
     c("graph_cut_type", "nest_v", "nest_v_option", "nest_c",
-      "sparse", "a_u", "b_u")
+      "sparse", "a_u", "b_u", "max_iter")
   for(param in param_names){
     if(param %in% usr_names){
       # override with user supplied value

@@ -152,6 +152,8 @@ public:
   // eventually will need stuff about the covariate graph
   double tau;
   double mu0;
+  int max_iter; // maximum number of iterations for the Laplace approximation
+  bool convergance_warning; // warning about non-convergence of the Laplace approximation
   
   std::vector<double>* theta; // prob. that we pick one variable out of p_cont + p_cat
   std::vector<int> *var_count; // counts how many times we split on a single variable
@@ -181,6 +183,8 @@ public:
     rule_count = 0; // 0 pointer
     tau = 1.0;
     mu0 = 0.0;
+    max_iter = 100;
+    convergance_warning = false;
   }
 };
 

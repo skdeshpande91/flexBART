@@ -21,6 +21,7 @@ Rcpp::List single_logit_fit(Rcpp::IntegerVector Y_train,
                              double alpha, double beta,
                              double mu0, double tau,
                              int nd, int burn, int thin,
+                             int max_iter,
                              bool save_samples,
                              bool save_trees,
                              bool verbose, int print_every)
@@ -132,6 +133,7 @@ Rcpp::List single_logit_fit(Rcpp::IntegerVector Y_train,
   tree_pi.beta = beta;
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;
+  tree_pi.max_iter = max_iter;
   // END: create tree prior info object
   
 //   // BEGIN: intialize sigma
@@ -312,6 +314,8 @@ Rcpp::List single_logit_fit(Rcpp::IntegerVector Y_train,
     } // closes if that checks whether we should save anything in this iteration
   } // closes post-burn-in loop
   // END: post-burn-in
+
+  if(tree_pi.convergance_warning) Rcpp::Rcout << "WARNING! At least one Laplace approximation did not converge. Consider increasing 'max_iter'." << std::endl;
   
   fit_train_mean /= ( (double) nd);
   if(n_test > 0) fit_test_mean /= ( (double) nd);

@@ -23,6 +23,7 @@ Rcpp::List multi_poisson_fit(Rcpp::IntegerVector Y_train,
                             Rcpp::NumericVector alpha_vec, Rcpp::NumericVector beta_vec,
                             Rcpp::NumericVector mu0_vec, Rcpp::NumericVector tau_vec,
                             int nd, int burn, int thin,
+                            int max_iter,
                             bool save_samples,
                             bool save_trees,
                             bool verbose, int print_every)
@@ -159,6 +160,7 @@ Rcpp::List multi_poisson_fit(Rcpp::IntegerVector Y_train,
     tree_pi_vec[r].beta = beta_vec[r];
     tree_pi_vec[r].mu0 = mu0_vec[r];
     tree_pi_vec[r].tau = tau_vec[r];
+    tree_pi_vec[r].max_iter = max_iter;
   }
   // END: creating tree prior info object
   
@@ -432,6 +434,13 @@ Rcpp::List multi_poisson_fit(Rcpp::IntegerVector Y_train,
     // END: save post-warmup samples
   } // closes the main MCMC for loop
   // END: main MCMC loop
+
+  for(int r = 0; r < R; ++r){
+    if(tree_pi_vec[r].convergance_warning){
+      Rcpp::Rcout << "WARNING! At least one Laplace approximation did not converge. Consider increasing 'max_iter'." << std::endl;
+      break;
+    }
+  }
   
   // BEGIN: rescale posterior means
   fit_train_mean /= ( (double) nd);

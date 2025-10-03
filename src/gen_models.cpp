@@ -12,7 +12,7 @@ double GenModel::proposal_mu_single(double &m, const int &nid, suff_stat &ss, da
   // j in the index of the covariate we are updating
   // function updates m & v for proposal distribution
   int iter = 0;
-  int max_iter = 100;
+  int max_iter = tree_pi.max_iter;
   double U = 1;
   double I = 1;
 
@@ -42,7 +42,7 @@ double GenModel::proposal_mu_single(double &m, const int &nid, suff_stat &ss, da
   }
 
   // give a warning if the scoring loop terminates by max iterations
-  if (iter >= max_iter) Rcpp::Rcout << "[compute_m]: WARNING! Laplace approximation did not converge after " << iter << " iterations!" << std::endl;
+  if (iter >= max_iter) tree_pi.convergance_warning = true;
 
   return m;
 }
@@ -54,7 +54,7 @@ double GenModel::proposal_mu_multi(double &m, const int &nid, suff_stat &ss, int
   // j in the index of the covariate we are updating
   // function updates m & v for proposal distribution
   int iter = 0;
-  int max_iter = 100;
+  int max_iter = 500;
   double U = 1;
   double I = 1;
 

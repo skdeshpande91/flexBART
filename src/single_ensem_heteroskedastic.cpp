@@ -22,6 +22,7 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
                                     Rcpp::NumericVector alpha_vec, Rcpp::NumericVector beta_vec,
                                     Rcpp::NumericVector mu0_vec, Rcpp::NumericVector tau_vec,
                                     int nd, int burn, int thin,
+                                    int max_iter,
                                     bool save_samples,
                                     bool save_trees,
                                     bool verbose,
@@ -159,6 +160,7 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
     tree_pi_vec[r].beta = beta_vec[r];
     tree_pi_vec[r].mu0 = mu0_vec[r];
     tree_pi_vec[r].tau = tau_vec[r];
+    tree_pi_vec[r].max_iter = max_iter;
   }
   // END: creating tree prior info object
   
@@ -448,6 +450,8 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
     } // closes if that checks whether we should save anything in this iteration
   } // closes post-burn-in loop
   // END: post-burn-in
+
+  if(tree_pi_vec[1].convergance_warning) Rcpp::Rcout << "WARNING! At least one Laplace approximation did not converge. Consider increasing 'max_iter'." << std::endl;
   
   fit_train_mean /= ( (double) nd);
   sigma_train_mean /= ( (double) nd);
