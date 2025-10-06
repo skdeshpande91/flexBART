@@ -133,11 +133,12 @@ flexBART <- function(formula,
       }
     }
     if (heteroskedastic){
-      hyper <- 
-        parse_hyper(R = R + 1,
-                    y_range = y_range,
-                    nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
-                    sigest = sigest, ...)
+      stop("`sigma()` ensemble is not supported!")
+      # hyper <- 
+      #   parse_hyper(R = R + 1,
+      #               y_range = y_range,
+      #               nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
+      #               sigest = sigest, ...)
     } else{
       hyper <- 
         parse_hyper(R = R,
@@ -161,14 +162,14 @@ flexBART <- function(formula,
                   nest_v_option = nest_v_option, 
                   nest_c = nest_c, 
                   ...)
-  } else if (family == "poisson" && link == "log"){
-    y_mean <- mean(tmp_data$training_info$std_Y)
-    hyper <- 
-      parse_hyper_poisson(R = R, y_mean = y_mean,
-                  nest_v = nest_v, 
-                  nest_v_option = nest_v_option, 
-                  nest_c = nest_c, 
-                  ...)
+  # } else if (family == "poisson" && link == "log"){
+  #   y_mean <- mean(tmp_data$training_info$std_Y)
+  #   hyper <- 
+  #     parse_hyper_poisson(R = R, y_mean = y_mean,
+  #                 nest_v = nest_v, 
+  #                 nest_v_option = nest_v_option, 
+  #                 nest_c = nest_c, 
+  #                 ...)
   } else {
     cat(paste("supplied family = ", family, " and link = ", link, " \n"))
     stop("Unsupported family and link combination!")

@@ -3,12 +3,14 @@
 #include "gen_models.h"
 #include "data_parsing_funs.h"
 #include "funs.h"
-// [[Rcpp::export("._single_fit_heteroskedastic")]]
-Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
+// [[Rcpp::export("._multi_fit_heteroskedastic")]]
+Rcpp::List multi_fit_heteroskedastic(Rcpp::NumericVector Y_train,
                                     Rcpp::IntegerMatrix cov_ensm,
                                     Rcpp::IntegerMatrix cov_var,
+                                    Rcpp::NumericMatrix tZ_train,
                                     Rcpp::NumericMatrix tX_cont_train,
                                     Rcpp::IntegerMatrix tX_cat_train,
+                                    Rcpp::NumericMatrix tZ_test,
                                     Rcpp::NumericMatrix tX_cont_test,
                                     Rcpp::IntegerMatrix tX_cat_test,
                                     Rcpp::Nullable<Rcpp::List> cutpoints_list,
@@ -36,18 +38,15 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   set_str_conversion set_str; // for converting sets of integers into strings
   
   // BEGIN: get dimensions of training data
-  int n_train = Y_train.size(); // how many training observations
-  int R = 2; // single ensemble + sigma ensemble
+  int n_train = tZ_train.cols(); // how many training observations
+  int R = tZ_train.rows() + 1; // number of ensembles + sigma ensemble
   int p_cont = 0;
   int p_cat = 0;
   if(tX_cont_train.size() > 1) p_cont = tX_cont_train.rows();
   if(tX_cat_train.size() > 1) p_cat = tX_cat_train.rows();
   int p = p_cont + p_cat;
   int n_test = 0;
-  if(p_cont > 0 && tX_cont_test.size() > 1) n_test = tX_cont_test.cols();
-  else if(p_cat > 0 && tX_cat_test.size() > 1) n_test = tX_cat_test.cols();
-
-  //if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
+  if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
   // END: get dimensions of testing data
   
   // BEGIN: set cutpoints & categorical levels + parse network structure
@@ -80,12 +79,12 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   for(int r = 0; r < R; ++r){
     int n_avail_vars = 0;
     for(int j = 0; j < p; ++j){
-      if (r == 0){
-        if(cov_ensm(j,0) == 1){
+      if (r < (R-1)){
+        if(cov_ensm(j,r) == 1){
           theta[r][j] = 1.0;
           ++n_avail_vars;
         }
-      } else if (r == 1){
+      } else{ // sigma ensemble
         if(cov_var(j,0) == 1){
           theta[r][j] = 1.0;
           ++n_avail_vars;
@@ -117,7 +116,8 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   di_train.p_cont = p_cont;
   di_train.p_cat = p_cat;
   di_train.p = p;
-  di_train.R = R;
+  di_train.R = R - 1; // include all ensembles for z matrix indexing
+  di_train.z = tZ_train.begin();
   if(p_cont > 0) di_train.x_cont = tX_cont_train.begin();
   if(p_cat > 0) di_train.x_cat = tX_cat_train.begin();
   di_train.rp = residual;
@@ -130,7 +130,8 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
     di_test.p_cont = p_cont;
     di_test.p_cat = p_cat;
     di_test.p = p;
-    di_test.R = R;
+    di_test.R = R - 1; // include all ensembles for z matrix indexing
+    di_test.z = tZ_test.begin();
     if(p_cont > 0) di_test.x_cont = tX_cont_test.begin();
     if(p_cat > 0)  di_test.x_cat = tX_cat_test.begin();
   }
@@ -185,40 +186,50 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   // END: initialize vector of tree ensembles & maps of observations to leafs
   
   for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i]; // start with all trees initialized at zero
-  for(int m = 0; m < M_vec[0]; ++m){
-    tree_traversal(ss_train_vec[0][m], t_vec[0][m], di_train);
-    // get the fit of each tree
-    for(suff_stat_it l_it = ss_train_vec[0][m].begin(); l_it != ss_train_vec[0][m].end(); ++l_it){
-      tmp_mu = t_vec[0][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
-      if(l_it->second.size() > 0){
-        for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu; // in this initial sweep, we have to remove the fit of each tree.
+  for(int r = 0; r < R-1; ++r){
+    for(int m = 0; m < M_vec[r]; ++m){
+      tree_traversal(ss_train_vec[r][m], t_vec[r][m], di_train);
+      // get the fit of each tree
+      for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
+        tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+        if(l_it->second.size() > 0){
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
+            residual[*it] -= di_train.z[r + (*it) * di_train.R] * tmp_mu; // remove initial fit of each tree from residual
+          }
+        }
       }
+      if(n_test > 0) tree_traversal(ss_test_vec[r][m], t_vec[r][m], di_test);
     }
-    if(n_test > 0) tree_traversal(ss_test_vec[0][m], t_vec[0][m], di_test);
   }
   
   for(int i = 0; i < n_train; ++i) lambda[i] = 0.0; // start with all trees initialized at zero (log(sigma(x)^2) = 0 implies sigma(x)^2 = 1)
-  for(int m = 0; m < M_vec[1]; ++m){
-    tree_traversal(ss_train_vec[1][m], t_vec[1][m], di_train);
+  for(int m = 0; m < M_vec[R-1]; ++m){
+    tree_traversal(ss_train_vec[R-1][m], t_vec[R-1][m], di_train);
     // get the fit of each tree
-    for(suff_stat_it l_it = ss_train_vec[1][m].begin(); l_it != ss_train_vec[1][m].end(); ++l_it){
-      tmp_mu = t_vec[1][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+    for(suff_stat_it l_it = ss_train_vec[R-1][m].begin(); l_it != ss_train_vec[R-1][m].end(); ++l_it){
+      tmp_mu = t_vec[R-1][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
       if(l_it->second.size() > 0){
         for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += tmp_mu;
       }
     }
-    if(n_test > 0) tree_traversal(ss_test_vec[1][m], t_vec[1][m], di_test);
+    if(n_test > 0) tree_traversal(ss_test_vec[R-1][m], t_vec[R-1][m], di_test);
   }
+  // END: initialize sigma tree vector & sufficient statistics maps
 
   // BEGIN: initialize laplace approximation map for sigma ensemble
-  std::vector<std::map<int, laplace_approx>> lap_map_vec(M_vec[1]);
-  for(int m = 0; m < M_vec[1]; ++m) compute_laplace_approx_single(lap_map_vec[m], ss_train_vec[1][m], di_train, tree_pi_vec[1], *gmp);
+  std::vector<std::map<int, laplace_approx>> lap_map_vec(M_vec[R-1]);
+  for(int m = 0; m < M_vec[R-1]; ++m) compute_laplace_approx_single(lap_map_vec[m], ss_train_vec[R-1][m], di_train, tree_pi_vec[R-1], *gmp);
   // END: initialize laplace approximation map for sigma ensemble
-
+  
   // BEGIN: create output containers
   arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
   arma::vec fit_test_mean = arma::zeros<arma::vec>(1); // posterior mean for testing data (if any)
-  if(n_test > 0) fit_test_mean.zeros(n_test);
+  arma::mat beta_train_mean = arma::zeros<arma::mat>(n_train, R-1); // posterior mean fit for each ensemble for training data
+  arma::mat beta_test_mean = arma::zeros<arma::mat>(1,1); // posterior mean for each ensemble for testing data (if any)
+  if(n_test > 0){
+    fit_test_mean.zeros(n_test);
+    beta_test_mean.zeros(n_test, R-1);
+  }
 
   arma::vec sigma_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
   arma::vec sigma_test_mean = arma::zeros<arma::vec>(1); // posterior mean for testing data (if any)
@@ -226,16 +237,20 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   
   arma::mat fit_train = arma::zeros<arma::mat>(1,1); // posterior samples for training data
   arma::mat fit_test = arma::zeros<arma::mat>(1,1); // posterior samples for testing data (if any)
+  arma::cube beta_train = arma::zeros<arma::cube>(1,1,1);
+  arma::cube beta_test = arma::zeros<arma::cube>(1,1,1);
   arma::mat sigma_train = arma::zeros<arma::mat>(1,1); 
   arma::mat sigma_test = arma::zeros<arma::mat>(1,1);
 
   if(save_samples){
     // if we are saving all samples, then we resize the containers accordingly
     fit_train.zeros(nd, n_train);
+    beta_train.zeros(nd, n_train, R-1);
     sigma_train.zeros(total_draws, n_train); // total draws so we can assess sampler convergence
     if(n_test > 0){
       fit_test.zeros(nd, n_test);
       sigma_test.zeros(nd, n_test);
+      beta_test.zeros(nd, n_test, R-1);
     }
   }
   
@@ -254,62 +269,68 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
       }
     }
     
-    total_accept = 0;
-    for(int m = 0; m < M_vec[0]; ++m){
-      //BEGIN: remove fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[0][m].begin(); l_it != ss_train_vec[0][m].end(); ++l_it){
-        // loop over the bottom nodes in m-th tree
-        tmp_mu = t_vec[0][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
-        if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] += tmp_mu;
-        } // closes if checking that leaf is non-empty and computes partial residual
-      } // closes loop over leafs
-      // END: remove fit of m-th tree
+    for(int r = 0; r < R-1; ++r){
+      total_accept = 0;
+      for(int m = 0; m < M_vec[r]; ++m){
+        //BEGIN: remove fit of m-th tree
+        for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
+          // loop over the bottom nodes in m-th tree
+          tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+          if(l_it->second.size() > 0){
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
+              residual[*it] += di_train.z[r + (*it) * di_train.R] * tmp_mu;
+            }
+          } // closes if checking that leaf is non-empty and computes partial residual
+        } // closes loop over leafs
+        // END: remove fit of m-th tree
+        
+        update_tree_heteroskedastic_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, di_train, di_test, tree_pi_vec[r], gen); // update the tree
+        total_accept += accept;
       
-      update_tree_heteroskedastic_single(t_vec[0][m], ss_train_vec[0][m], ss_test_vec[0][m], accept, di_train, di_test, tree_pi_vec[0], gen); // update the tree
-      total_accept += accept;
-    
-      // BEGIN: restore fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[0][m].begin(); l_it != ss_train_vec[0][m].end(); ++l_it){
-        tmp_mu = t_vec[0][m].get_ptr(l_it->first)->get_mu();
-        if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu;
-        } // closes if checking that leaf is non-empty and computing full residual
-      } // closes loop over leafs
-      // END: restore fit of m-th tree
-      if(sparse) update_theta_u_subset(theta[0], u[0], var_count[0], a_u, b_u, gen);
-      total_accept_samples(iter, 0) = total_accept; // how many trees changed in this iteration
-    } // closes loop over all of the trees
-    
+        // BEGIN: restore fit of m-th tree
+        for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
+          tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
+          if(l_it->second.size() > 0){
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
+              residual[*it] -= di_train.z[r + (*it) * di_train.R] * tmp_mu;
+            }
+          } // closes if checking that leaf is non-empty and computing full residual
+        } // closes loop over leafs
+        // END: restore fit of m-th tree
+        if(sparse) update_theta_u(theta[r], u[r], var_count[r], p, a_u, b_u, gen);
+        total_accept_samples(iter, r) = total_accept; // how many trees changed in this iteration
+      } // closes loop over all of the trees
+    } // closes loop over all of the ensembles
+      
     // BEGIN: update sigma
     total_accept = 0;
-    for(int m = 0; m < M_vec[1]; ++m){
+    for(int m = 0; m < M_vec[R-1]; ++m){
       //BEGIN: remove fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[1][m].begin(); l_it != ss_train_vec[1][m].end(); ++l_it){
+      for(suff_stat_it l_it = ss_train_vec[R-1][m].begin(); l_it != ss_train_vec[R-1][m].end(); ++l_it){
         // loop over the bottom nodes in m-th tree
-        tmp_mu = t_vec[1][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+        tmp_mu = t_vec[R-1][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
         if(l_it->second.size() > 0){
           for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] -= tmp_mu;
         } // closes if checking that leaf is non-empty and computes partial residual
       } // closes loop over leafs
       // END: remove fit of m-th tree
       
-      update_tree_gen_single(t_vec[1][m], ss_train_vec[1][m], ss_test_vec[1][m], lap_map_vec[m], accept, di_train, di_test, tree_pi_vec[1], *gmp, gen); // update the tree
+      update_tree_gen_single(t_vec[R-1][m], ss_train_vec[R-1][m], ss_test_vec[R-1][m], lap_map_vec[m], accept, di_train, di_test, tree_pi_vec[R-1], *gmp, gen); // update the tree
       total_accept += accept;
 
       // BEGIN: restore fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[1][m].begin(); l_it != ss_train_vec[1][m].end(); ++l_it){
-        tmp_mu = t_vec[1][m].get_ptr(l_it->first)->get_mu();
+      for(suff_stat_it l_it = ss_train_vec[R-1][m].begin(); l_it != ss_train_vec[R-1][m].end(); ++l_it){
+        tmp_mu = t_vec[R-1][m].get_ptr(l_it->first)->get_mu();
         if(l_it->second.size() > 0){
           for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += tmp_mu;
         } // closes if checking that leaf is non-empty and computing full residual
       } // closes loop over leafs
       // END: restore fit of m-th tree
-      if(sparse) update_theta_u_subset(theta[1], u[1], var_count[1], a_u, b_u, gen);
-      total_accept_samples(iter, 1) = total_accept; // how many trees changed in this iteration
+      if(sparse) update_theta_u(theta[R-1], u[R-1], var_count[R-1], p, a_u, b_u, gen);
+      total_accept_samples(iter, R-1) = total_accept; // how many trees changed in this iteration
     } // closes loop over all of the trees
     // save sigma samples
-    if(save_samples) for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = sqrt(gmp->inv_link(lambda[i]));
+    for(int i = 0; i < n_train; ++i) sigma_train(iter, i) = sqrt(gmp->inv_link(lambda[i]));
     // END: update sigma
   } // closes burn-in
   // END: burn-in
@@ -322,60 +343,66 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
       Rcpp::checkUserInterrupt();
       if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
     }
-  
-    total_accept = 0;
-    for(int m = 0; m < M_vec[0]; ++m){
-      //BEGIN: remove fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[0][m].begin(); l_it != ss_train_vec[0][m].end(); ++l_it){
-        // loop over the bottom nodes in m-th tree
-        tmp_mu = t_vec[0][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
-        if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] += tmp_mu;
-        } // closes if checking that leaf is non-empty and computes partial residual
-      } // closes loop over leafs
-      // END: remove fit of m-th tree
+
+    for(int r = 0; r < R-1; ++r){
+      total_accept = 0;
+      for(int m = 0; m < M_vec[r]; ++m){
+        //BEGIN: remove fit of m-th tree
+        for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
+          // loop over the bottom nodes in m-th tree
+          tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+          if(l_it->second.size() > 0){
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
+              residual[*it] += di_train.z[r + (*it) * di_train.R] * tmp_mu;
+            }
+          } // closes if checking that leaf is non-empty and computes partial residual
+        } // closes loop over leafs
+        // END: remove fit of m-th tree
+        
+        update_tree_heteroskedastic_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, di_train, di_test, tree_pi_vec[r], gen); // update the tree
+        total_accept += accept;
       
-      update_tree_heteroskedastic_single(t_vec[0][m], ss_train_vec[0][m], ss_test_vec[0][m], accept, di_train, di_test, tree_pi_vec[0], gen); // update the tree
-      total_accept += accept;
-    
-      // BEGIN: restore fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[0][m].begin(); l_it != ss_train_vec[0][m].end(); ++l_it){
-        tmp_mu = t_vec[0][m].get_ptr(l_it->first)->get_mu();
-        if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu;
-        } // closes if checking that leaf is non-empty and computing full residual
-      } // closes loop over leafs
-      // END: restore fit of m-th tree
-      if(sparse) update_theta_u_subset(theta[0], u[0], var_count[0], a_u, b_u, gen);
-      total_accept_samples(iter, 0) = total_accept; // how many trees changed in this iteration
-    } // closes loop over all of the trees
+        // BEGIN: restore fit of m-th tree
+        for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
+          tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
+          if(l_it->second.size() > 0){
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
+              residual[*it] -= di_train.z[r + (*it) * di_train.R] * tmp_mu;
+            }
+          } // closes if checking that leaf is non-empty and computing full residual
+        } // closes loop over leafs
+        // END: restore fit of m-th tree
+        if(sparse) update_theta_u(theta[r], u[r], var_count[r], p, a_u, b_u, gen);
+        total_accept_samples(iter, r) = total_accept; // how many trees changed in this iteration
+      } // closes loop over all of the trees
+    } // closes loop over all of the ensembles
     
     // BEGIN: update sigma
     total_accept = 0;
-    for(int m = 0; m < M_vec[1]; ++m){
+    for(int m = 0; m < M_vec[R-1]; ++m){
       //BEGIN: remove fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[1][m].begin(); l_it != ss_train_vec[1][m].end(); ++l_it){
+      for(suff_stat_it l_it = ss_train_vec[R-1][m].begin(); l_it != ss_train_vec[R-1][m].end(); ++l_it){
         // loop over the bottom nodes in m-th tree
-        tmp_mu = t_vec[1][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+        tmp_mu = t_vec[R-1][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
         if(l_it->second.size() > 0){
           for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] -= tmp_mu;
         } // closes if checking that leaf is non-empty and computes partial residual
       } // closes loop over leafs
       // END: remove fit of m-th tree
       
-      update_tree_gen_single(t_vec[1][m], ss_train_vec[1][m], ss_test_vec[1][m], lap_map_vec[m], accept, di_train, di_test, tree_pi_vec[1], *gmp, gen); // update the tree
+      update_tree_gen_single(t_vec[R-1][m], ss_train_vec[R-1][m], ss_test_vec[R-1][m], lap_map_vec[m], accept, di_train, di_test, tree_pi_vec[R-1], *gmp, gen); // update the tree
       total_accept += accept;
     
       // BEGIN: restore fit of m-th tree
-      for(suff_stat_it l_it = ss_train_vec[1][m].begin(); l_it != ss_train_vec[1][m].end(); ++l_it){
-        tmp_mu = t_vec[1][m].get_ptr(l_it->first)->get_mu();
+      for(suff_stat_it l_it = ss_train_vec[R-1][m].begin(); l_it != ss_train_vec[R-1][m].end(); ++l_it){
+        tmp_mu = t_vec[R-1][m].get_ptr(l_it->first)->get_mu();
         if(l_it->second.size() > 0){
           for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += tmp_mu;
         } // closes if checking that leaf is non-empty and computing full residual
       } // closes loop over leafs
       // END: restore fit of m-th tree
-      if(sparse) update_theta_u_subset(theta[1], u[1], var_count[1], a_u, b_u, gen);
-      total_accept_samples(iter, 1) = total_accept; // how many trees changed in this iteration
+      if(sparse) update_theta_u(theta[R-1], u[R-1], var_count[R-1], p, a_u, b_u, gen);
+      total_accept_samples(iter, R-1) = total_accept; // how many trees changed in this iteration
     } // closes loop over all of the trees
 
     // save sigma samples
@@ -407,28 +434,51 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
           fit_train_mean(i) += Y_train[i] - residual[i];
           sigma_train_mean(i) += gmp->inv_link(lambda[i]);
         }
+        // now compute beta_train
+        for(int r = 0; r < R-1; ++r){
+          for(int m = 0; m < M_vec[r]; ++m){
+            for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
+              tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
+              if(l_it->second.size() > 0){
+                for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
+                  beta_train(sample_index, *it, r) += tmp_mu;
+                  beta_train_mean(*it,r) += tmp_mu;
+                }
+              }
+            }
+          }
+        }
       } else{
-        for(int i = 0; i < n_train; ++i) fit_train_mean(i) += Y_train[i] - residual[i];
-        for(int i = 0; i < n_train; ++i) sigma_train_mean(i) += gmp->inv_link(lambda[i]);
+        for(int i = 0; i < n_train; ++i){
+          fit_train_mean(i) += Y_train[i] - residual[i];
+          sigma_train_mean(i) += gmp->inv_link(lambda[i]);
+        }
       }
 
       if(n_test > 0){
-        for(int i = 0; i < n_test; ++i) tmp_fit_test[i] = 0.0;
-        for(int m = 0; m < M_vec[0]; ++m){
-          for(suff_stat_it l_it = ss_test_vec[0][m].begin(); l_it != ss_test_vec[0][m].end(); ++l_it){
-            tmp_mu = t_vec[0][m].get_ptr(l_it->first)->get_mu();
-            if(l_it->second.size() > 0){
-              for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-                tmp_fit_test[*it] += tmp_mu;
-              } // closes loop over observations in leaf
-            } // closes if checking that leaf is non-empty
-          } // closes over leaves in the tree
-        } // closes loop over trees
+        for(int r = 0; r < R-1; ++r){
+          for(int m = 0; m < M_vec[r]; ++m){
+            for(suff_stat_it l_it = ss_test_vec[r][m].begin(); l_it != ss_test_vec[r][m].end(); ++l_it){
+              tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
+              if(l_it->second.size() > 0){
+                for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
+                  int i = *it;
+                  fit_test_mean(i) += di_test.z[r + i*di_test.R] * tmp_mu;
+                  beta_test_mean(i,r) += tmp_mu;
+                  if(save_samples){
+                    fit_test(sample_index, i) += di_test.z[r + i*di_test.R] * tmp_mu;
+                    beta_test(sample_index,i,r) += tmp_mu;
+                  }
+                } // closes loop over observations in leaf
+              } // closes if checking that leaf is non-empty
+            } // closes over leaves in the tree
+          } // closes loop over trees
+        } // closes loop over ensembles
 
         for(int i = 0; i < n_test; ++i) tmp_sigma_test[i] = 0.0;
-        for(int m = 0; m < M_vec[1]; ++m){
-          for(suff_stat_it l_it = ss_test_vec[1][m].begin(); l_it != ss_test_vec[1][m].end(); ++l_it){
-            tmp_mu = t_vec[1][m].get_ptr(l_it->first)->get_mu();
+        for(int m = 0; m < M_vec[R-1]; ++m){
+          for(suff_stat_it l_it = ss_test_vec[R-1][m].begin(); l_it != ss_test_vec[R-1][m].end(); ++l_it){
+            tmp_mu = t_vec[R-1][m].get_ptr(l_it->first)->get_mu();
             if(l_it->second.size() > 0){
               for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
                 tmp_sigma_test[*it] += tmp_mu;
@@ -439,14 +489,11 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
 
         if(save_samples){
           for(int i = 0; i < n_test; ++i){
-            fit_test(sample_index, i) = tmp_fit_test[i];
-            fit_test_mean(i) += tmp_fit_test[i];
             sigma_test(sample_index, i) = gmp->inv_link(tmp_sigma_test[i]);
             sigma_test_mean(i) += gmp->inv_link(tmp_sigma_test[i]);
           }
         } else{
           for(int i = 0; i < n_test; ++i){
-            fit_test_mean(i) += tmp_fit_test[i];
             sigma_test_mean(i) += gmp->inv_link(tmp_sigma_test[i]);
           }
         } // closes if/else checking whether we're saving samples or just posterior mean
@@ -455,28 +502,35 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   } // closes post-burn-in loop
   // END: post-burn-in
 
-  if(tree_pi_vec[1].convergance_warning) Rcpp::Rcout << "WARNING! At least one Laplace approximation did not converge. Consider increasing 'max_iter'." << std::endl;
+  if(tree_pi_vec[R-1].convergance_warning) Rcpp::Rcout << "WARNING! At least one Laplace approximation did not converge. Consider increasing 'max_iter'." << std::endl;
   
   fit_train_mean /= ( (double) nd);
-  sigma_train_mean /= ( (double) nd);
-  sigma_train_mean = sqrt(sigma_train_mean);
+  beta_train_mean /= ( (double) nd);
+  sigma_train_mean = sqrt(sigma_train_mean) / ( (double) nd);
   if(n_test > 0){
     fit_test_mean /= ( (double) nd);
-    sigma_test_mean /= ( (double) nd);
+    beta_test_mean /= ( (double) nd);
+    sigma_test_mean = sqrt(sigma_test_mean) / ( (double) nd);
   }
   
   Rcpp::List results;
   
   results["fit_train_mean"] = fit_train_mean;
+  results["beta_train_mean"] = beta_train_mean;
   results["sigma_train_mean"] = sigma_train_mean;
-  if(save_samples) results["sigma_train"] = sigma_train;
-  if(save_samples) results["fit_train"] = fit_train;
+  if(save_samples){
+    results["fit_train"] = fit_train;
+    results["beta_train"] = beta_train;
+    results["sigma_train"] = sigma_train;
+  }
   
   if(n_test > 0){
     results["fit_test_mean"] = fit_test_mean;
+    results["beta_test_mean"] = beta_test_mean;
     results["sigma_test_mean"] = sigma_test_mean;
     if(save_samples){
       results["fit_test"] = fit_test;
+      results["beta_test"] = beta_test;
       results["sigma_test"] = sigma_test;
     }
   }

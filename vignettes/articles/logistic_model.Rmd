@@ -31,7 +31,7 @@ Each categorical covariate will take on 10 different values.
 
 We generate $n = 10000$ training observations and $n = 1000$ testing observations.
 ```{r generate-vcbart1-data}
-set.seed(727)
+set.seed(107)
 n_train <- 10000
 n_test <- 1000
 p_cont <- 10
@@ -67,19 +67,18 @@ We define the true coefficient functions below.
 ```{r define-beta}
 beta0_true <- function(df){
   tmp_X1 <- (1+df[,"X1"])/2 # re-scale X1 to [0,1]
-  tmp_X11 <- 1*(df[,"X11"] %in% c(0, 1, 4,5,6,8,9))
+  tmp_X11 <- 1*(df[,"X11"] %in% c(0, 1, 4, 5, 6, 8, 9))
   return(3 * tmp_X1 + (2 - 5 * (tmp_X11)) * sin(pi * tmp_X1) - 2 * (tmp_X11))
 }
 
-set.seed(517)
 D <- 5000
 omega0 <- rnorm(n = D, mean = 0, sd = 1.5)
 b0 <- 2 * pi * runif(n = D, min = 0, max = 1)
 weights <- rnorm(n = D, mean = 0, sd = 2*1/sqrt(D))
 beta1_true <- function(df){
-  u <- 5*df[,"X1"] # re-scale x1 to [-5,5]
+  u <- 5 * df[,"X1"] # re-scale x1 to [-5,5]
   if(length(u) == 1){
-    phi <- sqrt(2) * cos(b0 + omega0*u)
+    phi <- sqrt(2) * cos(b0 + omega0 * u)
     out <- sum(weights * phi)
   } else{
     phi_mat <- matrix(nrow = length(u), ncol = D)
@@ -92,8 +91,8 @@ beta1_true <- function(df){
 }
 
 beta2_true <- function(df){
-  tmp_X <- (1+df[,"X1"])/2 #re-scale X1 to [0,1]
-  return(3 - 3*cos(6*pi*tmp_X) * tmp_X^2) * (tmp_X > 0.6) - 
+  tmp_X <- (1 + df[,"X1"]) / 2 #re-scale X1 to [0,1]
+  return(3 - 3 * cos(6*pi*tmp_X) * tmp_X^2) * (tmp_X > 0.6) - 
     (10 * sqrt(tmp_X)) * (tmp_X < 0.25)
 }
 ```
@@ -112,24 +111,19 @@ beta2_test <- beta2_true(test_data)
 mu_train <-
   beta0_train + train_data[,"Z1"] * beta1_train + train_data[,"Z2"] * beta2_train
 
-p_train <- 1/(1 + exp(-mu_train))
-
 mu_test <- 
   beta0_test + test_data[,"Z1"] * beta1_test + test_data[,"Z2"] * beta2_test
 
-p_test <- 1/(1 + exp(-mu_test))
-
-train_data[,"Y"] <-
-  rbinom(n = length(mu_train), size = 1, p = p_train)
-
-test_data <- test_data[,colnames(test_data) != "Y"]
+prob_train <- 1/(1 + exp(-mu_train))
+prob_test <- 1/(1 + exp(-mu_test))
+train_data[,"Y"] <- rbinom(n = length(mu_train), size = 1, p = prob_train)
 ```
 
 We're now ready to fit our model.
 ```{r fit-vcbart1, results='hide'}
-set.seed(99)
 fit <-
-  flexBART::logit_flexBART(formula = Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.),
+  flexBART::flexBART(formula = Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.),
+                     family = binomial(link = "logit"),
                      train_data = train_data,
                      test_data = test_data)
 ```
@@ -143,7 +137,7 @@ oi_colors <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
                "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(2,4))
 
-plot(p_train, fit$prob.train.mean, pch = 16, cex = 0.5,
+plot(prob_train, fit$prob.train.mean, pch = 16, cex = 0.5,
      xlab = "Actual", ylab = "Posterior Mean", main = "Response surface (train)")
 abline(a = 0, b = 1, col = oi_colors[3])
 plot(beta0_train, fit$beta.train.mean[,1], pch = 16, cex = 0.5,
@@ -157,7 +151,7 @@ plot(beta2_train, fit$beta.train.mean[,3], pch = 16, cex = 0.5,
 abline(a = 0, b = 1, col = oi_colors[3])
 
 
-plot(p_test, fit$prob.test.mean, pch = 16, cex = 0.5,
+plot(prob_test, fit$prob.test.mean, pch = 16, cex = 0.5,
      xlab = "Actual", ylab = "Posterior Mean", main = "Response surface (test)")
 abline(a = 0, b = 1, col = oi_colors[3])
 
@@ -201,7 +195,7 @@ beta_test_u95 <-
   apply(fit$beta.test, MARGIN = c(2,3), FUN = quantile, probs = 0.975)
 
 coverage["train", "p"] <-
-  mean(p_train >= p_train_l95 & p_train <= p_train_u95)
+  mean(prob_train >= p_train_l95 & prob_train <= p_train_u95)
 coverage["train", "beta0"] <-
   mean(beta0_train >= beta_train_l95[,1] & beta0_train <= beta_train_u95[,1])
 coverage["train", "beta1"] <-
@@ -211,7 +205,7 @@ coverage["train", "beta2"] <-
 
 
 coverage["test", "p"] <-
-  mean(p_test >= p_test_l95 & p_test <= p_test_u95)
+  mean(prob_test >= p_test_l95 & prob_test <= p_test_u95)
 coverage["test", "beta0"] <-
   mean(beta0_test >= beta_test_l95[,1] & beta0_test <= beta_test_u95[,1])
 coverage["test", "beta1"] <-

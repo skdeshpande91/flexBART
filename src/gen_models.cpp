@@ -42,7 +42,7 @@ double GenModel::proposal_mu_single(double &m, const int &nid, suff_stat &ss, da
   }
 
   // give a warning if the scoring loop terminates by max iterations
-  if (iter >= max_iter) tree_pi.convergance_warning = true;
+  if (iter >= max_iter)tree_pi.convergance_warning = true;
 
   return m;
 }

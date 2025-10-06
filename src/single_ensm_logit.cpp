@@ -169,6 +169,11 @@ Rcpp::List single_logit_fit(Rcpp::IntegerVector Y_train,
   for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
   // END: update lambda and residuals
 
+  // BEGIN: initialize laplace approximation map for sigma ensemble
+  std::vector<std::map<int, laplace_approx>> lap_map_vec(M);
+  for(int m = 0; m < M; ++m) compute_laplace_approx_single(lap_map_vec[m], ss_train_vec[m], di_train, tree_pi, *gmp);
+  // END: initialize laplace approximation map for sigma ensemble
+
   // BEGIN: create output containers
   arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
   arma::vec fit_test_mean = arma::zeros<arma::vec>(1); // posterior mean for testing data (if any)
@@ -210,7 +215,7 @@ Rcpp::List single_logit_fit(Rcpp::IntegerVector Y_train,
       } // closes loop over leafs
       for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
       // END: remove fit of m-th tree
-      update_tree_gen_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, di_train, di_test, tree_pi, *gmp, gen); // update the tree
+      update_tree_gen_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], lap_map_vec[m], accept, di_train, di_test, tree_pi, *gmp, gen); // update the tree
       total_accept += accept;
     
       // BEGIN: restore fit of m-th tree
@@ -251,7 +256,7 @@ Rcpp::List single_logit_fit(Rcpp::IntegerVector Y_train,
       } // closes loop over leafs
       for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
       // END: remove fit of m-th tree
-      update_tree_gen_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, di_train, di_test, tree_pi, *gmp, gen); // update the tree
+      update_tree_gen_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], lap_map_vec[m], accept, di_train, di_test, tree_pi, *gmp, gen); // update the tree
       total_accept += accept;
     
       // BEGIN: restore fit of m-th tree
