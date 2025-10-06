@@ -1,4 +1,4 @@
-probit_flexBART <- function(formula, 
+logit_flexBART <- function(formula, 
                             train_data,
                             test_data = NULL,...)
 {
@@ -8,13 +8,7 @@ probit_flexBART <- function(formula,
   ###############################
   usr_args <- list(...)
   usr_names <- names(usr_args)
-
-  ###############################
-  # Set family and link arguments
-  ###############################
-  family <- "binomial"
-  link <- "probit"
-
+  
   ###############################
   # Parse the formula
   ###############################
@@ -37,9 +31,7 @@ probit_flexBART <- function(formula,
                  outcome_name = outcome_name, 
                  cov_ensm = cov_ensm, 
                  test_data = test_data,
-                 family = family,
-                 link = link
-                 ,...)
+                 probit = TRUE,...)
   # It will be useful to have problem dimensions readily accessible
   R <- tmp_data$training_info$R
   n_train <- length(tmp_data$training_info$std_Y)
@@ -67,7 +59,7 @@ probit_flexBART <- function(formula,
     
     if("nest_v" %in% usr_names) nest_v <- usr_args[["nest_v"]]
     else{
-      warning("[probit_flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
+      warning("[logit_flexBART]: nesting structure detected but no nest_v argument specified. Defaulting to nest_v=TRUE")
       nest_v <- TRUE
     }
     
@@ -79,13 +71,13 @@ probit_flexBART <- function(formula,
     
     if("nest_c" %in% usr_names) nest_c <- usr_args[["nest_c"]]
     else{
-      warning("[probit_flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
+      warning("[logit_flexBART]: nesting structure detected but no nest_c argument specified. Defaulting to nest_c=TRUE")
       nest_c <- TRUE
     }
   }
   
   hyper <- 
-    parse_hyper_probit(R = R, y_mean = y_mean,
+    parse_hyper_logit(R = R, y_mean = y_mean,
                 nest_v = nest_v, 
                 nest_v_option = nest_v_option, 
                 nest_c = nest_c, 
@@ -157,7 +149,7 @@ probit_flexBART <- function(formula,
       tmp_time <-
         system.time(
           fit <-
-            ._single_fit_probit(Y_train = tmp_data$training_info$std_Y,
+            ._single_fit_logit(Y_train = tmp_data$training_info$std_Y,
                                cov_ensm = cov_ensm,
                                tX_cont_train = t(tmp_data$training_info$X_cont),
                                tX_cat_train = t(tmp_data$training_info$X_cat),
@@ -186,11 +178,12 @@ probit_flexBART <- function(formula,
                                save_trees = control$save_trees,
                                verbose = control$verbose, 
                                print_every = control$print_every))
-    } else{
+    } 
+    else{
       tmp_time <-
         system.time(
           fit <-
-            ._multi_fit_probit(Y_train = tmp_data$training_info$std_Y,
+            ._multi_fit_logit(Y_train = tmp_data$training_info$std_Y,
                               cov_ensm = cov_ensm,
                               tZ_train = t(tmp_data$training_info$Z),
                               tX_cont_train = t(tmp_data$training_info$X_cont),
@@ -295,7 +288,7 @@ probit_flexBART <- function(formula,
   results[["cov_ensm"]] <- cov_ensm
 
   results[["family"]] <- "binomial"
-  results[["link"]] <- "probit"
+  results[["link"]] <- "logit"
 
   results[["prob.train.mean"]] <- prob_train_mean
   if(R > 1){
