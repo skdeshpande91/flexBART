@@ -17,7 +17,7 @@ flexBART <- function(formula,
     # default to standard BART
     family <- "gaussian"
     link <- "identity"
-  } else if (class(usr_args[["family"]]) == "family"){
+  } else if (inherits(usr_args[["family"]], "family")){
     family <- usr_args[["family"]][["family"]]
     link <- usr_args[["family"]][["link"]]
   } else {
@@ -344,11 +344,11 @@ flexBART <- function(formula,
                                           nest_v = hyper$nest_v,
                                           nest_v_option = hyper$nest_v_option,
                                           nest_c = hyper$nest_c,
-                                          M = hyper$M_vec,
-                                          alpha = hyper$alpha_vec,
-                                          beta = hyper$beta_vec,
-                                          mu0 = hyper$mu0_vec,
-                                          tau = hyper$tau_vec,
+                                          M_vec = hyper$M_vec,
+                                          alpha_vec = hyper$alpha_vec,
+                                          beta_vec = hyper$beta_vec,
+                                          mu0_vec = hyper$mu0_vec,
+                                          tau_vec = hyper$tau_vec,
                                           nd = control$nd, 
                                           burn = control$burn, 
                                           thin = control$thin,
@@ -382,11 +382,11 @@ flexBART <- function(formula,
                                           nest_v = hyper$nest_v,
                                           nest_v_option = hyper$nest_v_option,
                                           nest_c = hyper$nest_c,
-                                          M = hyper$M_vec,
-                                          alpha = hyper$alpha_vec,
-                                          beta = hyper$beta_vec,
-                                          mu0 = hyper$mu0_vec,
-                                          tau = hyper$tau_vec,
+                                          M_vec = hyper$M_vec,
+                                          alpha_vec = hyper$alpha_vec,
+                                          beta_vec = hyper$beta_vec,
+                                          mu0_vec = hyper$mu0_vec,
+                                          tau_vec = hyper$tau_vec,
                                           nd = control$nd, 
                                           burn = control$burn, 
                                           thin = control$thin,

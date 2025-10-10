@@ -218,13 +218,19 @@ parse_formula <- function(frmla, train_data){
   cat_names <- NULL
   if(p_cat > 0) cat_names <- covariate_names[is_cat]
 
-  if(R == 1){
-    cov_ensm <- matrix(cov_ensm[c(cont_names, cat_names),], 
-                      nrow = p, ncol = 1,
-                      dimnames = list(c(cont_names, cat_names), colnames(cov_ensm)))
-  } else{
-    cov_ensm <- cov_ensm[c(cont_names, cat_names),]
-  }
+  cov_ensm <- 
+    matrix(cov_ensm[c(cont_names, cat_names),],
+           nrow = p, ncol = R,
+           dimnames = list(c(cont_names, cat_names), colnames(cov_ensm)))
+  
+  #if(R == 1){
+  #  cov_ensm <- matrix(cov_ensm[c(cont_names, cat_names),], 
+  #                    nrow = p, ncol = 1,
+  #                    dimnames = list(c(cont_names, cat_names), colnames(cov_ensm)))
+  #} else{
+    # fails when R > 1 but p == 1
+  #  cov_ensm <- cov_ensm[c(cont_names, cat_names),]
+  #}
 
   if(heteroskedastic){
     cov_var <- matrix(cov_var[c(cont_names, cat_names),1], 

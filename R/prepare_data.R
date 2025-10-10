@@ -16,7 +16,7 @@ prepare_data <- function(train_data,
     # default to standard BART
     family <- "gaussian"
     link <- "identity"
-  } else if (class(usr_args[["family"]]) == "family"){
+  } else if (inherits(usr_args[["family"]], "family")){
     family <- usr_args[["family"]][["family"]]
     link <- usr_args[["family"]][["link"]]
   } else {

@@ -13,10 +13,10 @@ predict.flexBART <- function(object, newdata, ...)
   if(! "verbose" %in% usr_names) verbose <- FALSE
   else{
     verbose <- usr_args[["verbose"]]
-    if(!is(verbose, "logical")) stop("Argument verbose must be logical")
+    if(!inherits(verbose, "logical")) stop("Argument verbose must be logical")
   }
   
-  if(!is(object, "flexBART")){
+  if(!inherits(object, "flexBART")){
     stop("object must be of class 'flexBART'.")
   }
   if(is.null(object$trees)) stop("No trees provided!")

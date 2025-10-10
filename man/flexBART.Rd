@@ -148,7 +148,7 @@ The usage will be familiar to users of the \code{glm} package.
 For example, to fit a logistic regression model, you can use \code{flexBART(<args>, family = binomial(link = "logit"))}. 
 \strong{Note that the only currently-supported family is \code{binomial(link = "logit")}.}
 \itemize{
-  \item{family}{The model family name. Used by \code{\link{predict.flexBART}}.}
+  \item family: The model family name. Used by \code{\link{predict.flexBART}}.
 }
 }
 
