@@ -1,33 +1,37 @@
-#include "update_tree.h"
 #include "data_parsing_funs.h"
 #include "funs.h"
-// [[Rcpp::export("._single_fit")]]
-Rcpp::List single_fit(Rcpp::NumericVector Y_train,
-                      Rcpp::IntegerMatrix cov_ensm,
-                      Rcpp::NumericMatrix tX_cont_train,
-                      Rcpp::IntegerMatrix tX_cat_train,
-                      Rcpp::NumericMatrix tX_cont_test,
-                      Rcpp::IntegerMatrix tX_cat_test,
-                      Rcpp::Nullable<Rcpp::List> cutpoints_list,
-                      Rcpp::Nullable<Rcpp::List> cat_levels_list,
-                      Rcpp::Nullable<Rcpp::List> edge_mat_list,
-                      Rcpp::Nullable<Rcpp::List> nest_list,
-                      int graph_cut_type,
-                      bool sparse, double a_u, double b_u,
-                      bool nest_v, int nest_v_option, bool nest_c,
-                      int M,
-                      double alpha, double beta,
-                      double mu0, double tau,
-                      double sigest, double nu, double lambda,
-                      int nd, int burn, int thin,
-                      bool save_samples,
-                      bool save_trees,
-                      bool verbose, int print_every)
+#include "gen_models.h"
+#include "update_tree_gen.h"
+
+// [[Rcpp::export("._single_fit_logit")]]
+Rcpp::List single_logit_fit(Rcpp::IntegerVector Y_train,
+                             Rcpp::IntegerMatrix cov_ensm,
+                             Rcpp::NumericMatrix tX_cont_train,
+                             Rcpp::IntegerMatrix tX_cat_train,
+                             Rcpp::NumericMatrix tX_cont_test,
+                             Rcpp::IntegerMatrix tX_cat_test,
+                             Rcpp::Nullable<Rcpp::List> cutpoints_list,
+                             Rcpp::Nullable<Rcpp::List> cat_levels_list,
+                             Rcpp::Nullable<Rcpp::List> edge_mat_list,
+                             Rcpp::Nullable<Rcpp::List> nest_list,
+                             int graph_cut_type,
+                             bool sparse, double a_u, double b_u,
+                             bool nest_v, int nest_v_option, bool nest_c,
+                             int M,
+                             double alpha, double beta,
+                             double mu0, double tau,
+                             int nd, int burn, int thin,
+                             int max_iter,
+                             bool save_samples,
+                             bool save_trees,
+                             bool verbose, int print_every)
 {
   Rcpp::RNGScope scope;
   RNG gen;
   
   set_str_conversion set_str; // for converting sets of integers into strings
+
+  GenModel* gmp = new Logit(); // generalized model pointer
   
   // BEGIN: get dimensions of training data
   int n_train = Y_train.size(); // how many training observations
@@ -40,8 +44,6 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   int n_test = 0;
   if(p_cont > 0 && tX_cont_test.size() > 1) n_test = tX_cont_test.cols();
   else if(p_cat > 0 && tX_cat_test.size() > 1) n_test = tX_cat_test.cols();
-
-  //if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
   // END: get dimensions of testing data
   
   // BEGIN: set cutpoints & categorical levels + parse network structure
@@ -65,6 +67,7 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   // END: build graph encoding nesting relationships b/w categorical predictors
 
   // BEGIN: create splitting probabilities
+  // declare stuff for variable selection
   std::vector<double> theta(p, 1.0/ (double) p);
   double u = 1.0/(1.0 + (double) p);
   std::vector<int> var_count(p, 0); // count how many times a variable has been used in a splitting rule
@@ -72,7 +75,12 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   // END: create splitting probabilities
   
   // BEGIN: initialize containers for residuals and fit
+  double* lambda = new double[n_train];
   double* residual = new double[n_train];
+  int tmp_n_test = 1;
+  if(n_test > 0) tmp_n_test = n_test;
+  double* tmp_fit_test = new double[tmp_n_test]; // for holding test set fits temporarily
+
   // END: initialize containers for residuals and fit
   
   
@@ -86,6 +94,7 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   if(p_cont > 0) di_train.x_cont = tX_cont_train.begin();
   if(p_cat > 0) di_train.x_cat = tX_cat_train.begin();
   di_train.rp = residual;
+  di_train.lambda = lambda;
   
   // set up the data info object for testing data
   data_info di_test;
@@ -124,20 +133,19 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   tree_pi.beta = beta;
   tree_pi.mu0 = mu0;
   tree_pi.tau = tau;
+  tree_pi.max_iter = max_iter;
   // END: create tree prior info object
   
-  // BEGIN: intialize sigma
-  double sigma = sigest;
-  double total_sq_resid = 0.0; // sum of squared residuals
-  double scale_post = 0.0;
-  double nu_post = 0.0;
-  // END: initialize sigma
+//   // BEGIN: intialize sigma
+//   double sigma = 1.0; // for probit, sigma is fixed
+//   // END: initialize sigma
   
   // BEGIN: initialize stuff for main MCMC loop
   int total_draws = 1 + burn + (nd-1)*thin;
   int sample_index = 0;
   int accept = 0;
   int total_accept = 0; // counts how many trees we change in each iteration
+  double tmp_fit; // for holding difference b/w latents and residuals
   double tmp_mu; // for holding the value of mu when we're doing the backfitting
   // END: initialize stuff for main MCMC loop
   
@@ -145,21 +153,26 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
   std::vector<tree> t_vec(M);
   std::vector<suff_stat> ss_train_vec(M);
   std::vector<suff_stat> ss_test_vec(M);
-  // END: initialize tree vector
+  // END: initialize tree vector & sufficient statistics maps
   
-  for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i]; // start with all trees initialized at zero
+  // BEGIN: update lambda and residuals
   for(int m = 0; m < M; ++m){
-    tree_traversal(ss_train_vec[m], t_vec[m], di_train);
-    // get the fit of each tree
+    tree_traversal(ss_train_vec[m], t_vec[m], di_train); // populates ss_train_vec[m]
     for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
       tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
       if(l_it->second.size() > 0){
-        for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu; // in this initial sweep, we have to remove the fit of each tree.
-      }
+        for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += tmp_mu;
+      } // closes if checking leaf is non-empty and updating initial value of residual
     }
     if(n_test > 0) tree_traversal(ss_test_vec[m], t_vec[m], di_test);
   }
-  // END: initialize tree vector & sufficient statistics maps
+  for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
+  // END: update lambda and residuals
+
+  // BEGIN: initialize laplace approximation map for sigma ensemble
+  std::vector<std::map<int, laplace_approx>> lap_map_vec(M);
+  for(int m = 0; m < M; ++m) compute_laplace_approx_single(lap_map_vec[m], ss_train_vec[m], di_train, tree_pi, *gmp);
+  // END: initialize laplace approximation map for sigma ensemble
 
   // BEGIN: create output containers
   arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
@@ -174,7 +187,6 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
     if(n_test > 0) fit_test.zeros(nd, n_test);
   }
   
-  arma::vec sigma_samples(total_draws);
   arma::vec total_accept_samples(total_draws);
   arma::mat var_count_samples(nd, p);
   
@@ -198,41 +210,32 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
         // loop over the bottom nodes in m-th tree
         tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
         if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] += tmp_mu;
-        } // closes if checking that leaf is non-empty and computes partial residual
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] -= tmp_mu;
+        } // closes if checking leaf is non-empty and computes partial residual
       } // closes loop over leafs
+      for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
       // END: remove fit of m-th tree
-      
-      update_tree_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
+      update_tree_gen_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], lap_map_vec[m], accept, di_train, di_test, tree_pi, *gmp, gen); // update the tree
       total_accept += accept;
     
       // BEGIN: restore fit of m-th tree
       for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
         tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
         if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu;
-        } // closes if checking that leaf is non-empty and computing full residual
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += tmp_mu;
+        } // closes if checking leaf is non-empty and computes full residual
       } // closes loop over leafs
-      // END: restore fit of m-th tree
+      for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
+      //END: restore fit of m-th tree
     } // closes loop over all of the trees
     
-    // BEGIN: update sigma
-    total_sq_resid = 0.0;
-    for(int i = 0; i < n_train; i++) total_sq_resid += pow(residual[i], 2.0); // sum of squared residuals
-    scale_post = lambda * nu + total_sq_resid;
-    nu_post = nu + ( (double) n_train);
-    sigma = sqrt(scale_post/gen.chi_square(nu_post));
-    sigma_samples(iter) = sigma;
-    // END: update sigma
-    // BEGIN: update theta (if sparse)
-    if(sparse) update_theta_u_subset(theta, u, var_count, a_u, b_u, gen);
-    // END: update theta (if sparse)
-    
+    // save information for the diagnostics
     total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
+    if(sparse) update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
   } // closes burn-in
   // END: burn-in
   
-  //BEGIN: post-burn-in
+  // BEGIN: post-burn-in
   for(int iter = burn; iter < total_draws; ++iter){
     if(iter==total_draws-1){
       if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter+1 << " of " << total_draws << "; Sampling" << std::endl;
@@ -240,7 +243,7 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
       Rcpp::checkUserInterrupt();
       if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
     }
-  
+    
     total_accept = 0;
     for(int m = 0; m < M; ++m){
       //BEGIN: remove fit of m-th tree
@@ -248,37 +251,32 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
         // loop over the bottom nodes in m-th tree
         tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
         if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] += tmp_mu;
-        } // closes if checking that leaf is non-empty and computes partial residual
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] -= tmp_mu;
+        } // closes if checking leaf is non-empty and computes partial residual
       } // closes loop over leafs
+      for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
       // END: remove fit of m-th tree
-      
-      update_tree_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], accept, sigma, di_train, di_test, tree_pi, gen); // update the tree
+      update_tree_gen_single(t_vec[m], ss_train_vec[m], ss_test_vec[m], lap_map_vec[m], accept, di_train, di_test, tree_pi, *gmp, gen); // update the tree
       total_accept += accept;
     
       // BEGIN: restore fit of m-th tree
       for(suff_stat_it l_it = ss_train_vec[m].begin(); l_it != ss_train_vec[m].end(); ++l_it){
         tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
         if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= tmp_mu;
-        } // closes if checking that leaf is non-empty and computing full residual
+          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += tmp_mu;
+        } // closes if checking leaf is non-empty and computes full residual
       } // closes loop over leafs
-      // END: restore fit of m-th tree
+      for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
+      //END: restore fit of m-th tree
     } // closes loop over all of the trees
-    // BEGIN: update sigma
-    total_sq_resid = 0.0;
-    for(int i = 0; i < n_train; ++i) total_sq_resid += pow(residual[i], 2.0); // sum of squared residuals
-    scale_post = lambda * nu + total_sq_resid;
-    nu_post = nu + ( (double) n_train);
-    sigma = sqrt(scale_post/gen.chi_square(nu_post));
-    sigma_samples(iter) = sigma;
-    // END: update sigma
     
-    //BEGIN: update theta (if sparse)
-    if(sparse) update_theta_u_subset(theta, u, var_count, a_u, b_u, gen);
+    // BEGIN: update theta (if sparse)
+    if(sparse) update_theta_u(theta, u, var_count, p, a_u, b_u, gen);
     // END: update theta (if sparse)
     
+    // save information for the diagnostics
     total_accept_samples(iter) = total_accept; // how many trees changed in this iteration
+    
     if( (iter - burn)%thin == 0 ){
       sample_index = (int) ( (iter-burn)/thin);
       for(int j = 0; j < p; ++j) var_count_samples(sample_index,j) = var_count[j];
@@ -289,44 +287,40 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
         for(int m = 0; m < M; ++m) tree_string_vec[m] = write_tree(t_vec[m], tree_pi, set_str);
         tree_draws[sample_index] = tree_string_vec; // dump a character vector holding each tree's draws into an element of an Rcpp::List
       }
-      double tmp_allfit = 0.0;
       if(save_samples){
         for(int i = 0; i < n_train; ++i){
-          tmp_allfit = Y_train[i] - residual[i];
-          fit_train(sample_index,i) = tmp_allfit;
-          fit_train_mean(i) += tmp_allfit;
+          fit_train(sample_index,i) = gmp->inv_link(lambda[i]);
+          fit_train_mean(i) += gmp->inv_link(lambda[i]);
         }
       } else{
-        for(int i = 0; i < n_train; ++i) fit_train_mean(i) += Y_train[i] - residual[i];
+        for(int i = 0; i < n_train; ++i) fit_train_mean(i) += gmp->inv_link(lambda[i]);
       }
-
       if(n_test > 0){
+        for(int i = 0; i < n_test; ++i) tmp_fit_test[i] = 0.0;
+        
+        for(int m = 0; m < M; ++m){
+          for(suff_stat_it l_it = ss_test_vec[m].begin(); l_it != ss_test_vec[m].end(); ++l_it){
+            tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
+            if(l_it->second.size() > 0){
+              for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) tmp_fit_test[*it] += tmp_mu;
+            } // closes if checking that leaf is non-empty and increment tmp_fit_test
+          } // closes if/else checking whether we're saving samples or just posterior mean
+        } // closes loop over trees
+        
         if(save_samples){
-          for(int m = 0; m < M; ++m){
-            for(suff_stat_it l_it = ss_test_vec[m].begin(); l_it != ss_test_vec[m].end(); ++l_it){
-              tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
-              if(l_it->second.size() > 0){
-                for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-                  fit_test(sample_index, *it) += tmp_mu;
-                  fit_test_mean(*it) += tmp_mu;
-                } // closes loop over observations in leaf
-              } // closes if checking that leaf is non-empty
-            } // closes if/else checking whether we're saving samples or just posterior mean
-          } // closes loop over trees
+          for(int i = 0; i < n_test; ++i){
+            fit_test(sample_index, i) = gmp->inv_link(tmp_fit_test[i]);
+            fit_test_mean(i) += gmp->inv_link(tmp_fit_test[i]);
+          }
         } else{
-          for(int m = 0; m < M; ++m){
-            for(suff_stat_it l_it = ss_test_vec[m].begin(); l_it != ss_test_vec[m].end(); ++l_it){
-              tmp_mu = t_vec[m].get_ptr(l_it->first)->get_mu();
-              if(l_it->second.size() > 0){
-                for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) fit_test_mean(*it) += tmp_mu;
-              } // closes if checking that leaf is non-empty
-            } // closes loop over tree leafs
-          } // closes loop over tres
+          for(int i = 0; i < n_test; ++i) fit_test_mean(i) += gmp->inv_link(tmp_fit_test[i]);
         } // closes if/else checking whether we're saving samples or just posterior mean
       } // close if checking that there are test set observations
     } // closes if that checks whether we should save anything in this iteration
   } // closes post-burn-in loop
   // END: post-burn-in
+
+  if(tree_pi.convergance_warning) Rcpp::Rcout << "WARNING! At least one Laplace approximation did not converge. Consider increasing 'max_iter'." << std::endl;
   
   fit_train_mean /= ( (double) nd);
   if(n_test > 0) fit_test_mean /= ( (double) nd);
@@ -339,11 +333,11 @@ Rcpp::List single_fit(Rcpp::NumericVector Y_train,
     results["fit_test_mean"] = fit_test_mean;
     if(save_samples) results["fit_test"] = fit_test;
   }
-  results["sigma"] = sigma_samples;
   results["total_accept"] = total_accept_samples;
   results["var_count"] = var_count_samples;
   if(save_trees) results["trees"] = tree_draws;
 
+  
   return results;
   
 }

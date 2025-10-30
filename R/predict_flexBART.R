@@ -13,10 +13,10 @@ predict.flexBART <- function(object, newdata, ...)
   if(! "verbose" %in% usr_names) verbose <- FALSE
   else{
     verbose <- usr_args[["verbose"]]
-    if(!is(verbose, "logical")) stop("Argument verbose must be logical")
+    if(!inherits(verbose, "logical")) stop("Argument verbose must be logical")
   }
   
-  if(!is(object, "flexBART")){
+  if(!inherits(object, "flexBART")){
     stop("object must be of class 'flexBART'.")
   }
   if(is.null(object$trees)) stop("No trees provided!")
@@ -68,11 +68,17 @@ predict.flexBART <- function(object, newdata, ...)
                            tX_cont = t(X_cont),
                            tX_cat = t(X_cat),
                            M = object[["M"]][1],
-                           probit = object[["is.probit"]],
+                           family = object[["family"]],
+                           link = object[["link"]],
                            verbose = verbose,
                            print_every = print_every)
-    if(!object[["is.probit"]]) output <- object$scaling_info$y_mean + object$scaling_info$y_sd * tmp
-    else output <- tmp
+    if(object[["family"]] == "gaussian" && object[["link"]] == "identity"){
+      output <- object$scaling_info$y_mean + object$scaling_info$y_sd * tmp
+    } else if(object[["family"]] == "poisson" && object[["link"]] == "log"){
+      output <- tmp * exp(object$scaling_info$offset)
+    } else {
+      output <- tmp
+    }
   } else{
     ###############################
     # Build Z
@@ -101,10 +107,18 @@ predict.flexBART <- function(object, newdata, ...)
                           tX_cont = t(X_cont),
                           tX_cat = t(X_cat),
                           M_vec = object[["M"]],
+                          family = object[["family"]],
+                          link = object[["link"]],
                           verbose = verbose, print_every = print_every)
-    yhat <- 
+    if (object[["family"]] == "gaussian" && object[["link"]] == "identity") {
+      yhat <- 
       object$scaling_info$y_mean + 
       object$scaling_info$y_sd * tmp[["fit"]]
+    } else if (object[["family"]] == "poisson" && object[["link"]] == "log") {
+      yhat <- tmp[["fit"]] * exp(object$scaling_info$offset)
+    } else {
+      yhat <- tmp[["fit"]]
+    }
     
     beta_samples <-  
       rescale_beta(tmp[["raw_beta"]], 

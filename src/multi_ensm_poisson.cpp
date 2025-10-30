@@ -1,8 +1,10 @@
-#include "update_tree.h"
 #include "data_parsing_funs.h"
 #include "funs.h"
-// [[Rcpp::export("._multi_fit_probit")]]
-Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
+#include "gen_models.h"
+#include "update_tree_gen.h"
+
+// [[Rcpp::export("._multi_fit_poisson")]]
+Rcpp::List multi_poisson_fit(Rcpp::IntegerVector Y_train,
                             Rcpp::IntegerMatrix cov_ensm,
                             Rcpp::NumericMatrix tZ_train,
                             Rcpp::NumericMatrix tX_cont_train,
@@ -21,6 +23,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
                             Rcpp::NumericVector alpha_vec, Rcpp::NumericVector beta_vec,
                             Rcpp::NumericVector mu0_vec, Rcpp::NumericVector tau_vec,
                             int nd, int burn, int thin,
+                            int max_iter,
                             bool save_samples,
                             bool save_trees,
                             bool verbose, int print_every)
@@ -31,6 +34,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
   
   set_str_conversion set_str; // for converting sets of integers into strings
   
+  GenModel* gmp = new Poisson(); // generalized model pointer
   
   // BEGIN PREPROCESSING
   
@@ -96,7 +100,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
 
 
   // BEGIN: initializing containers for residuals
-  double* latent = new double[n_train];
+  double* lambda = new double[n_train];
   double* residual = new double[n_train];
   int tmp_n_test = 1;
   if(n_test > 0) tmp_n_test = n_test;
@@ -114,6 +118,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
   if(p_cont > 0) di_train.x_cont = tX_cont_train.begin();
   if(p_cat > 0) di_train.x_cat = tX_cat_train.begin();
   di_train.rp = residual;
+  di_train.lambda = lambda;
   // END: creating data info object for training data
   
   // BEGIN: creating data info object for testing data (if present)
@@ -155,12 +160,13 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
     tree_pi_vec[r].beta = beta_vec[r];
     tree_pi_vec[r].mu0 = mu0_vec[r];
     tree_pi_vec[r].tau = tau_vec[r];
+    tree_pi_vec[r].max_iter = max_iter;
   }
   // END: creating tree prior info object
   
-  // BEGIN: initialize sigma
-  double sigma = 1.0; // for probit, sigma is fixed
-  // END : initialize sigma
+//   // BEGIN: initialize sigma
+//   double sigma = 1.0; // for probit, sigma is fixed
+//   // END : initialize sigma
   
   // BEGIN: initialize stuff for main MCMC loop
   int total_draws = 1 + burn + (nd-1)*thin;
@@ -183,37 +189,30 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
     ss_test_vec.push_back(std::vector<suff_stat>(M_vec[r]));
   }
   // END: initialize vector of tree ensembles & maps of observations to leafs
-  
-  // BEGIN: initialize latent and residuals
-  double offset = R::qnorm(Rcpp::mean(Y_train), 0.0, 1.0, true, false);
-  for(int i = 0; i < n_train; ++i){
-    if(Y_train[i] == 1) latent[i] = gen.lo_trunc_norm(offset, 0.0);
-    else if(Y_train[i] == 0) latent[i] = gen.hi_trunc_norm(offset, 0.0);
-    else{
-      Rcpp::Rcout << "Outcome for observation i = " << i+1 << " is " << Y_train[i] << std::endl;
-      Rcpp::stop("For probit regression, all outcomes must be 1 or 0");
-    }
-    residual[i] = latent[i];
-  }
-  // END: initialize latent and residuals
 
-  // BEGIN: initialize suff_stat_maps and populate residuals
+  // BEGIN: update lambda and residuals
   for(int r = 0; r < R; ++r){
     for(int m = 0; m < M_vec[r]; ++m){
-      tree_traversal(ss_train_vec[r][m], t_vec[r][m], di_train);
-      // get the fit of each tree
-      for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
-        tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
-        if(l_it->second.size() > 0){
-          for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it){
-            residual[*it] -= di_train.z[r + (*it)*R] * tmp_mu; // remove initial fit of each tree from residual
-          }
-        } // closes if checking leaf has training obs
-      } // closes loop over leafs
-      if(n_test > 0) tree_traversal(ss_test_vec[r][m], t_vec[r][m], di_test);
-    } // closes loop over trees in ensemble
+        tree_traversal(ss_train_vec[r][m], t_vec[r][m], di_train); // populates ss_train_vec[m]
+        for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
+          tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
+          if(l_it->second.size() > 0){
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += di_train.z[r + (*it) * R] * tmp_mu;
+          } // closes if checking leaf is non-empty and updating initial value of residual
+        }
+        if(n_test > 0) tree_traversal(ss_test_vec[r][m], t_vec[r][m], di_test);
+      } // closes loop over trees in ensemble
+      for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
   } // closes loop over ensembles
+  // END: update lambda and residuals
   
+  // BEGIN: initialize laplace approximation map for sigma ensemble
+  std::vector<std::vector<std::map<int, laplace_approx>>> lap_map_vec;
+  for(int r = 0; r < R; ++r) lap_map_vec.push_back(std::vector<std::map<int, laplace_approx>>(M_vec[r]));
+  for(int r = 0; r < R; ++r){
+    for(int m = 0; m < M_vec[r]; ++m) compute_laplace_approx_multi(lap_map_vec[r][m], ss_train_vec[r][m], r, di_train, tree_pi_vec[r], *gmp);
+  }
+  // END: initialize laplace approximation map for sigma ensemble
 
   // BEGIN: create output containers
   arma::vec fit_train_mean = arma::zeros<arma::vec>(n_train); // posterior mean for training data
@@ -254,15 +253,6 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
         else Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Warmup" << std::endl;
       }
     }
-    
-    // BEGIN: update latents and residuals
-    for(int i = 0; i < n_train; ++i){
-      tmp_fit = latent[i] - residual[i]; // current fit for i-th observations
-      if(Y_train[i] == 1) latent[i] = gen.lo_trunc_norm(tmp_fit, 0.0);
-      else latent[i] = gen.hi_trunc_norm(tmp_fit, 0.0);
-      residual[i] = latent[i] - tmp_fit; // updates the residual
-    }
-    // END: update latents and residuals
   
     // BEGIN: update all regression trees
     for(int r = 0; r < R; ++r){
@@ -273,22 +263,23 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
         for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
           tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
           if(l_it->second.size() > 0){
-            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] += di_train.z[r + (*it) * R] * tmp_mu;
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] -= di_train.z[r + (*it) * R] * tmp_mu;
           } // closes if checking that leaf is non-empty and computing partial residual
         } // closes loop over all leafs removing fit
         // END: remove fit of m-th tree
         
         // BEGIN: update the tree
-        update_tree_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
+        update_tree_gen_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], lap_map_vec[r][m], accept, r, di_train, di_test, tree_pi_vec[r], *gmp, gen); // update the tree
         total_accept += accept;
         // END: update the tree
         // BEGIN: restore fit of m-th tree
         for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
           tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
           if(l_it->second.size() > 0){
-            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= di_train.z[r + (*it) * R] * tmp_mu;
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += di_train.z[r + (*it) * R] * tmp_mu;
           } // closes if checking that leaf is non-empty and computing full residual
         } // closes loop restoring fit for training
+        for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
         // END: restore fit of m-th tree
       } // closes loop over all of the trees in this ensemble
       // END: loop over all trees in a single ensmble
@@ -310,15 +301,6 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
       if(verbose) Rcpp::Rcout << "  MCMC Iteration: " << iter << " of " << total_draws << "; Sampling" << std::endl;
     }
     
-    // BEGIN: update latents and residuals
-    for(int i = 0; i < n_train; ++i){
-      tmp_fit = latent[i] - residual[i]; // current fit for i-th observations
-      if(Y_train[i] == 1) latent[i] = gen.lo_trunc_norm(tmp_fit, 0.0);
-      else latent[i] = gen.hi_trunc_norm(tmp_fit, 0.0);
-      residual[i] = latent[i] - tmp_fit; // updates the residual
-    }
-    // END: update latents and residuals
-    
     // BEGIN: update all regression trees
     for(int r = 0; r < R; ++r){
       total_accept = 0;
@@ -328,22 +310,24 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
         for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
           tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu(); // get the value of mu in the leaf
           if(l_it->second.size() > 0){
-            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] += di_train.z[r + (*it) * R] * tmp_mu;
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] -= di_train.z[r + (*it) * R] * tmp_mu;
           } // closes if checking that leaf is non-empty and computing partial residual
         } // closes loop over all leafs removing fit
+        for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
         // END: remove fit of m-th tree
         
         // BEGIN: update the tree
-        update_tree_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], accept, r, sigma, di_train, di_test, tree_pi_vec[r], gen); // update the tree
+        update_tree_gen_multi(t_vec[r][m], ss_train_vec[r][m], ss_test_vec[r][m], lap_map_vec[r][m], accept, r, di_train, di_test, tree_pi_vec[r], *gmp, gen); // update the tree
         total_accept += accept;
         // END: update the tree
         // BEGIN: restore fit of m-th tree
         for(suff_stat_it l_it = ss_train_vec[r][m].begin(); l_it != ss_train_vec[r][m].end(); ++l_it){
           tmp_mu = t_vec[r][m].get_ptr(l_it->first)->get_mu();
           if(l_it->second.size() > 0){
-            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) residual[*it] -= di_train.z[r + (*it) * R] * tmp_mu;
+            for(int_it it = l_it->second.begin(); it != l_it->second.end(); ++it) lambda[*it] += di_train.z[r + (*it) * R] * tmp_mu;
           } // closes if checking that leaf is non-empty and computing full residual
         } // closes loop restoring fit for training
+        for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
         // END: restore fit of m-th tree
       } // closes loop over all of the trees in this ensemble
       // END: loop over all trees in a single ensmble
@@ -376,9 +360,8 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
       
       if(save_samples){
         for(int i = 0; i < n_train; ++i){
-          tmp_fit = latent[i] - residual[i];
-          fit_train(sample_index,i) = R::pnorm(tmp_fit, 0.0, 1.0, true, false);
-          fit_train_mean(i) += R::pnorm(tmp_fit, 0.0, 1.0, true, false);
+          fit_train(sample_index,i) = gmp->inv_link(lambda[i]);
+          fit_train_mean(i) += gmp->inv_link(lambda[i]);
         }
         // now compute beta_train
         for(int r = 0; r < R; ++r){
@@ -396,8 +379,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
         }
       } else{
         for(int i = 0; i < n_train; ++i){
-          tmp_fit = latent[i] - residual[i];
-          fit_train_mean(i) += R::pnorm(tmp_fit, 0.0, 1.0, true, false);
+          fit_train_mean(i) += gmp->inv_link(lambda[i]);
         }
         
         for(int r = 0; r < R; ++r){
@@ -431,8 +413,8 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
             }
           }
           for(int i = 0; i < n_test; ++i){
-            fit_test(sample_index,i) = R::pnorm(tmp_fit_test[i], 0.0, 1.0, true, false);
-            fit_test_mean(i) += R::pnorm(tmp_fit_test[i], 0.0, 1.0, true, false);
+            fit_test(sample_index,i) = gmp->inv_link(tmp_fit_test[i]);
+            fit_test_mean(i) += gmp->inv_link(tmp_fit_test[i]);
           }
         } else{
           for(int r = 0; r < R; ++r){
@@ -450,7 +432,7 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
             }
           }
           for(int i = 0; i < n_test; ++i){
-            fit_test_mean(i) += R::pnorm(tmp_fit_test[i], 0.0, 1.0, true, false);
+            fit_test_mean(i) += gmp->inv_link(tmp_fit_test[i]);
           }
         } // closes if/else checking whether we're saving samples
       } // closes if checking whether we have testing observations
@@ -459,6 +441,13 @@ Rcpp::List multi_probit_fit(Rcpp::IntegerVector Y_train,
     // END: save post-warmup samples
   } // closes the main MCMC for loop
   // END: main MCMC loop
+
+  for(int r = 0; r < R; ++r){
+    if(tree_pi_vec[r].convergance_warning){
+      Rcpp::Rcout << "WARNING! At least one Laplace approximation did not converge. Consider increasing 'max_iter'." << std::endl;
+      break;
+    }
+  }
   
   // BEGIN: rescale posterior means
   fit_train_mean /= ( (double) nd);
