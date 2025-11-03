@@ -41,17 +41,17 @@ Rcpp::List multi_fit(Rcpp::NumericVector Y_train,
   int R = tZ_train.rows(); // how many ensembles
   int p_cont = 0;
   int p_cat = 0;
-  if(tX_cont_train.size() > 1){
+  if(tX_cont_train.size() > 0){
     p_cont = tX_cont_train.rows(); // how many continuous covariates
   }
-  if(tX_cat_train.size() > 1){
+  if(tX_cat_train.size() > 0){
     p_cat = tX_cat_train.rows(); // how many categorical covariates
   }
   int p = p_cont + p_cat;
   // END: get dimensions of training data;
   // BEGIN: get dimensions of testing data
   int n_test = 0;
-  if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
+  if(tZ_test.size() > 0) n_test = tZ_test.cols(); // how many test set observations
   // END: get dimensions of testing data
 
 
