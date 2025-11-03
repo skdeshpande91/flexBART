@@ -128,7 +128,6 @@ void compute_ss_grow_gen_single(suff_stat &ss, std::map<int, laplace_approx> &la
 void compute_ss_grow_gen_multi(suff_stat &ss, std::map<int, laplace_approx> &lap_map, int &nx_nid, rule_t &rule, int &r, data_info &di, tree_prior_info &tree_pi, GenModel &gmp)
 {
   int i = 0;
-  double z = 0.0;
   int nxl_nid = 2*nx_nid;
   int nxr_nid = 2*nx_nid+1;
   
@@ -159,7 +158,6 @@ void compute_ss_grow_gen_multi(suff_stat &ss, std::map<int, laplace_approx> &lap
       double xx_cont = 0.0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        z = di.z[r + i * di.R];
         xx_cont = *(di.x_cont + i*di.p_cont + rule.v_aa);
         if(xx_cont < rule.c){
           nxl_it->second.push_back(i);
@@ -174,7 +172,6 @@ void compute_ss_grow_gen_multi(suff_stat &ss, std::map<int, laplace_approx> &lap
       int xx_cat = 0;
       for(std::vector<int>::iterator it = nx_it->second.begin(); it != nx_it->second.end(); ++it){
         i = *it;
-        z = di.z[r + i*di.R];
         xx_cat = *(di.x_cat + i*di.p_cat + rule.v_cat);
         int l_count = rule.l_vals.count(xx_cat);
         int r_count = rule.r_vals.count(xx_cat);
@@ -213,7 +210,6 @@ void compute_ss_grow_gen_multi(suff_stat &ss, std::map<int, laplace_approx> &lap
 // in-place modification of ss and jp for prune moves
 void compute_ss_prune_gen_single(suff_stat &ss, std::map<int, laplace_approx> &lap_map, int &nxl_nid, int &nxr_nid, int &nx_nid, data_info &di, tree_prior_info &tree_pi, GenModel &gmp)
 {
-  int i = 0;
   // check that our data structures have element for nxl and nxr but not for nx
   if(ss.count(nxl_nid) == 0 || ss.count(nxr_nid) == 0 || ss.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune_single]: something's wrong with ss_train");
   if(lap_map.count(nxl_nid) == 0 || lap_map.count(nxr_nid) == 0 || lap_map.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune_single]: something's wrong with lap_map");
@@ -232,14 +228,12 @@ void compute_ss_prune_gen_single(suff_stat &ss, std::map<int, laplace_approx> &l
   
   if(nxl_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxl_it->second.begin(); it != nxl_it->second.end(); ++it){
-      i = *it;
-      nx_it->second.push_back(i);
+      nx_it->second.push_back(*it);
     } // closes loop over observations in nxl
   } // closes if checking that nxl is non-empty
   if(nxr_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxr_it->second.begin(); it != nxr_it->second.end(); ++it){
-      i = *it;
-      nx_it->second.push_back(i);
+      nx_it->second.push_back(*it);
     } // closes loop over observations in nxr
   } // closes if checking that nxr is non-empty
 
@@ -251,8 +245,6 @@ void compute_ss_prune_gen_single(suff_stat &ss, std::map<int, laplace_approx> &l
 
 void compute_ss_prune_gen_multi(suff_stat &ss, std::map<int, laplace_approx> &lap_map, int &nxl_nid, int &nxr_nid, int &nx_nid, int &r, data_info &di, tree_prior_info &tree_pi, GenModel &gmp)
 {
-  int i = 0;
-  double z = 0.0;
   // check that our data structures have element for nxl and nxr but not for nx
   if(ss.count(nxl_nid) == 0 || ss.count(nxr_nid) == 0 || ss.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune_multi]: something's wrong with ss_train");
   if(lap_map.count(nxl_nid) == 0 || lap_map.count(nxr_nid) == 0 || lap_map.count(nx_nid) == 1) Rcpp::stop("[compute_ss_prune_multi]: something's wrong with lap_map");
@@ -271,16 +263,12 @@ void compute_ss_prune_gen_multi(suff_stat &ss, std::map<int, laplace_approx> &la
   
   if(nxl_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxl_it->second.begin(); it != nxl_it->second.end(); ++it){
-      i = *it;
-      z = di.z[r + i*di.R];
-      nx_it->second.push_back(i);
+      nx_it->second.push_back(*it);
     } // closes loop over observations in nxl
   } // closes if checking that nxl is non-empty
   if(nxr_it->second.size() > 0){
     for(std::vector<int>::iterator it = nxr_it->second.begin(); it != nxr_it->second.end(); ++it){
-      i = *it;
-      z = di.z[r + i*di.R];
-      nx_it->second.push_back(i);
+      nx_it->second.push_back(*it);
     } // closes loop over observations in nxr
   } // closes if checking that nxr is non-empty
 

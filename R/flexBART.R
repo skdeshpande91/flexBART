@@ -54,7 +54,6 @@ flexBART <- function(formula,
                  outcome_name = outcome_name, 
                  cov_ensm = cov_ensm, 
                  ...)
-  cat("Made it past prepare_data\n")
   # It will be useful to have problem dimensions readily accessible
   R <- tmp_data$training_info$R
   n_train <- length(tmp_data$training_info$std_Y)

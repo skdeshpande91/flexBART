@@ -172,7 +172,6 @@ Rcpp::List multi_logit_fit(Rcpp::IntegerVector Y_train,
   int sample_index = 0;
   int accept = 0;
   int total_accept = 0; // counts how many trees we change in each iteration
-  double tmp_fit; // for holding difference b/w latents and residuals
   double tmp_mu; // for holding the value of mu when we're doing the backfitting
   // END: initialize stuff for main MCMC loop
   

@@ -6,9 +6,9 @@ new_flexBART_training <- function()
   out["y_sd"] <- list(NULL)
   # in the C++ code, we use a 1x1 matrix as a null value for design matrices
   # this avoids having to cast nullable arguments first
-  out["X_cont"] <- matrix(0, nrow = 0, ncol = 0) 
-  out["X_cat"] <- matrix(0, nrow = 0, ncol = 0) 
-  out["Z"] <- matrix(0, nrow = 0, ncol = 0)
+  out[["X_cont"]] <- matrix(0, nrow = 0, ncol = 0)
+  out[["X_cat"]] <- matrix(0, nrow = 0, ncol = 0)
+  out[["Z"]] <- matrix(0, nrow = 0, ncol = 0)
   
   out["cutpoints"] <- list(NULL)
   out["cat_levels_list"] <- list(NULL)

@@ -106,7 +106,6 @@ Rcpp::List multi_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   double* lambda = new double[n_train]; // holds the current estimate of log(sigma(x)^2)
   int tmp_n_test = 1;
   if(n_test > 0) tmp_n_test = n_test;
-  double* tmp_fit_test = new double[tmp_n_test]; // for holding test set fits temporarily
   double* tmp_sigma_test = new double[tmp_n_test]; // for holding test set sigmas temporarily
   // END: initialize containers for residuals and fit
   
