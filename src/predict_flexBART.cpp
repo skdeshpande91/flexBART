@@ -15,8 +15,8 @@ Rcpp::NumericMatrix single_predict(Rcpp::List tree_draws,
   int p_cont = 0;
   int p_cat = 0;
   
-  if(tX_cont.size() > 1) p_cont = tX_cont.rows();
-  if(tX_cat.size() > 1) p_cat = tX_cat.rows();
+  if(tX_cont.size() > 0) p_cont = tX_cont.rows();
+  if(tX_cat.size() > 0) p_cat = tX_cat.rows();
   
   if(p_cont > 0 && p_cat == 0) n = tX_cont.cols();
   else if(p_cont == 0 && p_cat > 0) n = tX_cat.cols();
@@ -174,8 +174,8 @@ Rcpp::List multi_predict(Rcpp::List tree_draws,
   int p_cat = 0;
   int R = tZ.rows(); // how many ensembles
 
-  if(tX_cont.size() > 1) p_cont = tX_cont.rows();
-  if(tX_cat.size() > 1) p_cat = tX_cat.rows();
+  if(tX_cont.size() > 0) p_cont = tX_cont.rows();
+  if(tX_cat.size() > 0) p_cat = tX_cat.rows();
   
   if(p_cont > 0 && p_cat == 0) n = tX_cont.cols();
   else if(p_cont == 0 && p_cat > 0) n = tX_cat.cols();

@@ -41,12 +41,8 @@ Rcpp::List multi_fit(Rcpp::NumericVector Y_train,
   int R = tZ_train.rows(); // how many ensembles
   int p_cont = 0;
   int p_cat = 0;
-  if(tX_cont_train.size() > 0){
-    p_cont = tX_cont_train.rows(); // how many continuous covariates
-  }
-  if(tX_cat_train.size() > 0){
-    p_cat = tX_cat_train.rows(); // how many categorical covariates
-  }
+  if(tX_cont_train.size() > 0) p_cont = tX_cont_train.rows(); // how many continuous covariates
+  if(tX_cat_train.size() > 0) p_cat = tX_cat_train.rows(); // how many categorical covariates
   int p = p_cont + p_cat;
   // END: get dimensions of training data;
   // BEGIN: get dimensions of testing data
@@ -205,7 +201,6 @@ Rcpp::List multi_fit(Rcpp::NumericVector Y_train,
       if(n_test > 0) tree_traversal(ss_test_vec[r][m], t_vec[r][m], di_test);
     } // closes loop over trees in ensemble
   } // closes loop over ensembles
-  //for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - allfit_train[i];
   
 
   // BEGIN: create output containers

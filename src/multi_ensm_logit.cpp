@@ -45,7 +45,6 @@ Rcpp::List multi_logit_fit(Rcpp::IntegerVector Y_train,
   int p_cat = 0;
   if(tX_cont_train.size() > 0) p_cont = tX_cont_train.rows(); // how many continuous covariates
   if(tX_cat_train.size() > 0) p_cat = tX_cat_train.rows(); // how many categorical covariates
-  
   int p = p_cont + p_cat;
   // END: get dimensions of training data;
   // BEGIN: get dimensions of testing data
