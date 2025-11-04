@@ -202,8 +202,8 @@ Rcpp::List multi_logit_fit(Rcpp::IntegerVector Y_train,
         }
         if(n_test > 0) tree_traversal(ss_test_vec[r][m], t_vec[r][m], di_test);
       } // closes loop over trees in ensemble
-      for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
   } // closes loop over ensembles
+  for(int i = 0; i < n_train; ++i) residual[i] = Y_train[i] - gmp->inv_link(lambda[i]);
   // END: update lambda and residuals
 
   // BEGIN: initialize laplace approximation map for sigma ensemble

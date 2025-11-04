@@ -29,13 +29,12 @@ We first demonstrate **logit_flexBART**'s functionality using data generated fro
 $X$ contains $p_{\text{cont}} = 10$ continuous and $p_{\text{cat}} = 10$ categorical covariates.
 Each categorical covariate will take on 10 different values.
 
-We generate $n = 10000$ training observations and $n = 1000$ testing observations.
+We generate $n = 2000$ training observations and $n = 1000$ testing observations.
 ```{r generate-vcbart1-data}
-set.seed(107)
-n_train <- 10000
-n_test <- 1000
-p_cont <- 10
-p_cat <- 10
+set.seed(101)
+n_train <- 2000
+n_test <- 100
+p_cont <- 5
 
 train_data <- data.frame(Y = rep(NA, times = n_train))
 test_data <- data.frame(Y = rep(NA, times = n_test))
@@ -44,12 +43,6 @@ for(j in 1:p_cont){
     runif(n = n_train, min = -1, max = 1)
   test_data[,paste0("X",j)] <- 
     runif(n = n_test, min = -1, max = 1)
-}
-for(j in 1:p_cat){
-  train_data[,paste0("X",j+p_cont)] <- 
-    factor(sample(0:9, size = n_train, replace = TRUE), levels = 0:9)
-  test_data[,paste0("X",j+p_cont)] <-
-    factor(sample(0:9, size = n_test, replace = TRUE), levels = 0:9)
 }
 
 train_data[,"Z1"] <-
@@ -66,34 +59,15 @@ test_data[,"Z2"] <-
 We define the true coefficient functions below.
 ```{r define-beta}
 beta0_true <- function(df){
-  tmp_X1 <- (1+df[,"X1"])/2 # re-scale X1 to [0,1]
-  tmp_X11 <- 1*(df[,"X11"] %in% c(0, 1, 4, 5, 6, 8, 9))
-  return(3 * tmp_X1 + (2 - 5 * (tmp_X11)) * sin(pi * tmp_X1) - 2 * (tmp_X11))
+  return(2 * df[,"X1"]^2 - 1)
 }
 
-D <- 5000
-omega0 <- rnorm(n = D, mean = 0, sd = 1.5)
-b0 <- 2 * pi * runif(n = D, min = 0, max = 1)
-weights <- rnorm(n = D, mean = 0, sd = 2*1/sqrt(D))
 beta1_true <- function(df){
-  u <- 5 * df[,"X1"] # re-scale x1 to [-5,5]
-  if(length(u) == 1){
-    phi <- sqrt(2) * cos(b0 + omega0 * u)
-    out <- sum(weights * phi)
-  } else{
-    phi_mat <- matrix(nrow = length(u), ncol = D)
-    for(d in 1:D){
-      phi_mat[,d] <- sqrt(2) * cos(b0[d] + omega0[d] * u)
-    }
-    out <- phi_mat %*% weights
-  }
-  return(out)
+  return(cos(2 * pi * df[,"X3"]) + df[,"X1"]^3)
 }
 
 beta2_true <- function(df){
-  tmp_X <- (1 + df[,"X1"]) / 2 #re-scale X1 to [0,1]
-  return(3 - 3 * cos(6*pi*tmp_X) * tmp_X^2) * (tmp_X > 0.6) - 
-    (10 * sqrt(tmp_X)) * (tmp_X < 0.25)
+  return((df[,"X2"] + df[,"X3"])/2)
 }
 ```
 
@@ -125,10 +99,11 @@ fit <-
   flexBART::flexBART(formula = Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.),
                      family = binomial(link = "logit"),
                      train_data = train_data,
-                     test_data = test_data)
+                     test_data = test_data
+                     )
 ```
 
-`flexBART::flexBART` returns the posterior mean estimate and posterior samples for each $\beta_{j}(x)$ evaluation (outputs named `beta`) and for the whole response surface (outputs named `yhat`).
+`flexBART::flexBART` returns the posterior mean estimate and posterior samples for each $\beta_{j}(x)$ evaluation (outputs named `beta`) and for the whole response surface (outputs named `prob`).
 We first plot the posterior mean evaluations of each $\beta_{j}$ and the response surface for both training and testing.
  
 ```{r plot-fits-vcbart1, fig.align = 'center'}
@@ -233,5 +208,5 @@ marginal_split_prob <-
   apply(fit$varcounts >= 1, MARGIN = c(2,3), FUN = mean)
 which(marginal_split_prob >= 0.5, arr.ind = TRUE)
 ```
-We see that $X_{1}$ and $X_{11}$ are selected for $\beta_{0};$ $X_{1}$ is selected for $\beta_{2};$ and $X_{1}$ is selected for $\beta_{3}.$
-So, at least for this run, there are no false positive and no false negative identifications.
+We see that $X_{1}$ is selected for $\beta_{0};$ $X_{1}$ and $X_{3}$ are selected for $\beta_{2};$ and all the X's are selected for $\beta_{3}.$
+So, at least for this run, there are only three false positive and no false negative identifications.
