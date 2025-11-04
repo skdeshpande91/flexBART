@@ -56,7 +56,7 @@ lambda_test <- lambda_true(test_data)
 
 prob_train <- 1/(1 + exp(-lambda_train))
 prob_test <- 1/(1 + exp(-lambda_test))
-train_data[,"Y"] <- rbinom(n = length(mu_train), size = 1, p = prob_train)
+train_data[,"Y"] <- rbinom(n = length(lambda_train), size = 1, p = prob_train)
 ```
 
 We're now ready to fit our model.
