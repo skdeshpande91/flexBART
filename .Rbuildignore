@@ -10,3 +10,6 @@
 ^vignettes/articles/*_files$
 ^README\.md$
 ^NEWS\.md$
+^examples/*$
+^new_pacage_testing/*$
+^data/*$

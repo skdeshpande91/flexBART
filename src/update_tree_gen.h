@@ -19,7 +19,10 @@ void grow_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::
 void prune_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen);
 void prune_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen);
 
-void update_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen);
-void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen);
+void update_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen);
+void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen);
+
+void update_tree_gen_single_old(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen);
+void update_tree_gen_multi_old(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen);
 
 #endif /* update_tree_gen_h */

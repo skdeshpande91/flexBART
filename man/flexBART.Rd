@@ -148,7 +148,7 @@ The usage will be familiar to users of the \code{glm} package.
 For example, to fit a logistic regression model, you can use \code{flexBART(<args>, family = binomial(link = "logit"))}. 
 \strong{Note that the only currently-supported family is \code{binomial(link = "logit")}.}
 \itemize{
-  \item{family}{The model family name. Used by \code{\link{predict.flexBART}}.}
+  \item family: The model family name. Used by \code{\link{predict.flexBART}}.
 }
 }
 
@@ -164,7 +164,7 @@ can be supplied using the \code{\dots}:
   used to specify Linero (2018)'s sparse Dirichlet prior. Default is 0.5. Ignored if \code{nest_v=TRUE}.
   \item \code{b_u}: Hyper-parameter for the \eqn{Beta(a_u,b_u)}{Beta(a_u,b_u)} hyper-prior
   used to specify Linero (2018)'s sparse Dirichlet prior. Default is 1. Ignored if \code{nest_v=TRUE}.
-  \item \code{n_chains}: Number of MCMC chains to run. Default is 4.
+  \item \code{n.chains}: Number of MCMC chains to run. Default is 4.
   \item \code{nd}: Number of posterior draws to return per chain. Default is 1000.
   \item \code{burn}: Number of "burn-in" or "warm-up" iterations per chain. Default is 1000.
   \item \code{thin}: Number of post-warmup MCMC iterations by which to thin. Default is 1.

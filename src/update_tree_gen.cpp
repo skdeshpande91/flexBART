@@ -746,7 +746,7 @@ void prune_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std:
   }
 }
 
-void update_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
+void update_tree_gen_single_old(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
 {
   accept = 0; // initialize indicator of MH acceptance to 0 (reject)
   double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
@@ -755,6 +755,18 @@ void update_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, in
   std::map<int, laplace_approx> lap_map;
   compute_laplace_approx_single(lap_map, ss_train, di_train, tree_pi, gmp);
   
+  if(gen.uniform() < PBx) grow_tree_gen_single(t, ss_train, ss_test, lap_map, accept, di_train, di_test,tree_pi, gmp, gen);
+  else prune_tree_gen_single(t, ss_train, ss_test, lap_map, accept, di_train, di_test, tree_pi, gmp, gen);
+  
+  draw_mu_gen(t, lap_map, gen);
+
+}
+
+void update_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
+{
+  accept = 0; // initialize indicator of MH acceptance to 0 (reject)
+  double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
+  if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
   
   if(gen.uniform() < PBx) grow_tree_gen_single(t, ss_train, ss_test, lap_map, accept, di_train, di_test,tree_pi, gmp, gen);
   else prune_tree_gen_single(t, ss_train, ss_test, lap_map, accept, di_train, di_test, tree_pi, gmp, gen);
@@ -764,7 +776,7 @@ void update_tree_gen_single(tree &t, suff_stat &ss_train, suff_stat &ss_test, in
 }
 
 
-void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
+void update_tree_gen_multi_old(tree &t, suff_stat &ss_train, suff_stat &ss_test, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
 {
   accept = 0; // initialize indicator of MH acceptance to 0 (reject)
   double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
@@ -773,6 +785,19 @@ void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, int
   std::map<int, laplace_approx> lap_map;
   compute_laplace_approx_multi(lap_map, ss_train, r, di_train, tree_pi, gmp);
   
+  
+  if(gen.uniform() < PBx) grow_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, di_train, di_test, tree_pi, gmp, gen);
+  else prune_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, di_train, di_test, tree_pi, gmp, gen);
+  
+  draw_mu_gen(t, lap_map, gen);
+
+}
+
+void update_tree_gen_multi(tree &t, suff_stat &ss_train, suff_stat &ss_test, std::map<int, laplace_approx> &lap_map, int &accept, int &r, data_info &di_train, data_info &di_test, tree_prior_info &tree_pi, GenModel &gmp, RNG &gen)
+{
+  accept = 0; // initialize indicator of MH acceptance to 0 (reject)
+  double PBx = tree_pi.prob_b; // prob of proposing a birth move (typically 0.5)
+  if(t.get_treesize() == 1) PBx = 1.0; // if tree is just the root, we must always GROW
   
   if(gen.uniform() < PBx) grow_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, di_train, di_test, tree_pi, gmp, gen);
   else prune_tree_gen_multi(t, ss_train, ss_test, lap_map, accept, r, di_train, di_test, tree_pi, gmp, gen);

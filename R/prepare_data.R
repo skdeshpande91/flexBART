@@ -16,7 +16,7 @@ prepare_data <- function(train_data,
     # default to standard BART
     family <- "gaussian"
     link <- "identity"
-  } else if (class(usr_args[["family"]]) == "family"){
+  } else if (inherits(usr_args[["family"]], "family")){
     family <- usr_args[["family"]][["family"]]
     link <- usr_args[["family"]][["link"]]
   } else {
@@ -67,9 +67,9 @@ prepare_data <- function(train_data,
       # when there is a single categorical predictor, c(train_data[,...], test_data[,...]) is a list
       #cov_data <- 
       # data.frame(c(train_data[,covariate_names[1]], test_data[,covariate_names[1]]))
-      cov_data <-
-        rbind(data.frame(train_data[,covariate_names[1]]),
-              data.frame(test_data[,covariate_names[1]]))
+        cov_data <-
+        rbind(data.frame(x=train_data[,covariate_names[1]]),
+              data.frame(x=test_data[,covariate_names[1]]))
       colnames(cov_data) <- covariate_names[1]
     } else{
       cov_data <- 
