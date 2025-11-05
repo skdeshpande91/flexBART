@@ -405,11 +405,11 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
         for(int i = 0; i < n_train; ++i){
           fit_train(sample_index,i) = Y_train[i] - residual[i];
           fit_train_mean(i) += Y_train[i] - residual[i];
-          sigma_train_mean(i) += gmp->inv_link(lambda[i]);
+          sigma_train_mean(i) += sqrt(gmp->inv_link(lambda[i]));
         }
       } else{
         for(int i = 0; i < n_train; ++i) fit_train_mean(i) += Y_train[i] - residual[i];
-        for(int i = 0; i < n_train; ++i) sigma_train_mean(i) += gmp->inv_link(lambda[i]);
+        for(int i = 0; i < n_train; ++i) sigma_train_mean(i) += sqrt(gmp->inv_link(lambda[i]));
       }
 
       if(n_test > 0){
@@ -441,13 +441,13 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
           for(int i = 0; i < n_test; ++i){
             fit_test(sample_index, i) = tmp_fit_test[i];
             fit_test_mean(i) += tmp_fit_test[i];
-            sigma_test(sample_index, i) = gmp->inv_link(tmp_sigma_test[i]);
-            sigma_test_mean(i) += gmp->inv_link(tmp_sigma_test[i]);
+            sigma_test(sample_index, i) = sqrt(gmp->inv_link(tmp_sigma_test[i]));
+            sigma_test_mean(i) += sqrt(gmp->inv_link(tmp_sigma_test[i]));
           }
         } else{
           for(int i = 0; i < n_test; ++i){
             fit_test_mean(i) += tmp_fit_test[i];
-            sigma_test_mean(i) += gmp->inv_link(tmp_sigma_test[i]);
+            sigma_test_mean(i) += sqrt(gmp->inv_link(tmp_sigma_test[i]));
           }
         } // closes if/else checking whether we're saving samples or just posterior mean
       } // closes if checking that there are test set observations
@@ -459,7 +459,6 @@ Rcpp::List single_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   
   fit_train_mean /= ( (double) nd);
   sigma_train_mean /= ( (double) nd);
-  sigma_train_mean = sqrt(sigma_train_mean);
   if(n_test > 0){
     fit_test_mean /= ( (double) nd);
     sigma_test_mean /= ( (double) nd);
