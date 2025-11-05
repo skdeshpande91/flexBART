@@ -133,12 +133,15 @@ flexBART <- function(formula,
       }
     }
     if (heteroskedastic){
-      stop("`sigma()` ensemble is not supported!")
-      # hyper <- 
-      #   parse_hyper(R = R + 1,
-      #               y_range = y_range,
-      #               nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
-      #               sigest = sigest, ...)
+      # stop("`sigma()` ensemble is not supported!")
+
+      hyper <- 
+        parse_hyper_heteroskedastic(R = R + 1,
+                                    y_range = y_range,
+                                    nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
+                                    sigest = sigest,
+                                    cov_var = cov_var,
+                                    ...)
     } else{
       hyper <- 
         parse_hyper(R = R,
