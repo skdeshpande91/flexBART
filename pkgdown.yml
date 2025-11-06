@@ -3,9 +3,10 @@ pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
   articles/friedman_example: friedman_example.html
+  articles/heteroskedastic_model: heteroskedastic_model.html
   articles/logistic_model: logistic_model.html
   articles/varying_coefficients: varying_coefficients.html
-last_built: 2025-11-04T21:01Z
+last_built: 2025-11-06T15:27Z
 urls:
   reference: https://skdeshpande91.github.io/flexBART/reference
   article: https://skdeshpande91.github.io/flexBART/articles
