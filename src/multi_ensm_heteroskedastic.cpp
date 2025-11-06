@@ -432,7 +432,7 @@ Rcpp::List multi_fit_heteroskedastic(Rcpp::NumericVector Y_train,
         for(int i = 0; i < n_train; ++i){
           fit_train(sample_index,i) = Y_train[i] - residual[i];
           fit_train_mean(i) += Y_train[i] - residual[i];
-          sigma_train_mean(i) += gmp->inv_link(lambda[i]);
+          sigma_train_mean(i) += sqrt(gmp->inv_link(lambda[i]));
         }
         // now compute beta_train
         for(int r = 0; r < R-1; ++r){
@@ -451,7 +451,7 @@ Rcpp::List multi_fit_heteroskedastic(Rcpp::NumericVector Y_train,
       } else{
         for(int i = 0; i < n_train; ++i){
           fit_train_mean(i) += Y_train[i] - residual[i];
-          sigma_train_mean(i) += gmp->inv_link(lambda[i]);
+          sigma_train_mean(i) += sqrt(gmp->inv_link(lambda[i]));
         }
       }
 
@@ -489,12 +489,12 @@ Rcpp::List multi_fit_heteroskedastic(Rcpp::NumericVector Y_train,
 
         if(save_samples){
           for(int i = 0; i < n_test; ++i){
-            sigma_test(sample_index, i) = gmp->inv_link(tmp_sigma_test[i]);
-            sigma_test_mean(i) += gmp->inv_link(tmp_sigma_test[i]);
+            sigma_test(sample_index, i) = sqrt(gmp->inv_link(tmp_sigma_test[i]));
+            sigma_test_mean(i) += sqrt(gmp->inv_link(tmp_sigma_test[i]));
           }
         } else{
           for(int i = 0; i < n_test; ++i){
-            sigma_test_mean(i) += gmp->inv_link(tmp_sigma_test[i]);
+            sigma_test_mean(i) += sqrt(gmp->inv_link(tmp_sigma_test[i]));
           }
         } // closes if/else checking whether we're saving samples or just posterior mean
       } // closes if checking that there are test set observations
@@ -506,11 +506,11 @@ Rcpp::List multi_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   
   fit_train_mean /= ( (double) nd);
   beta_train_mean /= ( (double) nd);
-  sigma_train_mean = sqrt(sigma_train_mean) / ( (double) nd);
+  sigma_train_mean = sigma_train_mean / ( (double) nd);
   if(n_test > 0){
     fit_test_mean /= ( (double) nd);
     beta_test_mean /= ( (double) nd);
-    sigma_test_mean = sqrt(sigma_test_mean) / ( (double) nd);
+    sigma_test_mean = sigma_test_mean / ( (double) nd);
   }
   
   Rcpp::List results;

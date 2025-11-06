@@ -62,7 +62,7 @@ predict.flexBART <- function(object, newdata, ...)
     X_cat <- matrix(0L, nrow = 1, ncol = 1)
   }
   
-  if(R == 1){
+  if(R == 1 & !object[["heteroskedastic"]]){
     tmp <- 
       .single_ensm_predict(tree_draws = object[["trees"]],
                            tX_cont = t(X_cont),
@@ -109,6 +109,7 @@ predict.flexBART <- function(object, newdata, ...)
                           M_vec = object[["M"]],
                           family = object[["family"]],
                           link = object[["link"]],
+                          heteroskedastic = object[["heteroskedastic"]],
                           verbose = verbose, print_every = print_every)
     if (object[["family"]] == "gaussian" && object[["link"]] == "identity") {
       yhat <- 
@@ -131,6 +132,9 @@ predict.flexBART <- function(object, newdata, ...)
     output[["yhat"]] <- yhat
     output[["beta"]] <- beta_samples
     output[["raw_beta"]] <- tmp[["raw_beta"]]
+    if(object[["heteroskedastic"]]){
+      output[["sigma"]] <- tmp[["sigma"]] * object$scaling_info$y_sd
+    }
     #output[["yhat_raw"]] <- tmp[["fit"]]
     #output[["Z"]] <- Z
   } # closes if/else checking whether it is single ensemble or multiple ensembles

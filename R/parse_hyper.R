@@ -403,8 +403,8 @@ parse_hyper_heteroskedastic <- function(R, y_range, ...){
   ###############################
   tmp_tau <- pmatch(usr_names, table = "tau_vec", duplicates.ok = FALSE)
   if(all(is.na(tmp_tau))){
-    if(R == 1){
-      hyper$tau_vec <- y_range/(2 * 2 * sqrt(hyper$M_vec[1]))
+    if(R == 2){
+      hyper$tau_vec <- c(y_range/(2 * 2), log(2)/2)/sqrt(hyper$M_vec)
     } else{
       hyper$tau_vec <- c(0.5, rep(log(2)/2, times = R - 1))/sqrt(hyper$M_vec)
     }
