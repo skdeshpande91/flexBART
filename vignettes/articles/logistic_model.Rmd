@@ -28,7 +28,7 @@ We first demonstrate **logit_flexBART**'s functionality using data generated fro
 We generate $n = 4000$ training observations and $n = 1000$ testing observations.
 ```{r generate-vcbart1-data}
 set.seed(101)
-n_train <- 4000
+n_train <- 5000
 n_test <- 1000
 p_cont <- 5
 
@@ -61,11 +61,13 @@ train_data[,"Y"] <- rbinom(n = length(lambda_train), size = 1, p = prob_train)
 
 We're now ready to fit our model.
 ```{r fit-vcbart1, results='hide'}
+set.seed(99)
 fit <-
   flexBART::flexBART(formula = Y ~ bart(.),
                      family = binomial(link = "logit"),
                      train_data = train_data,
-                     test_data = test_data
+                     test_data = test_data,
+                     n.chains = 1
                      )
 ```
 
