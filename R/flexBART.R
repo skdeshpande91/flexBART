@@ -881,6 +881,7 @@ flexBART <- function(formula,
   
   results[["family"]] <- family
   results[["link"]] <- link
+  results[["heteroskedastic"]] <- heteroskedastic
 
   if (family == "binomial") {
     results[["prob.train.mean"]] <- prob_train_mean

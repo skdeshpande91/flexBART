@@ -166,6 +166,7 @@ Rcpp::List multi_predict(Rcpp::List tree_draws,
                          Rcpp::IntegerVector M_vec,
                          std::string family,
                          std::string link,
+                         bool heteroskedastic,
                          bool verbose, int print_every)
 {
   set_str_conversion set_str; // for converting sets of integers into strings
@@ -197,6 +198,8 @@ Rcpp::List multi_predict(Rcpp::List tree_draws,
   std::vector<double> allfit(n);
   arma::cube raw_beta_out = arma::zeros<arma::cube>(nd, n, R);
   arma::mat pred_out = arma::zeros<arma::mat>(nd,n);
+  arma::mat sigma_out = arma::zeros<arma::mat>(1,1);
+  if(heteroskedastic) sigma_out.resize(nd,n);
   
   if(family == "binomial" && link == "logit"){
     GenModel* gmp = new Logit(); // generalized model pointer
@@ -266,8 +269,7 @@ Rcpp::List multi_predict(Rcpp::List tree_draws,
             } // closes loop populating vector of trees
             fit_ensemble(allfit, t_vec, di);
             for(int i = 0; i < n; ++i){
-              raw_beta_out(iter, i, r) = allfit[i];
-              tmp_lambda[i] += di.z[r + i*R] * allfit[i];
+              tmp_lambda[i] += allfit[i];
             }
           } // closes if/else checking that we have a string for every tree
         } // closes loop over ensembles
@@ -284,7 +286,7 @@ Rcpp::List multi_predict(Rcpp::List tree_draws,
         }
       }
       Rcpp::List tmp_draw = tree_draws[iter];
-      if(tmp_draw.size() != R){
+      if(tmp_draw.size() != R && (tmp_draw.size() != R + 1 && heteroskedastic)){
         Rcpp::Rcout << "iter = " << iter << " found " << tmp_draw.size() << " ensembles." << std::endl;
         Rcpp::Rcout << " Expected " << R << " ensembles" << std::endl;
         Rcpp::stop("Unexpected number of tree ensembles detected");
@@ -307,6 +309,23 @@ Rcpp::List multi_predict(Rcpp::List tree_draws,
             }
           } // closes if/else checking that we have a string for every tree
         } // closes loop over ensembles
+        if(heteroskedastic){
+          // fit the sigma ensemble
+          GenModel* gmp = new Sigma(); // generalized model pointer
+          Rcpp::CharacterVector tmp_string_vec = tmp_draw[R];
+          if(tmp_string_vec.size() != M_vec[R]){
+            Rcpp::Rcout << "iter = " << iter << " # tree strings = " << tmp_string_vec.size() << std::endl;
+            Rcpp::stop("Unexpected number of tree strings!");
+          } else{
+            std::vector<tree> t_vec(M_vec[R]);
+            for(int m = 0; m < M_vec[R]; ++m){
+              std::string tmp_string = Rcpp::as<std::string>(tmp_string_vec[m]);
+              read_tree(t_vec[m], tmp_string, set_str);
+            } // closes loop populating vector of trees
+            fit_ensemble(allfit, t_vec, di);
+            for(int i = 0; i < n; ++i) sigma_out(iter,i) = sqrt(gmp->inv_link(allfit[i]));
+          } // closes if/else checking that we have a string for every tree
+        }
       } // closes if/else checking that we have enough tree ensemble draws
     } // closes loop over tree ensemble samples
   } else{
@@ -317,6 +336,7 @@ Rcpp::List multi_predict(Rcpp::List tree_draws,
   Rcpp::List results;
   results["fit"] = pred_out;
   results["raw_beta"] = raw_beta_out;
+  if(heteroskedastic) results["sigma"] = sigma_out;
   return results;
 }
 

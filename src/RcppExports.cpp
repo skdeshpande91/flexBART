@@ -255,8 +255,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // multi_predict
-Rcpp::List multi_predict(Rcpp::List tree_draws, Rcpp::NumericMatrix tZ, Rcpp::NumericMatrix tX_cont, Rcpp::IntegerMatrix tX_cat, Rcpp::IntegerVector M_vec, std::string family, std::string link, bool verbose, int print_every);
-RcppExport SEXP _flexBART_multi_predict(SEXP tree_drawsSEXP, SEXP tZSEXP, SEXP tX_contSEXP, SEXP tX_catSEXP, SEXP M_vecSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
+Rcpp::List multi_predict(Rcpp::List tree_draws, Rcpp::NumericMatrix tZ, Rcpp::NumericMatrix tX_cont, Rcpp::IntegerMatrix tX_cat, Rcpp::IntegerVector M_vec, std::string family, std::string link, bool heteroskedastic, bool verbose, int print_every);
+RcppExport SEXP _flexBART_multi_predict(SEXP tree_drawsSEXP, SEXP tZSEXP, SEXP tX_contSEXP, SEXP tX_catSEXP, SEXP M_vecSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP heteroskedasticSEXP, SEXP verboseSEXP, SEXP print_everySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -267,9 +267,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type M_vec(M_vecSEXP);
     Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
     Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
+    Rcpp::traits::input_parameter< bool >::type heteroskedastic(heteroskedasticSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
-    rcpp_result_gen = Rcpp::wrap(multi_predict(tree_draws, tZ, tX_cont, tX_cat, M_vec, family, link, verbose, print_every));
+    rcpp_result_gen = Rcpp::wrap(multi_predict(tree_draws, tZ, tX_cont, tX_cat, M_vec, family, link, heteroskedastic, verbose, print_every));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -542,7 +543,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_flexBART_multi_poisson_fit", (DL_FUNC) &_flexBART_multi_poisson_fit, 32},
     {"_flexBART_multi_probit_fit", (DL_FUNC) &_flexBART_multi_probit_fit, 31},
     {"_flexBART_single_predict", (DL_FUNC) &_flexBART_single_predict, 8},
-    {"_flexBART_multi_predict", (DL_FUNC) &_flexBART_multi_predict, 9},
+    {"_flexBART_multi_predict", (DL_FUNC) &_flexBART_multi_predict, 10},
     {"_flexBART_rescale_beta_mean", (DL_FUNC) &_flexBART_rescale_beta_mean, 6},
     {"_flexBART_rescale_beta", (DL_FUNC) &_flexBART_rescale_beta, 6},
     {"_flexBART_drawTree", (DL_FUNC) &_flexBART_drawTree, 16},
