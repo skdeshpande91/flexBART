@@ -29,8 +29,8 @@
     .Call('_flexBART_single_predict', PACKAGE = 'flexBART', tree_draws, tX_cont, tX_cat, M, family, link, verbose, print_every)
 }
 
-.multi_ensm_predict <- function(tree_draws, tZ, tX_cont, tX_cat, M_vec, family, link, verbose, print_every) {
-    .Call('_flexBART_multi_predict', PACKAGE = 'flexBART', tree_draws, tZ, tX_cont, tX_cat, M_vec, family, link, verbose, print_every)
+.multi_ensm_predict <- function(tree_draws, tZ, tX_cont, tX_cat, M_vec, family, link, heteroskedastic, verbose, print_every) {
+    .Call('_flexBART_multi_predict', PACKAGE = 'flexBART', tree_draws, tZ, tX_cont, tX_cat, M_vec, family, link, heteroskedastic, verbose, print_every)
 }
 
 rescale_beta_mean <- function(beta_input, y_mean, y_sd, z_mean, z_sd, z_col_id) {

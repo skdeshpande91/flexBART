@@ -133,12 +133,12 @@ flexBART <- function(formula,
       }
     }
     if (heteroskedastic){
-      stop("`sigma()` ensemble is not supported!")
-      # hyper <- 
-      #   parse_hyper(R = R + 1,
-      #               y_range = y_range,
-      #               nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
-      #               sigest = sigest, ...)
+      # stop("`sigma()` ensemble is not supported!")
+      hyper <- 
+        parse_hyper_heteroskedastic(R = R + 1,
+                    y_range = y_range,
+                    nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
+                    sigest = sigest, ...)
     } else{
       hyper <- 
         parse_hyper(R = R,
@@ -209,7 +209,7 @@ flexBART <- function(formula,
       if (control$save_samples) sigma_train_samples <- array(NA, dim = c(total_draws, n_train, control$n.chains))
       if (n_test > 0){
         sigma_test_mean <- rep(0, times = n_test)
-        if (control$save_samples) sigma_test_samples <- array(NA, dim = c(total_samples, n_test, control$n.chains))
+        if (control$save_samples) sigma_test_samples <- array(NA, dim = c(total_draws - control$burn, n_test, control$n.chains))
       }
     } else{
       # Container for sigma samples:
@@ -881,6 +881,7 @@ flexBART <- function(formula,
   
   results[["family"]] <- family
   results[["link"]] <- link
+  results[["heteroskedastic"]] <- heteroskedastic
 
   if (family == "binomial") {
     results[["prob.train.mean"]] <- prob_train_mean
