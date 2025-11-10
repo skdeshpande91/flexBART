@@ -43,14 +43,13 @@ Rcpp::List multi_poisson_fit(Rcpp::IntegerVector Y_train,
   int R = tZ_train.rows(); // how many ensembles
   int p_cont = 0;
   int p_cat = 0;
-  if(tX_cont_train.size() > 1) p_cont = tX_cont_train.rows(); // how many continuous covariates
-  if(tX_cat_train.size() > 1) p_cat = tX_cat_train.rows(); // how many categorical covariates
-  
+  if(tX_cont_train.size() > 0) p_cont = tX_cont_train.rows(); // how many continuous covariates
+  if(tX_cat_train.size() > 0) p_cat = tX_cat_train.rows(); // how many categorical covariates
   int p = p_cont + p_cat;
   // END: get dimensions of training data;
   // BEGIN: get dimensions of testing data
   int n_test = 0;
-  if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
+  if(tZ_test.size() > 0) n_test = tZ_test.cols(); // how many test set observations
   // END: get dimensions of testing data
 
 
@@ -173,7 +172,6 @@ Rcpp::List multi_poisson_fit(Rcpp::IntegerVector Y_train,
   int sample_index = 0;
   int accept = 0;
   int total_accept = 0; // counts how many trees we change in each iteration
-  double tmp_fit; // for holding difference b/w latents and residuals
   double tmp_mu; // for holding the value of mu when we're doing the backfitting
   // END: initialize stuff for main MCMC loop
   

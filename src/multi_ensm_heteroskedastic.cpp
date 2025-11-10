@@ -42,11 +42,11 @@ Rcpp::List multi_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   int R = tZ_train.rows() + 1; // number of ensembles + sigma ensemble
   int p_cont = 0;
   int p_cat = 0;
-  if(tX_cont_train.size() > 1) p_cont = tX_cont_train.rows();
-  if(tX_cat_train.size() > 1) p_cat = tX_cat_train.rows();
+  if(tX_cont_train.size() > 0) p_cont = tX_cont_train.rows();
+  if(tX_cat_train.size() > 0) p_cat = tX_cat_train.rows();
   int p = p_cont + p_cat;
   int n_test = 0;
-  if(tZ_test.size() > 1) n_test = tZ_test.cols(); // how many test set observations
+  if(tZ_test.size() > 0) n_test = tZ_test.cols(); // how many test set observations
   // END: get dimensions of testing data
   
   // BEGIN: set cutpoints & categorical levels + parse network structure
@@ -106,7 +106,6 @@ Rcpp::List multi_fit_heteroskedastic(Rcpp::NumericVector Y_train,
   double* lambda = new double[n_train]; // holds the current estimate of log(sigma(x)^2)
   int tmp_n_test = 1;
   if(n_test > 0) tmp_n_test = n_test;
-  double* tmp_fit_test = new double[tmp_n_test]; // for holding test set fits temporarily
   double* tmp_sigma_test = new double[tmp_n_test]; // for holding test set sigmas temporarily
   // END: initialize containers for residuals and fit
   
