@@ -17,7 +17,7 @@ rflexBART(train_data,nd,verbose = TRUE,
   \item{verbose}{Logical, indicating whether a message should be printed to the R console after every \code{print_every} trees have been sampled. Default is \code{FALSE}.}
   \item{print_every}{If \code{verbose == TRUE}, then a message is printed to the R console after every \code{print_every} trees have been sampled. Default is \code{floor(nd/10)}.}
   \item{\dots}{Additional arguments for setting prior hyperparameters (e.g., number of trees, \eqn{\mu_{0}}{mu_0}, \eqn{\tau}{tau}, etc.). 
-  See \code{\link{flexBART}} for details about additional arguments.}
+  See \code{\link{flexBART()}} for details about additional arguments.}
 }
 \details{
 This function is useful for drawing samples from the regression tree prior underpinning flexBART. 

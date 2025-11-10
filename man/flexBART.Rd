@@ -83,16 +83,16 @@ Axis-aligned decision rules are well-defined with these indicators: they send on
 Regression trees built with these rules partition the set of all levels of a categorical predictor by recursively removing one level at a time. Unfortunately, most partitions of 
 the levels cannot be built with this \dQuote{remove one at a time} strategy, meaning these implementations are extremely limited in their ability to "borrow strength'' across groups of levels.
 
-\code{flexBART} overcomes this limitation using a new prior on regression trees.
+\code{flexBART()} overcomes this limitation using a new prior on regression trees.
 Under this new prior, conditional on splitting on a categorical predictor at a particular node in the tree, levels of the predictor are sent to the left and right child uniformly at random. 
 In this way, multiple levels of a categorical predictor are able to be clustered together.
-\code{flexBART} implements several decision rule priors specifically for nested categorical predictors and network-structured categorical predictors.
+\code{flexBART()} implements several decision rule priors specifically for nested categorical predictors and network-structured categorical predictors.
 
 \subsection{Decision rules for network-structured predictors}{
 To expose the network structure between levels of categorical predictor, users should specify the \code{adjacency_list} argument.
 This argument should be a \strong{named} \code{list} with one element per network-structured predictor.
 Each element should be a binary or weighted adjacency matrix whose row and column names correspond to the unique values of the corresponding predictor. 
-\code{flexBART} implements four different priors over decision rules for network-structured predictors.
+\code{flexBART()} implements four different priors over decision rules for network-structured predictors.
 Each prior recursively partitions the network into two pieces.
 The argument \code{graph_cut_type} determines which prior is implemented:
 \itemize{
@@ -106,13 +106,13 @@ If unspecified, the default value of \code{graph_cut_type} is 2.
 If no adjacency information is provided, \code{graph_cut_type} is ignored.
 }
 \subsection{Decision rules for nested predictors}{
-\code{flexBART} can automatically detect potential nesting structure between categorical predictors.
+\code{flexBART()} can automatically detect potential nesting structure between categorical predictors.
 It implements eight different decision rule priors, which are based on the arguments \code{nest_v}, \code{nest_v_option}, and \code{nest_c}.
 
 The Boolean argument \code{nest_v} indicates whether nesting structure is used when selecting the splitting variable (\code{nest_v = TRUE}) or not (\code{nest_v = FALSE}).
-When \code{nest_v = TRUE}, the argument \code{nest_v_option} determines how \code{flexBART} selects a splitting variable.
+When \code{nest_v = TRUE}, the argument \code{nest_v_option} determines how \code{flexBART()} selects a splitting variable.
 Say it is trying to draw a decision rule at a tree node whose ancestor splits on a nested predictor \eqn{X_v}{X_v}.
-In addition to predictors that are not (i) nested within \eqn{X_v}{X_v} and (ii) nest \eqn{X_v}{X_v}, \code{flexBART} places positive probability on splitting on
+In addition to predictors that are not (i) nested within \eqn{X_v}{X_v} and (ii) nest \eqn{X_v}{X_v}, \code{flexBART()} places positive probability on splitting on
 \itemize{
   \item \code{nest_v_option = 0}: \eqn{X_v}{X_v} but not variables that are nested within or that nest \eqn{X_v}{X_v}.
   \item \code{nest_v_option = 1}: \eqn{X_v}{X_v} and variables that are nested within \eqn{X_v}{X_v} but not variables that nest \eqn{X_v}{X_v}.
@@ -127,12 +127,12 @@ This argument is ignored when nested structure is not detected.
 }
 
 \subsection{Prior specification and standardization}{
-Internally, \code{flexBART} re-centers and re-scales the outcome Y to have mean 0 and standard deviation 1.
-Except when \eqn{Z_{r}}{Z_r} is all ones (i.e., for intercept terms), \code{flexBART} also standardizes the covariates to have mean 0 and standard deviation 1.
+Internally, \code{flexBART()} re-centers and re-scales the outcome Y to have mean 0 and standard deviation 1.
+Except when \eqn{Z_{r}}{Z_r} is all ones (i.e., for intercept terms), \code{flexBART()} also standardizes the covariates to have mean 0 and standard deviation 1.
 It then places independent BART priors on the coefficients for the varying coefficient model on the standardized scale. 
 
 \subsection{Regression tree priors}{
-\code{flexBART} specifies independent priors on each tree in the ensemble approximating \eqn{\beta_{r}(x)}{beta_r(x)}.
+\code{flexBART()} specifies independent priors on each tree in the ensemble approximating \eqn{\beta_{r}(x)}{beta_r(x)}.
 Under this prior, the tree structure is generated using a branching process in which
 the probability that a node at depth \eqn{d}{d} is non-terminal is \eqn{\alpha \times (1 + d)^{-\beta}}{alpha * (1 + d)^(-beta)}.
 Then, decision rules are drawn sequentially from the root down to each leaf.
@@ -150,7 +150,7 @@ Users can specify prior hyperparameters for each ensemble using the following op
 }
 }
 \subsection{Prior for the residual variance}{
-\code{flexBART} specifies an \eqn{Inv.\ Gamma(\nu/2, \nu*\lambda/2)}{Inv. Gamma(nu/2, nu*lambda/2)} prior on the residual variance \emph{on the standardized outcome scale}.
+\code{flexBART()} specifies an \eqn{Inv.\ Gamma(\nu/2, \nu*\lambda/2)}{Inv. Gamma(nu/2, nu*lambda/2)} prior on the residual variance \emph{on the standardized outcome scale}.
 The prior is calibrated so that this prior places a user-specified amount of prior probability on the event that this residual variance 
 is less than some initial over-estimate \eqn{\hat{\sigma}^2_0}{hat(sigma)^2_0}.
 Users can control this prior with the optional arguments
@@ -163,16 +163,6 @@ Users can control this prior with the optional arguments
   (i.e., \eqn{\sigma < \hat{\sigma}_0}{sigma < hat(sigma)_0}). Default is 0.9. 
 }
 
-}
-
-\subsection{Generalized BART models}{
-\code{flexBART} allows users to specify BART models with generalized likelihood functions with the \code{family} argument.
-The usage will be familiar to users of the \code{glm} package.
-For example, to fit a logistic regression model, you can use \code{flexBART(<args>, family = binomial(link = "logit"))}. 
-\strong{Note that the only currently-supported family is \code{binomial(link = "logit")}.}
-\itemize{
-  \item family: The model family name. Used by \code{\link{predict.flexBART}}.
-}
 }
 
 }

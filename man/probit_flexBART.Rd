@@ -24,21 +24,21 @@ probit_flexBART(formula, train_data, test_data = NULL,...)
 \details{
 For a binary response \eqn{Y}, 
 \eqn{p}{p} predictors \eqn{X_{1}, \ldots, X_{p}}{X_1, ..., X_p},
-\code{probit_flexBART} models
+\code{probit_flexBART()} models
 \eqn{P(Y=1 \vert X = x) = \Phi(f(x)}{P(Y=1|x) = Phi(f(x))},
 where \eqn{\Phi}{Phi} is the standard normal cumulative distribution function. 
-\code{probit_flexBART} combines the Albert & Chib (1993) data augmentation strategy for probit regression
+\code{probit_flexBART()} combines the Albert & Chib (1993) data augmentation strategy for probit regression
 with the usual Bayesian backfitting used to fit (VC)BART models.
 
 \subsection{The formula argument}{
-\strong{Currently, \code{probit_flexBART} only supports fitting single ensemble probit BART models.}
+\strong{Currently, \code{probit_flexBART()} only supports fitting single ensemble probit BART models.}
 So, the only valid formula will look something like \code{Y~bart(.)} or \code{Y ~ bart(x1+x2)}.
-As with \code{\link{flexBART}}, you must include the string \dQuote{bart} on the right-hand side of the formula object.
+As with \code{\link{flexBART()}}, you must include the string \dQuote{bart} on the right-hand side of the formula object.
 }
 
 \subsection{Prior specification}{
-\code{probit_flexBART} approximates the function \eqn{f(x)}{f(x)} with an ensemble of binary regression trees.
-It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by \code{\link{flexBART}}.
+\code{probit_flexBART()} approximates the function \eqn{f(x)}{f(x)} with an ensemble of binary regression trees.
+It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by \code{\link{flexBART()}}.
 That is, the tree structure is generated using a branching process in which
 the probability that a node at depth \eqn{d}{d} is non-terminal is \eqn{\alpha \times (1 + d)^{-\beta}}{alpha * (1 + d)^(-beta)}.
 Then, decision rules are drawn sequentially from the root down to each leaf.
@@ -48,7 +48,7 @@ With this specification, the marginal prior of any evaluation of the regression 
 \eqn{f(x)}{f(x)} is \eqn{N(M \times \mu_{0}, \tau^{2} \times M)}{N(M * mu_0, M*tau^2)}, where \eqn{M}{M} is the number of trees in the ensemble.
 Thus, for each \eqn{x}{x}, the induced prior for \eqn{P(Y = 1 \vert X = x)}{P(Y = 1|X = x)} places 95\% probability on the interval
 \eqn{[\Phi(M \times \mu_{0} - 2 \times \tau \times \sqrt{M}), \Phi(M \times \mu_{0} + 2 \times \tau \times \sqrt{M})]}{[Phi(M*mu_0 - 2*tau*sqrt(M)),Phi(M*mu0 + 2 *tau*sqrt(M))]}.
-By default, \code{probit_flexBART} sets \eqn{\tau = 1/\sqrt{M}}{tau=1/sqrt(M)} and \eqn{\Phi^{-1}(\overline{y})/M}{Phi^{-1}(bar{y})/M} 
+By default, \code{probit_flexBART()} sets \eqn{\tau = 1/\sqrt{M}}{tau=1/sqrt(M)} and \eqn{\Phi^{-1}(\overline{y})/M}{Phi^{-1}(bar{y})/M} 
 (i.e., \code{qnorm(mean(Y))/M}).
 Use the \code{mu0_vec} and \code{tau_vec} arguments to set other hyperparameter values.
 }
@@ -60,7 +60,7 @@ An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. 
 These strings are parsed by \code{\link{predict.flexBART}} to reconstruct the C++ representations of the sampled trees.}
 \item{scaling_info}{Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by \code{\link{predict.flexBART}}.}
-\item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART}}.}
+\item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART()}}.}
 \item{cov_ensm}{An \eqn{p \times R}{p x R} binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \eqn{\beta_{r}(X)}{beta_r(X)} can split on \eqn{X_{j}}{X_j}.}
 \item{prob.train.mean}{Vector containing posterior mean of \eqn{P(Y=1 \vert X = x)}{P(Y=1|X=x)} for the training data.}
 \item{prob.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns containing posterior samples of \eqn{P(Y=1 \vert X = x)}{P(Y=1|X=x)} for the training data.
@@ -75,7 +75,7 @@ Structure is similar to that of \code{prob.train}, with rows corresponding to MC
 \item{timing}{Vector of runtimes for each chain}
 }
 \seealso{
-\code{\link{flexBART}} for continuous outcomes.
+\code{\link{flexBART()}} for continuous outcomes.
 }
 \references{
 %% ~put references to the literature/web site here ~
