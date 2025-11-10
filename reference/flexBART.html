@@ -5,13 +5,17 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="A more flexible (VC)BART — flexBART"><meta name="description" content="Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient (VCBART) model that, at a high-level, represents a regression function using several, possibly weighted, ensembles of binary regression trees.
-Through the function's formula interface, users can carefully control the variables used to build trees in each ensemble.
-This implementation also includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
-Trees directly partition the levels of categorical predictors, enabling much more flexible &amp;#8220;partially pool&amp;#8221; across groups/categories (esp. when they are network-structured or nested) than one-hot encoding."><meta property="og:description" content="Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient (VCBART) model that, at a high-level, represents a regression function using several, possibly weighted, ensembles of binary regression trees.
-Through the function's formula interface, users can carefully control the variables used to build trees in each ensemble.
-This implementation also includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
-Trees directly partition the levels of categorical predictors, enabling much more flexible &amp;#8220;partially pool&amp;#8221; across groups/categories (esp. when they are network-structured or nested) than one-hot encoding."></head><body>
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="A more flexible (VC)BART — flexBART"><meta name="description" content="Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient BART model (VCBART) that, at a high-level, represents regression functions as the sum of several weighted ensembles of binary regression trees.
+Through the formula interface, users can carefully control the splitting variables used in each ensemble.
+The optional family argument allows users to fit generalized linear varying coefficient models (e.g., logistic regression models in which the covariate effects vary as functions of effect modifiers).
+Conditionally Gaussian heteroskedastic regression models are also supported.
+This implementation includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
+Trees directly partition the levels of categorical predictors, enabling much more flexible &amp;#8220;partially pool&amp;#8221; across groups/categories (esp., when they are network-structured or nested) than one-hot encoding."><meta property="og:description" content="Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient BART model (VCBART) that, at a high-level, represents regression functions as the sum of several weighted ensembles of binary regression trees.
+Through the formula interface, users can carefully control the splitting variables used in each ensemble.
+The optional family argument allows users to fit generalized linear varying coefficient models (e.g., logistic regression models in which the covariate effects vary as functions of effect modifiers).
+Conditionally Gaussian heteroskedastic regression models are also supported.
+This implementation includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
+Trees directly partition the levels of categorical predictors, enabling much more flexible &amp;#8220;partially pool&amp;#8221; across groups/categories (esp., when they are network-structured or nested) than one-hot encoding."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -53,10 +57,12 @@ Trees directly partition the levels of categorical predictors, enabling much mor
     </div>
 
     <div class="ref-description section level2">
-    <p>Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient (VCBART) model that, at a high-level, represents a regression function using several, possibly weighted, ensembles of binary regression trees.
-Through the function's formula interface, users can carefully control the variables used to build trees in each ensemble.
-This implementation also includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
-Trees directly partition the levels of categorical predictors, enabling much more flexible “partially pool” across groups/categories (esp. when they are network-structured or nested) than one-hot encoding.</p>
+    <p>Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient BART model (VCBART) that, at a high-level, represents regression functions as the sum of several weighted ensembles of binary regression trees.
+Through the formula interface, users can carefully control the splitting variables used in each ensemble.
+The optional <code>family</code> argument allows users to fit generalized linear varying coefficient models (e.g., logistic regression models in which the covariate effects vary as functions of effect modifiers).
+Conditionally Gaussian heteroskedastic regression models are also supported.
+This implementation includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
+Trees directly partition the levels of categorical predictors, enabling much more flexible “partially pool” across groups/categories (esp., when they are network-structured or nested) than one-hot encoding.</p>
     </div>
 
     <div class="section level2">
@@ -70,7 +76,7 @@ Trees directly partition the levels of categorical predictors, enabling much mor
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <p></p>
 <dl><dt id="arg-formula">formula<a class="anchor" aria-label="anchor" href="#arg-formula"></a></dt>
-<dd><p>an object of class <code><a href="https://rdrr.io/r/stats/formula.html" class="external-link">formula</a></code> (or one that can be coerced to the class): a symbolic description of the model to be fitted. The details of model specification are given under 'Details'</p></dd>
+<dd><p>an object of class <code><a href="https://rdrr.io/r/stats/formula.html" class="external-link">formula</a></code> (or one that can be coerced to the class): a symbolic description of the model to be fitted. The details of model specification are given under ‘Details’.</p></dd>
 
   <dt id="arg-train-data">train_data<a class="anchor" aria-label="anchor" href="#arg-train-data"></a></dt>
 <dd><p>an object of class <code>data.frame</code> containing data used to train the model.
@@ -85,18 +91,16 @@ Trees directly partition the levels of categorical predictors, enabling much mor
   should be initialized using regularized regression (<code>inform_sigma = TRUE</code>) or not (<code>inform_sigma = FALSE</code>). Default is <code>TRUE</code>.</p></dd>
 
   <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments for setting prior hyperparameters and MCMC control parameters (e.g., number of chains, iterations, etc.).
-  See ‘Details’ below for more details.</p></dd>
+<dd><p>Additional arguments for specifying error distribution (<code>family</code>) and setting prior hyperparameters and MCMC control parameters (e.g., number of chains, iterations, etc.).
+  See ‘Details’ below.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><code>flexBART</code> allows users to specify and fit varying coefficient models using ensembles of binary regression trees.
-Given a continuous response \(Y\),
-\(p\) predictors \(X_{1}, \ldots, X_{p}\),
-and \(R\) covariates \(Z_{1}, \ldots, Z_{R}\),
-the varying coefficient model asserts that \(Y \sim N(\beta_{1}(X)Z_{1} + \cdots + \beta_{r}(X)Z_{R}, \sigma^{2})\)
-That is, for all p-vectors X, the relationships between Z and Y is linear but the relationship is allowed to vary across X's.
+    <p><code>flexBART</code> allows users to specify and fit several generalized linear varying coefficient models using ensembles of binary regression trees.
+Given variables \(Y\), \(X_{1}, \ldots, X_{p}\), and \(Z_{1}, \ldots, Z_{R}\) the model asserts that</p>
+<p>\(g(\mathbb{E}[Y \vert X,Z]) = \beta_{0}(X) + \beta_{1}(X)Z_{1} + \cdots + \beta_{R}(X)Z_{R}\),</p>
+<p>for a known link function \(g\).
 <code>flexBART</code> approximates each function \(\beta_{r}(X)\) with its own regression tree ensemble and returns posterior samples of all R tree ensembles.</p>
 <div class="section">
 <h3 id="the-formula-argument">The formula argument<a class="anchor" aria-label="anchor" href="#the-formula-argument"></a></h3>
@@ -113,9 +117,31 @@ Of course, you can specify more than two variables in <code>terms</code>.</p>
 <code>z1</code>, <code>z2</code>, etc. are numeric covariates and <code>terms1</code>, <code>terms2</code> are like above.
 For varying coefficient models, if you specify terms using <code>.</code>, then the trees are not able to split on the covariates used to weight the different ensembles (i.e., <code>z1</code>,<code>z2</code>, ...).
 To allow trees to split on these outer weighting covariates, you must manually specify them inside of the terms.</p>
-<p><strong>You must include the string “bart” on the right-hand side of the supplied formula.
-Expressions like <code>Y~Z1+Z2</code> or <code>Y~Z1 + Z2*bart(.)</code> will not work.</strong></p>
+<p>You <strong>must</strong> include the string “bart” on the right-hand side of the supplied formula.
+Expressions like <code>Y~Z1+Z2</code> or <code>Y~Z1 + Z2*bart(.)</code> will not work.</p>
+<div class="section">
+<h4 id="heteroskedastic-regression">Heteroskedastic Regression<a class="anchor" aria-label="anchor" href="#heteroskedastic-regression"></a></h4>
+
+
+<p><code>flexBART</code> supports fitting models of the form \(Y \sim N(\mu(X), \sigma^{2}(X))\) in which both \(\mu(X)\) and \(\log \sigma(X)\) are approximated with regression tree ensembles.
+Such a model can be specified through the <code>formula</code> argument as <code>Y~bart(terms1)+sigma(terms2)</code> where <code>terms1</code> and <code>terms2</code> are like above.
+By default, <code>flexBART</code> fits a regression model with homoskedastic Gaussian errors.</p>
 </div>
+
+
+
+</div>
+
+<div class="section">
+<h3 id="supported-families">Supported families<a class="anchor" aria-label="anchor" href="#supported-families"></a></h3>
+
+
+<p><code>flexBART</code> currently supports models with continuous and binary outcomes.
+For continuous outcomes, <code>flexBART</code> fits regression models with conditionally Gaussian errors and for binary outcomes, <code>flexBART</code> can fit logistic and probit regression models.
+Users can specify the appropriate error distribution using the optional arguments</p><ul><li><p><code>family</code>: A character string naming the family function, a family function, or the result of a call to a family function. Currently only “gaussian” and “binary” are supported. Default is “gaussian”.</p></li>
+</ul></div>
+
+
 
 <div class="section">
 <h3 id="categorical-predictors">Categorical predictors<a class="anchor" aria-label="anchor" href="#categorical-predictors"></a></h3>
@@ -293,8 +319,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
     <p>Chipman, H, George, E.I., and McCulloch, R. (2008) BART: Bayesian Additive Regression Trees.
 <em>Annals of Applied Statistics</em>. <b>4</b>(1):266–298. <a href="https://doi.org/10.1214/09-AOAS285" class="external-link">doi:10.1214/09-AOAS285</a>
 .</p>
-<p>Deshpande, S.K. (2024) <b>flexBART:</b> Flexible Bayesian regression trees with categorical predictors.
-<em>Journal of Computational and Graphical Statistics.</em> <a href="https://doi.org/10.1080/10618600.2024.2431072" class="external-link">doi:10.1080/10618600.2024.2431072</a>
+<p>Deshpande, S.K. (2025) <b>flexBART:</b> Flexible Bayesian regression trees with categorical predictors.
+<em>Journal of Computational and Graphical Statistics.</em> <b>34</b>(3):1117–1126. <a href="https://doi.org/10.1080/10618600.2024.2431072" class="external-link">doi:10.1080/10618600.2024.2431072</a>
 .</p>
 <p>Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2024) VCBART:Bayesian trees for varying coefficients.
 <em>Bayesian Analysis</em>. <a href="https://doi.org/10.1214/24-BA1470" class="external-link">doi:10.1214/24-BA1470</a>
@@ -302,8 +328,6 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <p>Linero, A.R. (2018) Bayesian regression trees for high-dimensional prediction and variable selection.
 <em>Journal of the American Statistical Association.</em> <b>113</b>(522):626–636.
 <a href="https://doi.org/10.1080/01621459.2016.1264957" class="external-link">doi:10.1080/01621459.2016.1264957</a></p>
-
-
     </div>
 
     <div class="section level2">
@@ -355,7 +379,7 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://skdeshpande91.github.io" class="external-link">Sameer K. Deshpande</a>, George Perrett, Ryan Yee, Cecilia Balocchi, Jennifer Hill.</p>
+  <p>Developed by <a href="https://skdeshpande91.github.io" class="external-link">Sameer K. Deshpande</a>, George Perrett, <a href="https://ryanyee3.github.io" class="external-link">Ryan Yee</a>, <a href="https://cecilia-balocchi.owlstown.net" class="external-link">Cecilia Balocchi</a>, <a href="https://steinhardt.nyu.edu/people/jennifer-hill" class="external-link">Jennifer Hill</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

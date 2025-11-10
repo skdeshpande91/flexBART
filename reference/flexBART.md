@@ -1,15 +1,19 @@
 # A more flexible (VC)BART
 
 Implements a more flexible version of Deshpande et al. (2024)'s varying
-coefficient (VCBART) model that, at a high-level, represents a
-regression function using several, possibly weighted, ensembles of
-binary regression trees. Through the function's formula interface, users
-can carefully control the variables used to build trees in each
-ensemble. This implementation also includes several improvements on
-Deshpande (2024)'s priors for decision rules for categorical predictors.
-Trees directly partition the levels of categorical predictors, enabling
-much more flexible “partially pool” across groups/categories (esp. when
-they are network-structured or nested) than one-hot encoding.
+coefficient BART model (VCBART) that, at a high-level, represents
+regression functions as the sum of several weighted ensembles of binary
+regression trees. Through the formula interface, users can carefully
+control the splitting variables used in each ensemble. The optional
+`family` argument allows users to fit generalized linear varying
+coefficient models (e.g., logistic regression models in which the
+covariate effects vary as functions of effect modifiers). Conditionally
+Gaussian heteroskedastic regression models are also supported. This
+implementation includes several improvements on Deshpande (2024)'s
+priors for decision rules for categorical predictors. Trees directly
+partition the levels of categorical predictors, enabling much more
+flexible “partially pool” across groups/categories (esp., when they are
+network-structured or nested) than one-hot encoding.
 
 ## Usage
 
@@ -26,7 +30,7 @@ flexBART(formula, train_data,
   an object of class [`formula`](https://rdrr.io/r/stats/formula.html)
   (or one that can be coerced to the class): a symbolic description of
   the model to be fitted. The details of model specification are given
-  under 'Details'
+  under ‘Details’.
 
 - train_data:
 
@@ -47,22 +51,23 @@ flexBART(formula, train_data,
 
 - ...:
 
-  Additional arguments for setting prior hyperparameters and MCMC
-  control parameters (e.g., number of chains, iterations, etc.). See
-  ‘Details’ below for more details.
+  Additional arguments for specifying error distribution (`family`) and
+  setting prior hyperparameters and MCMC control parameters (e.g.,
+  number of chains, iterations, etc.). See ‘Details’ below.
 
 ## Details
 
-`flexBART` allows users to specify and fit varying coefficient models
-using ensembles of binary regression trees. Given a continuous response
-\\Y\\, \\p\\ predictors \\X\_{1}, \ldots, X\_{p}\\, and \\R\\ covariates
-\\Z\_{1}, \ldots, Z\_{R}\\, the varying coefficient model asserts that
-\\Y \sim N(\beta\_{1}(X)Z\_{1} + \cdots + \beta\_{r}(X)Z\_{R},
-\sigma^{2})\\ That is, for all p-vectors X, the relationships between Z
-and Y is linear but the relationship is allowed to vary across X's.
-`flexBART` approximates each function \\\beta\_{r}(X)\\ with its own
-regression tree ensemble and returns posterior samples of all R tree
-ensembles.
+`flexBART` allows users to specify and fit several generalized linear
+varying coefficient models using ensembles of binary regression trees.
+Given variables \\Y\\, \\X\_{1}, \ldots, X\_{p}\\, and \\Z\_{1}, \ldots,
+Z\_{R}\\ the model asserts that
+
+\\g(\mathbb{E}\[Y \vert X,Z\]) = \beta\_{0}(X) + \beta\_{1}(X)Z\_{1} +
+\cdots + \beta\_{R}(X)Z\_{R}\\,
+
+for a known link function \\g\\. `flexBART` approximates each function
+\\\beta\_{r}(X)\\ with its own regression tree ensemble and returns
+posterior samples of all R tree ensembles.
 
 ### The formula argument
 
@@ -87,9 +92,31 @@ ensembles (i.e., `z1`,`z2`, ...). To allow trees to split on these outer
 weighting covariates, you must manually specify them inside of the
 terms.
 
-**You must include the string “bart” on the right-hand side of the
+You **must** include the string “bart” on the right-hand side of the
 supplied formula. Expressions like `Y~Z1+Z2` or `Y~Z1 + Z2*bart(.)` will
-not work.**
+not work.
+
+#### Heteroskedastic Regression
+
+`flexBART` supports fitting models of the form \\Y \sim N(\mu(X),
+\sigma^{2}(X))\\ in which both \\\mu(X)\\ and \\\log \sigma(X)\\ are
+approximated with regression tree ensembles. Such a model can be
+specified through the `formula` argument as
+`Y~bart(terms1)+sigma(terms2)` where `terms1` and `terms2` are like
+above. By default, `flexBART` fits a regression model with homoskedastic
+Gaussian errors.
+
+### Supported families
+
+`flexBART` currently supports models with continuous and binary
+outcomes. For continuous outcomes, `flexBART` fits regression models
+with conditionally Gaussian errors and for binary outcomes, `flexBART`
+can fit logistic and probit regression models. Users can specify the
+appropriate error distribution using the optional arguments
+
+- `family`: A character string naming the family function, a family
+  function, or the result of a call to a family function. Currently only
+  “gaussian” and “binary” are supported. Default is “gaussian”.
 
 ### Categorical predictors
 
@@ -403,9 +430,9 @@ Additive Regression Trees. *Annals of Applied Statistics*.
 **4**(1):266–298.
 [doi:10.1214/09-AOAS285](https://doi.org/10.1214/09-AOAS285) .
 
-Deshpande, S.K. (2024) **flexBART:** Flexible Bayesian regression trees
+Deshpande, S.K. (2025) **flexBART:** Flexible Bayesian regression trees
 with categorical predictors. *Journal of Computational and Graphical
-Statistics.*
+Statistics.* **34**(3):1117–1126.
 [doi:10.1080/10618600.2024.2431072](https://doi.org/10.1080/10618600.2024.2431072)
 .
 
