@@ -40,28 +40,28 @@ probit_flexBART(formula, train_data, test_data = NULL,...)
 ## Details
 
 For a binary response \\Y\\, \\p\\ predictors \\X\_{1}, \ldots,
-X\_{p}\\, `probit_flexBART` models \\P(Y=1 \vert X = x) = \Phi(f(x)\\,
+X\_{p}\\, `probit_flexBART()` models \\P(Y=1 \vert X = x) = \Phi(f(x)\\,
 where \\\Phi\\ is the standard normal cumulative distribution function.
-`probit_flexBART` combines the Albert & Chib (1993) data augmentation
+`probit_flexBART()` combines the Albert & Chib (1993) data augmentation
 strategy for probit regression with the usual Bayesian backfitting used
 to fit (VC)BART models.
 
 ### The formula argument
 
-**Currently, `probit_flexBART` only supports fitting single ensemble
+**Currently, `probit_flexBART()` only supports fitting single ensemble
 probit BART models.** So, the only valid formula will look something
 like `Y~bart(.)` or `Y ~ bart(x1+x2)`. As with
-[`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md),
+[`flexBART()`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md),
 you must include the string “bart” on the right-hand side of the formula
 object.
 
 ### Prior specification
 
-`probit_flexBART` approximates the function \\f(x)\\ with an ensemble of
-binary regression trees. It also specifies independent priors on the
+`probit_flexBART()` approximates the function \\f(x)\\ with an ensemble
+of binary regression trees. It also specifies independent priors on the
 trees in the ensemble that are essentially identical to those deployed
 by
-[`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md).
+[`flexBART()`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md).
 That is, the tree structure is generated using a branching process in
 which the probability that a node at depth \\d\\ is non-terminal is
 \\\alpha \times (1 + d)^{-\beta}\\. Then, decision rules are drawn
@@ -74,9 +74,10 @@ M)\\, where \\M\\ is the number of trees in the ensemble. Thus, for each
 \\x\\, the induced prior for \\P(Y = 1 \vert X = x)\\ places 95%
 probability on the interval \\\[\Phi(M \times \mu\_{0} - 2 \times \tau
 \times \sqrt{M}), \Phi(M \times \mu\_{0} + 2 \times \tau \times
-\sqrt{M})\]\\. By default, `probit_flexBART` sets \\\tau = 1/\sqrt{M}\\
-and \\\Phi^{-1}(\overline{y})/M\\ (i.e., `qnorm(mean(Y))/M`). Use the
-`mu0_vec` and `tau_vec` arguments to set other hyperparameter values.
+\sqrt{M})\]\\. By default, `probit_flexBART()` sets \\\tau =
+1/\sqrt{M}\\ and \\\Phi^{-1}(\overline{y})/M\\ (i.e.,
+`qnorm(mean(Y))/M`). Use the `mu0_vec` and `tau_vec` arguments to set
+other hyperparameter values.
 
 ## Value
 
@@ -105,7 +106,7 @@ An object of `class` “flexBART” (essentially a list) containing
 - M:
 
   A copy of the argument `M_vec`. Used by
-  [`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md).
+  [`predict.flexBART()`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md).
 
 - cov_ensm:
 
@@ -150,7 +151,7 @@ An object of `class` “flexBART” (essentially a list) containing
 
 ## See also
 
-[`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md)
+[`flexBART()`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md)
 for continuous outcomes.
 
 ## References

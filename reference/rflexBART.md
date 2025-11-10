@@ -38,7 +38,7 @@ rflexBART(train_data,nd,verbose = TRUE,
 
   Additional arguments for setting prior hyperparameters (e.g., number
   of trees, \\\mu\_{0}\\, \\\tau\\, etc.). See
-  [`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md)
+  [`flexBART()`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md)
   for details about additional arguments.
 
 ## Details

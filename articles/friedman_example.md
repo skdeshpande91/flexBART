@@ -129,5 +129,5 @@ print("Timing (seconds):")
 #> [1] "Timing (seconds):"
 print(round(timing, digits = 3))
 #> flexBART     BART 
-#>  144.711  562.828
+#>  148.848  563.448
 ```

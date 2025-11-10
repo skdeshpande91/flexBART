@@ -131,12 +131,12 @@ most partitions of the levels cannot be built with this “remove one at a
 time” strategy, meaning these implementations are extremely limited in
 their ability to "borrow strength” across groups of levels.
 
-`flexBART` overcomes this limitation using a new prior on regression
+`flexBART()` overcomes this limitation using a new prior on regression
 trees. Under this new prior, conditional on splitting on a categorical
 predictor at a particular node in the tree, levels of the predictor are
 sent to the left and right child uniformly at random. In this way,
 multiple levels of a categorical predictor are able to be clustered
-together. `flexBART` implements several decision rule priors
+together. `flexBART()` implements several decision rule priors
 specifically for nested categorical predictors and network-structured
 categorical predictors.
 
@@ -147,7 +147,7 @@ users should specify the `adjacency_list` argument. This argument should
 be a **named** `list` with one element per network-structured predictor.
 Each element should be a binary or weighted adjacency matrix whose row
 and column names correspond to the unique values of the corresponding
-predictor. `flexBART` implements four different priors over decision
+predictor. `flexBART()` implements four different priors over decision
 rules for network-structured predictors. Each prior recursively
 partitions the network into two pieces. The argument `graph_cut_type`
 determines which prior is implemented:
@@ -173,19 +173,19 @@ adjacency information is provided, `graph_cut_type` is ignored.
 
 #### Decision rules for nested predictors
 
-`flexBART` can automatically detect potential nesting structure between
-categorical predictors. It implements eight different decision rule
-priors, which are based on the arguments `nest_v`, `nest_v_option`, and
-`nest_c`.
+`flexBART()` can automatically detect potential nesting structure
+between categorical predictors. It implements eight different decision
+rule priors, which are based on the arguments `nest_v`, `nest_v_option`,
+and `nest_c`.
 
 The Boolean argument `nest_v` indicates whether nesting structure is
 used when selecting the splitting variable (`nest_v = TRUE`) or not
 (`nest_v = FALSE`). When `nest_v = TRUE`, the argument `nest_v_option`
-determines how `flexBART` selects a splitting variable. Say it is trying
-to draw a decision rule at a tree node whose ancestor splits on a nested
-predictor \\X_v\\. In addition to predictors that are not (i) nested
-within \\X_v\\ and (ii) nest \\X_v\\, `flexBART` places positive
-probability on splitting on
+determines how `flexBART()` selects a splitting variable. Say it is
+trying to draw a decision rule at a tree node whose ancestor splits on a
+nested predictor \\X_v\\. In addition to predictors that are not (i)
+nested within \\X_v\\ and (ii) nest \\X_v\\, `flexBART()` places
+positive probability on splitting on
 
 - `nest_v_option = 0`: \\X_v\\ but not variables that are nested within
   or that nest \\X_v\\.
@@ -207,16 +207,16 @@ detected.
 
 ### Prior specification and standardization
 
-Internally, `flexBART` re-centers and re-scales the outcome Y to have
+Internally, `flexBART()` re-centers and re-scales the outcome Y to have
 mean 0 and standard deviation 1. Except when \\Z\_{r}\\ is all ones
-(i.e., for intercept terms), `flexBART` also standardizes the covariates
-to have mean 0 and standard deviation 1. It then places independent BART
-priors on the coefficients for the varying coefficient model on the
-standardized scale.
+(i.e., for intercept terms), `flexBART()` also standardizes the
+covariates to have mean 0 and standard deviation 1. It then places
+independent BART priors on the coefficients for the varying coefficient
+model on the standardized scale.
 
 #### Regression tree priors
 
-`flexBART` specifies independent priors on each tree in the ensemble
+`flexBART()` specifies independent priors on each tree in the ensemble
 approximating \\\beta\_{r}(x)\\. Under this prior, the tree structure is
 generated using a branching process in which the probability that a node
 at depth \\d\\ is non-terminal is \\\alpha \times (1 + d)^{-\beta}\\.
@@ -247,9 +247,9 @@ following optional arguments (passed through ...):
 
 #### Prior for the residual variance
 
-`flexBART` specifies an \\Inv.\\ Gamma(\nu/2, \nu\*\lambda/2)\\ prior on
-the residual variance *on the standardized outcome scale*. The prior is
-calibrated so that this prior places a user-specified amount of prior
+`flexBART()` specifies an \\Inv.\\ Gamma(\nu/2, \nu\*\lambda/2)\\ prior
+on the residual variance *on the standardized outcome scale*. The prior
+is calibrated so that this prior places a user-specified amount of prior
 probability on the event that this residual variance is less than some
 initial over-estimate \\\hat{\sigma}^2_0\\. Users can control this prior
 with the optional arguments
@@ -265,18 +265,6 @@ with the optional arguments
 - `sigquant`: Amount of prior probability on the event that residual
   variance is less than initial over-estimate (i.e., \\\sigma \<
   \hat{\sigma}\_0\\). Default is 0.9.
-
-#### Generalized BART models
-
-`flexBART` allows users to specify BART models with generalized
-likelihood functions with the `family` argument. The usage will be
-familiar to users of the `glm` package. For example, to fit a logistic
-regression model, you can use
-`flexBART(<args>, family = binomial(link = "logit"))`. **Note that the
-only currently-supported family is `binomial(link = "logit")`.**
-
-- family: The model family name. Used by
-  [`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md).
 
 ### Additional arguments
 

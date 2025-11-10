@@ -1,9 +1,9 @@
 # Predicting new observations with previously fitted flexBART model
 
-`predict.flexBART` can take the output of
-[`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md)
+`predict.flexBART()` can take the output of
+[`flexBART()`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md)
 and
-[`probit_flexBART`](https://skdeshpande91.github.io/flexBART/reference/probit_flexBART.md)
+[`probit_flexBART()`](https://skdeshpande91.github.io/flexBART/reference/probit_flexBART.md)
 and use it to make predictions at new inputs.
 
 ## Usage
@@ -32,10 +32,10 @@ predict(object, newdata, ...)
 ## Details
 
 Make predictions at new inputs based on the output of
-[`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md).
+[`flexBART()`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md).
 Useful when the testing dataset is quite large. If `fit` were produced
 by
-[`probit_flexBART`](https://skdeshpande91.github.io/flexBART/reference/probit_flexBART.md),
+[`probit_flexBART()`](https://skdeshpande91.github.io/flexBART/reference/probit_flexBART.md),
 then the function outputs draws of the fitted probabilities.
 
 ## Value

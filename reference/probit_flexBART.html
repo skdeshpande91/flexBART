@@ -80,22 +80,22 @@
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>For a binary response \(Y\),
 \(p\) predictors \(X_{1}, \ldots, X_{p}\),
-<code>probit_flexBART</code> models
+<code>probit_flexBART()</code> models
 \(P(Y=1 \vert X = x) = \Phi(f(x)\),
 where \(\Phi\) is the standard normal cumulative distribution function.
-<code>probit_flexBART</code> combines the Albert &amp; Chib (1993) data augmentation strategy for probit regression
+<code>probit_flexBART()</code> combines the Albert &amp; Chib (1993) data augmentation strategy for probit regression
 with the usual Bayesian backfitting used to fit (VC)BART models.</p>
 <div class="section">
 <h3 id="the-formula-argument">The formula argument<a class="anchor" aria-label="anchor" href="#the-formula-argument"></a></h3>
-<p><strong>Currently, <code>probit_flexBART</code> only supports fitting single ensemble probit BART models.</strong>
+<p><strong>Currently, <code>probit_flexBART()</code> only supports fitting single ensemble probit BART models.</strong>
 So, the only valid formula will look something like <code>Y~bart(.)</code> or <code>Y ~ bart(x1+x2)</code>.
-As with <code><a href="flexBART.html">flexBART</a></code>, you must include the string “bart” on the right-hand side of the formula object.</p>
+As with <code><a href="flexBART.html">flexBART()</a></code>, you must include the string “bart” on the right-hand side of the formula object.</p>
 </div>
 
 <div class="section">
 <h3 id="prior-specification">Prior specification<a class="anchor" aria-label="anchor" href="#prior-specification"></a></h3>
-<p><code>probit_flexBART</code> approximates the function \(f(x)\) with an ensemble of binary regression trees.
-It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by <code><a href="flexBART.html">flexBART</a></code>.
+<p><code>probit_flexBART()</code> approximates the function \(f(x)\) with an ensemble of binary regression trees.
+It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by <code><a href="flexBART.html">flexBART()</a></code>.
 That is, the tree structure is generated using a branching process in which
 the probability that a node at depth \(d\) is non-terminal is \(\alpha \times (1 + d)^{-\beta}\).
 Then, decision rules are drawn sequentially from the root down to each leaf.
@@ -104,7 +104,7 @@ Finally, independent \(N(\mu_0, \tau^2)\) priors are specified for the outputs i
 \(f(x)\) is \(N(M \times \mu_{0}, \tau^{2} \times M)\), where \(M\) is the number of trees in the ensemble.
 Thus, for each \(x\), the induced prior for \(P(Y = 1 \vert X = x)\) places 95% probability on the interval
 \([\Phi(M \times \mu_{0} - 2 \times \tau \times \sqrt{M}), \Phi(M \times \mu_{0} + 2 \times \tau \times \sqrt{M})]\).
-By default, <code>probit_flexBART</code> sets \(\tau = 1/\sqrt{M}\) and \(\Phi^{-1}(\overline{y})/M\)
+By default, <code>probit_flexBART()</code> sets \(\tau = 1/\sqrt{M}\) and \(\Phi^{-1}(\overline{y})/M\)
 (i.e., <code>qnorm(mean(Y))/M</code>).
 Use the <code>mu0_vec</code> and <code>tau_vec</code> arguments to set other hyperparameter values.</p>
 </div>
@@ -125,7 +125,7 @@ These strings are parsed by <code><a href="predict.flexBART.html">predict.flexBA
 <dd><p>Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>M</dt>
-<dd><p>A copy of the argument <code>M_vec</code>. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
+<dd><p>A copy of the argument <code>M_vec</code>. Used by <code><a href="predict.flexBART.html">predict.flexBART()</a></code>.</p></dd>
 
 <dt>cov_ensm</dt>
 <dd><p>An \(p \times R\) binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \(\beta_{r}(X)\) can split on \(X_{j}\).</p></dd>
@@ -156,7 +156,7 @@ Structure is similar to that of <code>prob.train</code>, with rows corresponding
 </dl></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="flexBART.html">flexBART</a></code> for continuous outcomes.</p></div>
+    <div class="dont-index"><p><code><a href="flexBART.html">flexBART()</a></code> for continuous outcomes.</p></div>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
