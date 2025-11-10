@@ -5,10 +5,12 @@
 A more flexible (VC)BART
 }
 \description{
-Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient (VCBART) model that, at a high-level, represents a regression function using several, possibly weighted, ensembles of binary regression trees.
-Through the function's formula interface, users can carefully control the variables used to build trees in each ensemble.
-This implementation also includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
-Trees directly partition the levels of categorical predictors, enabling much more flexible \dQuote{partially pool} across groups/categories (esp. when they are network-structured or nested) than one-hot encoding. 
+Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient BART model (VCBART) that, at a high-level, represents regression functions as the sum of several weighted ensembles of binary regression trees. 
+Through the formula interface, users can carefully control the splitting variables used in each ensemble. 
+The optional \code{family} argument allows users to fit generalized linear varying coefficient models (e.g., logistic regression models in which the covariate effects vary as functions of effect modifiers).
+Conditionally Gaussian heteroskedastic regression models are also supported. 
+This implementation includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors. 
+Trees directly partition the levels of categorical predictors, enabling much more flexible \dQuote{partially pool} across groups/categories (esp., when they are network-structured or nested) than one-hot encoding.
 }
 \usage{
 flexBART(formula, train_data, 
@@ -16,23 +18,23 @@ flexBART(formula, train_data,
          initialize_sigma = TRUE, ...)
 }
 \arguments{
-  \item{formula}{an object of class \code{\link[stats:formula]{formula}} (or one that can be coerced to the class): a symbolic description of the model to be fitted. The details of model specification are given under 'Details'}
+  \item{formula}{an object of class \code{\link[stats:formula]{formula}} (or one that can be coerced to the class): a symbolic description of the model to be fitted. The details of model specification are given under \sQuote{Details}.}
   \item{train_data}{an object of class \code{data.frame} containing data used to train the model. 
   As usual, rows (resp. columns) correspond to observations (resp. predictors)}
   \item{test_data}{an optional object of class \code{data.frame} containing test-set (i.e., out-of-sample) data. 
   Default is \code{NULL}.}
   \item{initialize_sigma}{a logical value for whether the residual variance 
   should be initialized using regularized regression (\code{inform_sigma = TRUE}) or not (\code{inform_sigma = FALSE}). Default is \code{TRUE}.}
-  \item{\dots}{Additional arguments for setting prior hyperparameters and MCMC control parameters (e.g., number of chains, iterations, etc.). 
-  See \sQuote{Details} below for more details.}
+  \item{\dots}{Additional arguments for specifying error distribution (\code{family}) and setting prior hyperparameters and MCMC control parameters (e.g., number of chains, iterations, etc.). 
+  See \sQuote{Details} below.}
 }
 \details{
-\code{flexBART} allows users to specify and fit varying coefficient models using ensembles of binary regression trees.
-Given a continuous response \eqn{Y}, 
-\eqn{p}{p} predictors \eqn{X_{1}, \ldots, X_{p}}{X_1, ..., X_p},
-and \eqn{R}{R} covariates \eqn{Z_{1}, \ldots, Z_{R}}{Z_1, ..., Z_R},
-the varying coefficient model asserts that \eqn{Y \sim N(\beta_{1}(X)Z_{1} + \cdots + \beta_{r}(X)Z_{R}, \sigma^{2})}{Y ~ N(beta_1(X)*Z1 + ... beta_{R}(x)*Z_{R}, sigma^2)}
-That is, for all p-vectors X, the relationships between Z and Y is linear but the relationship is allowed to vary across X's.
+\code{flexBART} allows users to specify and fit several generalized linear varying coefficient models using ensembles of binary regression trees.
+Given variables \eqn{Y}, \eqn{X_{1}, \ldots, X_{p}}{X_1, ..., X_p}, and \eqn{Z_{1}, \ldots, Z_{R}}{Z_1, ..., Z_R} the model asserts that
+
+\eqn{g(\mathbb{E}[Y \vert X,Z]) = \beta_{0}(X) + \beta_{1}(X)Z_{1} + \cdots + \beta_{R}(X)Z_{R}},
+
+for a known link function \eqn{g}.
 \code{flexBART} approximates each function \eqn{\beta_{r}(X)}{beta_r(X)} with its own regression tree ensemble and returns posterior samples of all R tree ensembles.
 
 \subsection{The formula argument}{
@@ -50,9 +52,30 @@ To fit a varying coefficient model, the formula argument takes the form \code{re
 For varying coefficient models, if you specify terms using \code{.}, then the trees are not able to split on the covariates used to weight the different ensembles (i.e., \code{z1},\code{z2}, \dots).
 To allow trees to split on these outer weighting covariates, you must manually specify them inside of the terms.
 
-\strong{You must include the string \dQuote{bart} on the right-hand side of the supplied formula. 
-Expressions like \code{Y~Z1+Z2} or \code{Y~Z1 + Z2*bart(.)} will not work.}
+You \strong{must} include the string \dQuote{bart} on the right-hand side of the supplied formula. 
+Expressions like \code{Y~Z1+Z2} or \code{Y~Z1 + Z2*bart(.)} will not work.
+
+\subsection{Heteroskedastic Regression}{
+
+\code{flexBART} supports fitting models of the form \eqn{Y \sim N(\mu(X), \sigma^{2}(X))}{Y ~ N(mu(X), sigma^2(X))} in which both \eqn{\mu(X)}{mu(X)} and \eqn{\log \sigma(X)}{log(sigma(X))} are approximated with regression tree ensembles.
+Such a model can be specified through the \code{formula} argument as \code{Y~bart(terms1)+sigma(terms2)} where \code{terms1} and \code{terms2} are like above. 
+By default, \code{flexBART} fits a regression model with homoskedastic Gaussian errors. 
 }
+
+
+}
+
+\subsection{Supported families}{
+
+\code{flexBART} currently supports models with continuous and binary outcomes.
+For continuous outcomes, \code{flexBART} fits regression models with conditionally Gaussian errors and for binary outcomes, \code{flexBART} can fit logistic and probit regression models.
+Users can specify the appropriate error distribution using the optional arguments
+\itemize{
+  \item \code{family}: A character string naming the family function, a family function, or the result of a call to a family function. Currently only \dQuote{gaussian} and \dQuote{binary} are supported. Default is \dQuote{gaussian}.
+}
+}
+
+
 
 \subsection{Categorical predictors}{
 Many implementations of BART and its extensions represent categorical predictors using several binary indicators, one for each level of each categorical predictor. 
@@ -253,8 +276,8 @@ abline(a = 0, b = 1, col = 'blue')
 Chipman, H, George, E.I., and McCulloch, R. (2008) BART: Bayesian Additive Regression Trees. 
 \emph{Annals of Applied Statistics}. \bold{4}(1):266--298. \doi{10.1214/09-AOAS285}.
 
-Deshpande, S.K. (2024) \bold{flexBART:} Flexible Bayesian regression trees with categorical predictors. 
-\emph{Journal of Computational and Graphical Statistics.} \doi{doi:10.1080/10618600.2024.2431072}.
+Deshpande, S.K. (2025) \bold{flexBART:} Flexible Bayesian regression trees with categorical predictors. 
+\emph{Journal of Computational and Graphical Statistics.} \bold{34}(3):1117--1126. \doi{doi:10.1080/10618600.2024.2431072}.
 
 Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2024) VCBART:Bayesian trees for varying coefficients. 
 \emph{Bayesian Analysis}. \doi{doi:10.1214/24-BA1470}.
@@ -262,6 +285,4 @@ Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2024) VCB
 Linero, A.R. (2018) Bayesian regression trees for high-dimensional prediction and variable selection. 
 \emph{Journal of the American Statistical Association.} \bold{113}(522):626--636. 
 \doi{doi:10.1080/01621459.2016.1264957}
-
-
 }

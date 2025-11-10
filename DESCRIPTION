@@ -2,13 +2,13 @@ Package: flexBART
 Type: Package
 Title: A More Flexible BART Model
 Version: 2.0.0
-Date: 2025-11-23
+Date: 2025-11-15
 Authors@R: c(
   person(given = "Sameer K.", family = "Deshpande", role = c("aut", "cre"), email = "sameer.deshpande@wisc.edu", comment = c(ORCID = "0000-0003-4116-5533")),
-  person(given = "George", family = "Perrett", role = c("aut"), email = "gp77@nyu.edu"),
-  person(given = "Ryan", family = "Yee", role = c("aut"), email = "ryee2@wisc.edu"),
-  person(given = "Cecilia", family = "Balocchi", role = c("aut"), email = "cecilia.balocchi@ed.ac.uk"),
-  person(given = "Jennifer", family = "Hill", role = c("aut"), email = "jennifer.hill@nyu.edu"))
+  person(given = "George", family = "Perrett", role = c("aut"), email = "gp77@nyu.edu", comment = c(ORCID = "0000-0002-1930-2581")),
+  person(given = "Ryan", family = "Yee", role = c("aut"), email = "ryee2@wisc.edu", comment = c(ORCID = "0009-0005-5691-4009")),
+  person(given = "Cecilia", family = "Balocchi", role = c("aut"), email = "cecilia.balocchi@ed.ac.uk", comment = c(ORCID = "0000-0002-1234-6063")),
+  person(given = "Jennifer", family = "Hill", role = c("aut"), email = "jennifer.hill@nyu.edu", comment = c(ORCID = "0000-0003-4983-2206")))
 Description: A more flexible implementation of BART that supports extensions to generalized linear models and varying coefficient models.
 License: GPL (>= 3)
 LinkingTo: Rcpp, RcppArmadillo
