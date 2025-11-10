@@ -71,7 +71,7 @@ By default, \code{flexBART} fits a regression model with homoskedastic Gaussian 
 For continuous outcomes, \code{flexBART} fits regression models with conditionally Gaussian errors and for binary outcomes, \code{flexBART} can fit logistic and probit regression models.
 Users can specify the appropriate error distribution using the optional arguments
 \itemize{
-  \item \code{family}: A character string naming the family function, a family function, or the result of a call to a family function. Currently only \dQuote{gaussian} and \dQuote{binary} are supported. Default is \dQuote{gaussian}.
+  \item \code{family}: a family object, or the result of a call to a family function. Currently only \dQuote{gaussian} and \dQuote{binomial} are supported. Default is \dQuote{gaussian}.
 }
 }
 
@@ -200,6 +200,9 @@ An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict.flexBART}} to reconstruct the C++ representations of the sampled trees.}
 \item{scaling_info}{Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by \code{\link{predict.flexBART}}.}
 \item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART}}.}
+\item{family}{Records the \code{family} argument passed when the model was fit.}
+\item{link}{Records the link function specified in the \code{family} object passed when the model was fit.}
+\item{heteroskedastic}{A \code{bool} identifying whether or not there was a \code{sigma()} ensemble in the model.}
 \item{cov_ensm}{An \eqn{p \times R}{p x R} binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \eqn{\beta_{r}(X)}{beta_r(X)} can split on \eqn{X_{j}}{X_j}.}
 \item{yhat.train.mean}{Vector containing posterior mean of evaluations of regression function on training data.}
 \item{yhat.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if \code{save_samples = TRUE}.}
