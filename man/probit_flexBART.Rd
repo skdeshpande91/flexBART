@@ -33,12 +33,12 @@ with the usual Bayesian backfitting used to fit (VC)BART models.
 \subsection{The formula argument}{
 \strong{Currently, \code{probit_flexBART()} only supports fitting single ensemble probit BART models.}
 So, the only valid formula will look something like \code{Y~bart(.)} or \code{Y ~ bart(x1+x2)}.
-As with \code{\link{flexBART()}}, you must include the string \dQuote{bart} on the right-hand side of the formula object.
+As with \code{\link{flexBART}}, you must include the string \dQuote{bart} on the right-hand side of the formula object.
 }
 
 \subsection{Prior specification}{
 \code{probit_flexBART()} approximates the function \eqn{f(x)}{f(x)} with an ensemble of binary regression trees.
-It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by \code{\link{flexBART()}}.
+It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by \code{\link{flexBART}}.
 That is, the tree structure is generated using a branching process in which
 the probability that a node at depth \eqn{d}{d} is non-terminal is \eqn{\alpha \times (1 + d)^{-\beta}}{alpha * (1 + d)^(-beta)}.
 Then, decision rules are drawn sequentially from the root down to each leaf.
@@ -60,7 +60,7 @@ An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. 
 These strings are parsed by \code{\link{predict.flexBART}} to reconstruct the C++ representations of the sampled trees.}
 \item{scaling_info}{Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by \code{\link{predict.flexBART}}.}
-\item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART()}}.}
+\item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART}}.}
 \item{cov_ensm}{An \eqn{p \times R}{p x R} binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \eqn{\beta_{r}(X)}{beta_r(X)} can split on \eqn{X_{j}}{X_j}.}
 \item{prob.train.mean}{Vector containing posterior mean of \eqn{P(Y=1 \vert X = x)}{P(Y=1|X=x)} for the training data.}
 \item{prob.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns containing posterior samples of \eqn{P(Y=1 \vert X = x)}{P(Y=1|X=x)} for the training data.
@@ -75,7 +75,7 @@ Structure is similar to that of \code{prob.train}, with rows corresponding to MC
 \item{timing}{Vector of runtimes for each chain}
 }
 \seealso{
-\code{\link{flexBART()}} for continuous outcomes.
+\code{\link{flexBART}} for continuous outcomes.
 }
 \references{
 %% ~put references to the literature/web site here ~
