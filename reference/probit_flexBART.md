@@ -51,7 +51,7 @@ to fit (VC)BART models.
 **Currently, `probit_flexBART()` only supports fitting single ensemble
 probit BART models.** So, the only valid formula will look something
 like `Y~bart(.)` or `Y ~ bart(x1+x2)`. As with
-[`flexBART()`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md),
+[`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md),
 you must include the string “bart” on the right-hand side of the formula
 object.
 
@@ -61,7 +61,7 @@ object.
 of binary regression trees. It also specifies independent priors on the
 trees in the ensemble that are essentially identical to those deployed
 by
-[`flexBART()`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md).
+[`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md).
 That is, the tree structure is generated using a branching process in
 which the probability that a node at depth \\d\\ is non-terminal is
 \\\alpha \times (1 + d)^{-\beta}\\. Then, decision rules are drawn
@@ -106,7 +106,7 @@ An object of `class` “flexBART” (essentially a list) containing
 - M:
 
   A copy of the argument `M_vec`. Used by
-  [`predict.flexBART()`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md).
+  [`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md).
 
 - cov_ensm:
 
@@ -151,7 +151,7 @@ An object of `class` “flexBART” (essentially a list) containing
 
 ## See also
 
-[`flexBART()`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md)
+[`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md)
 for continuous outcomes.
 
 ## References

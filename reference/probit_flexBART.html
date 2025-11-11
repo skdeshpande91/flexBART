@@ -89,13 +89,13 @@ with the usual Bayesian backfitting used to fit (VC)BART models.</p>
 <h3 id="the-formula-argument">The formula argument<a class="anchor" aria-label="anchor" href="#the-formula-argument"></a></h3>
 <p><strong>Currently, <code>probit_flexBART()</code> only supports fitting single ensemble probit BART models.</strong>
 So, the only valid formula will look something like <code>Y~bart(.)</code> or <code>Y ~ bart(x1+x2)</code>.
-As with <code><a href="flexBART.html">flexBART()</a></code>, you must include the string “bart” on the right-hand side of the formula object.</p>
+As with <code><a href="flexBART.html">flexBART</a></code>, you must include the string “bart” on the right-hand side of the formula object.</p>
 </div>
 
 <div class="section">
 <h3 id="prior-specification">Prior specification<a class="anchor" aria-label="anchor" href="#prior-specification"></a></h3>
 <p><code>probit_flexBART()</code> approximates the function \(f(x)\) with an ensemble of binary regression trees.
-It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by <code><a href="flexBART.html">flexBART()</a></code>.
+It also specifies independent priors on the trees in the ensemble that are essentially identical to those deployed by <code><a href="flexBART.html">flexBART</a></code>.
 That is, the tree structure is generated using a branching process in which
 the probability that a node at depth \(d\) is non-terminal is \(\alpha \times (1 + d)^{-\beta}\).
 Then, decision rules are drawn sequentially from the root down to each leaf.
@@ -125,7 +125,7 @@ These strings are parsed by <code><a href="predict.flexBART.html">predict.flexBA
 <dd><p>Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>M</dt>
-<dd><p>A copy of the argument <code>M_vec</code>. Used by <code><a href="predict.flexBART.html">predict.flexBART()</a></code>.</p></dd>
+<dd><p>A copy of the argument <code>M_vec</code>. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>cov_ensm</dt>
 <dd><p>An \(p \times R\) binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \(\beta_{r}(X)\) can split on \(X_{j}\).</p></dd>
@@ -156,7 +156,7 @@ Structure is similar to that of <code>prob.train</code>, with rows corresponding
 </dl></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="flexBART.html">flexBART()</a></code> for continuous outcomes.</p></div>
+    <div class="dont-index"><p><code><a href="flexBART.html">flexBART</a></code> for continuous outcomes.</p></div>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

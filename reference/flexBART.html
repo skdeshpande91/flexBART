@@ -138,7 +138,7 @@ By default, <code>flexBART</code> fits a regression model with homoskedastic Gau
 
 <p><code>flexBART</code> currently supports models with continuous and binary outcomes.
 For continuous outcomes, <code>flexBART</code> fits regression models with conditionally Gaussian errors and for binary outcomes, <code>flexBART</code> can fit logistic and probit regression models.
-Users can specify the appropriate error distribution using the optional arguments</p><ul><li><p><code>family</code>: A character string naming the family function, a family function, or the result of a call to a family function. Currently only “gaussian” and “binary” are supported. Default is “gaussian”.</p></li>
+Users can specify the appropriate error distribution using the optional arguments</p><ul><li><p><code>family</code>: a family object, or the result of a call to a family function. Currently only “gaussian” and “binomial” are supported. Default is “gaussian”.</p></li>
 </ul></div>
 
 
@@ -262,6 +262,15 @@ can be supplied using the <code>...</code>:</p>
 
 <dt>M</dt>
 <dd><p>A copy of the argument <code>M_vec</code>. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
+
+<dt>family</dt>
+<dd><p>Records the <code>family</code> argument passed when the model was fit.</p></dd>
+
+<dt>link</dt>
+<dd><p>Records the link function specified in the <code>family</code> object passed when the model was fit.</p></dd>
+
+<dt>heteroskedastic</dt>
+<dd><p>A <code>bool</code> identifying whether or not there was a <code><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma()</a></code> ensemble in the model.</p></dd>
 
 <dt>cov_ensm</dt>
 <dd><p>An \(p \times R\) binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \(\beta_{r}(X)\) can split on \(X_{j}\).</p></dd>

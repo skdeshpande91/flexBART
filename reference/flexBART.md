@@ -114,9 +114,9 @@ with conditionally Gaussian errors and for binary outcomes, `flexBART`
 can fit logistic and probit regression models. Users can specify the
 appropriate error distribution using the optional arguments
 
-- `family`: A character string naming the family function, a family
-  function, or the result of a call to a family function. Currently only
-  “gaussian” and “binary” are supported. Default is “gaussian”.
+- `family`: a family object, or the result of a call to a family
+  function. Currently only “gaussian” and “binomial” are supported.
+  Default is “gaussian”.
 
 ### Categorical predictors
 
@@ -339,6 +339,20 @@ An object of `class` “flexBART” (essentially a list) containing
 
   A copy of the argument `M_vec`. Used by
   [`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md).
+
+- family:
+
+  Records the `family` argument passed when the model was fit.
+
+- link:
+
+  Records the link function specified in the `family` object passed when
+  the model was fit.
+
+- heteroskedastic:
+
+  A `bool` identifying whether or not there was a
+  [`sigma()`](https://rdrr.io/r/stats/sigma.html) ensemble in the model.
 
 - cov_ensm:
 
