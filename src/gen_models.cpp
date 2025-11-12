@@ -230,7 +230,7 @@ double Sigma::inv_link(double lambda){
 
 double Sigma::log_lik(double r, double lambda, double m){
   double theta = inv_link(lambda + m);
-  return -0.5 * log(2 * M_PI) - r - 0.5 * log(theta) - 0.5 * pow(r, 2.0) / theta;
+  return -0.5 * log(2 * M_PI) - 0.5 * log(theta) - 0.5 * pow(r, 2.0) / theta;
 }
 
 double Sigma::score(double r, double lambda, double m){
