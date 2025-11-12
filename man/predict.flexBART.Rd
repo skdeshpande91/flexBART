@@ -4,7 +4,7 @@
 Predicting new observations with previously fitted flexBART model
 }
 \description{
-\code{predict.flexBART()} can take the output of \code{\link{flexBART()}} and \code{\link{probit_flexBART()}} and use it to make predictions at new inputs.
+\code{predict.flexBART()} can take the output of \code{\link{flexBART}} and \code{\link{probit_flexBART}} and use it to make predictions at new inputs.
 }
 \usage{
 \method{predict}{flexBART}(object, newdata, ...)
@@ -16,9 +16,9 @@ Predicting new observations with previously fitted flexBART model
   \item{\dots}{Additional optional arguments governing whether to print progress (i.e., \code{verbose} and \code{print_every}).}
 }
 \details{
-Make predictions at new inputs based on the output of \code{\link{flexBART()}}. 
+Make predictions at new inputs based on the output of \code{\link{flexBART}}. 
 Useful when the testing dataset is quite large.
-If \code{fit} were produced by \code{\link{probit_flexBART()}}, then the function outputs draws of the fitted probabilities.
+If \code{fit} were produced by \code{\link{probit_flexBART}}, then the function outputs draws of the fitted probabilities.
 }
 \value{
 When there is only one ensemble, a matrix containing posterior samples of the regression function evaluated at the supplied inputs.
