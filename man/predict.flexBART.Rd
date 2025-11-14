@@ -11,8 +11,8 @@ Predicting new observations with previously fitted flexBART model
 }
 
 \arguments{
-  \item{object}{object of class inhereting from \dQuote{flexBART}.}
-  \item{newdata}{Data frame in whch to look for variables with which to predict. Cannot be omitted.}
+  \item{object}{object of class inheriting from \dQuote{flexBART}.}
+  \item{newdata}{Data frame in which to look for variables with which to predict. Cannot be omitted.}
   \item{\dots}{Additional optional arguments governing whether to print progress (i.e., \code{verbose} and \code{print_every}).}
 }
 \details{

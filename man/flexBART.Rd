@@ -9,8 +9,8 @@ Implements a more flexible version of Deshpande et al. (2024)'s varying coeffici
 Through the formula interface, users can carefully control the splitting variables used in each ensemble. 
 The optional \code{family} argument allows users to fit generalized linear varying coefficient models (e.g., logistic regression models in which the covariate effects vary as functions of effect modifiers).
 Conditionally Gaussian heteroskedastic regression models are also supported. 
-This implementation includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors. 
-Trees directly partition the levels of categorical predictors, enabling much more flexible \dQuote{partially pool} across groups/categories (esp., when they are network-structured or nested) than one-hot encoding.
+This implementation includes several improvements on Deshpande (2025)'s priors for decision rules for categorical predictors. 
+Trees directly partition the levels of categorical predictors, enabling much more flexible \dQuote{partial pooling} across groups/categories (esp., when they are network-structured or nested) than one-hot encoding.
 }
 \usage{
 flexBART(formula, train_data, 
@@ -44,7 +44,7 @@ A simple, single ensemble model has the form \code{response ~ bart(terms)} where
 are allowed to split.
 A \code{terms} specification of the form \code{.} will include all variables \emph{except} \code{response} that are found in \code{train_data}.
 A \code{terms} specification of the form \code{x1 + x2} will include just the variables \code{x1} and \code{x2}.
-A \code{terms} specification of the form \code{.-x1-x2} will include all variales found in \code{train_data} \emph{except} \code{response}, \code{x1}, and \code{x2}.
+A \code{terms} specification of the form \code{.-x1-x2} will include all variables found in \code{train_data} \emph{except} \code{response}, \code{x1}, and \code{x2}.
 Of course, you can specify more than two variables in \code{terms}.
 
 To fit a varying coefficient model, the formula argument takes the form \code{response ~ z1 * bart(terms1) + z2 * bart(terms2) + \dots} where \code{response} is the numeric response and 
@@ -98,7 +98,7 @@ The argument \code{graph_cut_type} determines which prior is implemented:
 \itemize{
   \item \code{graph_cut_type = 1}: A deterministic partition is formed based on the signs of entries in the second smallest eigenvector of the unweighted graph Laplacian (i.e., the Fiedler vector).
   \item \code{graph_cut_type = 2}: The partition is formed by first drawing a uniformly random spanning tree using Wilson's algorithm and then deleting a uniformly random edge from the tree.
-  \item \code{graph_cut_type = 3}: Like \code{graph_split_type=2} but the probability of deleting a spanning tree edge is proportional to the size of the smallest cluster that results from that deletion.
+  \item \code{graph_cut_type = 3}: Like \code{graph_cut_type=2} but the probability of deleting a spanning tree edge is proportional to the size of the smallest cluster that results from that deletion.
   \item \code{graph_cut_type = 4}: The partition is formed by first drawing a uniformly random spanning tree and computing the Fiedler vector of the spanning tree
 }
 
@@ -171,7 +171,7 @@ The following arguments, which are passed to internal pre-processing and model f
 can be supplied using the \code{\dots}:
 
 \itemize{
-  \item \code{sparse}: Whether to perform variable selection baed on the sparse Dirichlet 
+  \item \code{sparse}: Whether to perform variable selection based on the sparse Dirichlet 
   prior rather than uniform (see Linero (2018)). Default is \code{TRUE} but is ignored if \code{nest_v = TRUE}. 
   \item \code{a_u}: Hyper-parameter for the \eqn{Beta(a_u,b_u)}{Beta(a_u,b_u)} hyper-prior 
   used to specify Linero (2018)'s sparse Dirichlet prior. Default is 0.5. Ignored if \code{nest_v=TRUE}.
@@ -188,7 +188,7 @@ can be supplied using the \code{\dots}:
   \item \code{save_trees}: Logical, indicating whether or not to save a text-based representation of the tree samples. 
   This representation can be passed to \code{\link{predict.flexBART}} to make predictions at a later time. 
   Default is \code{TRUE}.
-  \item \code{verbose}: Logical, inciating whether to print progress to \R console. Default is \code{TRUE}.
+  \item \code{verbose}: Logical, indicating whether to print progress to the \R console. Default is \code{TRUE}.
   \item \code{print_every}: As the MCMC runs, a message is printed every \code{print_every} iterations. 
   Default is \code{floor( (nd*thin + burn)/10)} so that only 10 messages are printed.
 }
@@ -197,7 +197,7 @@ can be supplied using the \code{\dots}:
 \value{
 An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{dinfo}{Essentially a list containing information about the input and output variables. Used by \code{\link{predict.flexBART}}.}
-\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict.flexBART}} to reconstruct the C++ representations of the sampled trees.}
+\item{trees}{A list (or length \code{nd}) of character vectors (of length \code{M}) containing textual representations of the regression trees. These strings are parsed by \code{\link{predict.flexBART}} to reconstruct the C++ representations of the sampled trees.}
 \item{scaling_info}{Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by \code{\link{predict.flexBART}}.}
 \item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART}}.}
 \item{family}{Records the \code{family} argument passed when the model was fit.}
@@ -205,9 +205,9 @@ An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{heteroskedastic}{A \code{bool} identifying whether or not there was a \code{sigma()} ensemble in the model.}
 \item{cov_ensm}{An \eqn{p \times R}{p x R} binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \eqn{\beta_{r}(X)}{beta_r(X)} can split on \eqn{X_{j}}{X_j}.}
 \item{yhat.train.mean}{Vector containing posterior mean of evaluations of regression function on training data.}
-\item{yhat.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if \code{save_samples = TRUE}.}
+\item{yhat.train}{Matrix with \code{nd} rows and \code{nrow(train_data)} columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if \code{save_samples = TRUE}.}
 \item{yhat.test.mean}{Vector containing posterior mean of evaluations of regression function on testing data, if testing data is provided.}
-\item{yhat.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat_train}. Only returned if testing data is passed and \code{save_samples = TRUE}.}
+\item{yhat.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat.train}. Only returned if testing data is passed and \code{save_samples = TRUE}.}
 \item{beta.train.mean}{Matrix containing posterior mean of evaluations of coefficient function on training data.}
 \item{beta.train}{Array of posterior samples of slope function evaluations. 
 Only returned if \code{save_samples = TRUE}.}
@@ -272,7 +272,7 @@ Chipman, H, George, E.I., and McCulloch, R. (2008) BART: Bayesian Additive Regre
 Deshpande, S.K. (2025) \bold{flexBART:} Flexible Bayesian regression trees with categorical predictors. 
 \emph{Journal of Computational and Graphical Statistics.} \bold{34}(3):1117--1126. \doi{doi:10.1080/10618600.2024.2431072}.
 
-Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2024) VCBART:Bayesian trees for varying coefficients. 
+Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2024). VCBART:Bayesian trees for varying coefficients. 
 \emph{Bayesian Analysis}. \doi{doi:10.1214/24-BA1470}.
 
 Linero, A.R. (2018) Bayesian regression trees for high-dimensional prediction and variable selection. 

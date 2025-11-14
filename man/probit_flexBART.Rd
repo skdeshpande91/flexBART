@@ -4,12 +4,11 @@
 Probit flexBART for binary outcomes
 }
 \description{
-Fit a BART model of a binary responses using the the Albert and Chib (1993) data augmentation for probit models.
+Fit a BART model of a binary responses using the Albert and Chib (1993) data augmentation for probit models.
 }
 \usage{
 probit_flexBART(formula, train_data, test_data = NULL,...)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{formula}{an object of class \code{\link[stats:formula]{formula}} (or one that can be coerced to the class): 
   a symbolic description of the model to be fitted. 
@@ -57,14 +56,14 @@ Use the \code{mu0_vec} and \code{tau_vec} arguments to set other hyperparameter 
 \value{
 An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{dinfo}{Essentially a list containing information about the input and output variables. Used by \code{\link{predict.flexBART}}.}
-\item{trees}{A list (or length \code{nd}) of character vectors (of lenght \code{M}) containing textual representations of the regression trees. 
+\item{trees}{A list (or length \code{nd}) of character vectors (of length \code{M}) containing textual representations of the regression trees. 
 These strings are parsed by \code{\link{predict.flexBART}} to reconstruct the C++ representations of the sampled trees.}
 \item{scaling_info}{Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by \code{\link{predict.flexBART}}.}
 \item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART}}.}
 \item{cov_ensm}{An \eqn{p \times R}{p x R} binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \eqn{\beta_{r}(X)}{beta_r(X)} can split on \eqn{X_{j}}{X_j}.}
 \item{prob.train.mean}{Vector containing posterior mean of \eqn{P(Y=1 \vert X = x)}{P(Y=1|X=x)} for the training data.}
 \item{prob.train}{Matrix with \code{nd} rows and \code{length(Y_train)} columns containing posterior samples of \eqn{P(Y=1 \vert X = x)}{P(Y=1|X=x)} for the training data.
-Each row corresponds to a posterior sample of the regression functionand each column corresponds to a training observation. 
+Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. 
 Only returned if \code{save_samples = TRUE}.}
 \item{prob.test.mean}{Vector containing posterior mean of \eqn{P(Y=1 \vert X = x)}{P(Y=1|X=x)} on testing data, if testing data is provided.}
 \item{prob.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. 
