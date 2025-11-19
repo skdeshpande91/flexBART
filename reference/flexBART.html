@@ -9,13 +9,13 @@
 Through the formula interface, users can carefully control the splitting variables used in each ensemble.
 The optional family argument allows users to fit generalized linear varying coefficient models (e.g., logistic regression models in which the covariate effects vary as functions of effect modifiers).
 Conditionally Gaussian heteroskedastic regression models are also supported.
-This implementation includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
-Trees directly partition the levels of categorical predictors, enabling much more flexible &amp;#8220;partially pool&amp;#8221; across groups/categories (esp., when they are network-structured or nested) than one-hot encoding."><meta property="og:description" content="Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient BART model (VCBART) that, at a high-level, represents regression functions as the sum of several weighted ensembles of binary regression trees.
+This implementation includes several improvements on Deshpande (2025)'s priors for decision rules for categorical predictors.
+Trees directly partition the levels of categorical predictors, enabling much more flexible &amp;#8220;partial pooling&amp;#8221; across groups/categories (esp., when they are network-structured or nested) than one-hot encoding."><meta property="og:description" content="Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient BART model (VCBART) that, at a high-level, represents regression functions as the sum of several weighted ensembles of binary regression trees.
 Through the formula interface, users can carefully control the splitting variables used in each ensemble.
 The optional family argument allows users to fit generalized linear varying coefficient models (e.g., logistic regression models in which the covariate effects vary as functions of effect modifiers).
 Conditionally Gaussian heteroskedastic regression models are also supported.
-This implementation includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
-Trees directly partition the levels of categorical predictors, enabling much more flexible &amp;#8220;partially pool&amp;#8221; across groups/categories (esp., when they are network-structured or nested) than one-hot encoding."></head><body>
+This implementation includes several improvements on Deshpande (2025)'s priors for decision rules for categorical predictors.
+Trees directly partition the levels of categorical predictors, enabling much more flexible &amp;#8220;partial pooling&amp;#8221; across groups/categories (esp., when they are network-structured or nested) than one-hot encoding."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -61,8 +61,8 @@ Trees directly partition the levels of categorical predictors, enabling much mor
 Through the formula interface, users can carefully control the splitting variables used in each ensemble.
 The optional <code>family</code> argument allows users to fit generalized linear varying coefficient models (e.g., logistic regression models in which the covariate effects vary as functions of effect modifiers).
 Conditionally Gaussian heteroskedastic regression models are also supported.
-This implementation includes several improvements on Deshpande (2024)'s priors for decision rules for categorical predictors.
-Trees directly partition the levels of categorical predictors, enabling much more flexible “partially pool” across groups/categories (esp., when they are network-structured or nested) than one-hot encoding.</p>
+This implementation includes several improvements on Deshpande (2025)'s priors for decision rules for categorical predictors.
+Trees directly partition the levels of categorical predictors, enabling much more flexible “partial pooling” across groups/categories (esp., when they are network-structured or nested) than one-hot encoding.</p>
     </div>
 
     <div class="section level2">
@@ -111,7 +111,7 @@ A simple, single ensemble model has the form <code>response ~ bart(terms)</code>
 are allowed to split.
 A <code>terms</code> specification of the form <code>.</code> will include all variables <em>except</em> <code>response</code> that are found in <code>train_data</code>.
 A <code>terms</code> specification of the form <code>x1 + x2</code> will include just the variables <code>x1</code> and <code>x2</code>.
-A <code>terms</code> specification of the form <code>.-x1-x2</code> will include all variales found in <code>train_data</code> <em>except</em> <code>response</code>, <code>x1</code>, and <code>x2</code>.
+A <code>terms</code> specification of the form <code>.-x1-x2</code> will include all variables found in <code>train_data</code> <em>except</em> <code>response</code>, <code>x1</code>, and <code>x2</code>.
 Of course, you can specify more than two variables in <code>terms</code>.</p>
 <p>To fit a varying coefficient model, the formula argument takes the form <code>response ~ z1 * bart(terms1) + z2 * bart(terms2) + ...</code> where <code>response</code> is the numeric response and
 <code>z1</code>, <code>z2</code>, etc. are numeric covariates and <code>terms1</code>, <code>terms2</code> are like above.
@@ -162,7 +162,7 @@ Each element should be a binary or weighted adjacency matrix whose row and colum
 Each prior recursively partitions the network into two pieces.
 The argument <code>graph_cut_type</code> determines which prior is implemented:</p><ul><li><p><code>graph_cut_type = 1</code>: A deterministic partition is formed based on the signs of entries in the second smallest eigenvector of the unweighted graph Laplacian (i.e., the Fiedler vector).</p></li>
 <li><p><code>graph_cut_type = 2</code>: The partition is formed by first drawing a uniformly random spanning tree using Wilson's algorithm and then deleting a uniformly random edge from the tree.</p></li>
-<li><p><code>graph_cut_type = 3</code>: Like <code>graph_split_type=2</code> but the probability of deleting a spanning tree edge is proportional to the size of the smallest cluster that results from that deletion.</p></li>
+<li><p><code>graph_cut_type = 3</code>: Like <code>graph_cut_type=2</code> but the probability of deleting a spanning tree edge is proportional to the size of the smallest cluster that results from that deletion.</p></li>
 <li><p><code>graph_cut_type = 4</code>: The partition is formed by first drawing a uniformly random spanning tree and computing the Fiedler vector of the spanning tree</p></li>
 </ul><p>If unspecified, the default value of <code>graph_cut_type</code> is 2.
 If no adjacency information is provided, <code>graph_cut_type</code> is ignored.</p>
@@ -225,7 +225,7 @@ Users can control this prior with the optional arguments</p><ul><li><p><code>nu<
 <h3 id="additional-arguments">Additional arguments<a class="anchor" aria-label="anchor" href="#additional-arguments"></a></h3>
 <p>The following arguments, which are passed to internal pre-processing and model fitting functions,
 can be supplied using the <code>...</code>:</p>
-<ul><li><p><code>sparse</code>: Whether to perform variable selection baed on the sparse Dirichlet
+<ul><li><p><code>sparse</code>: Whether to perform variable selection based on the sparse Dirichlet
   prior rather than uniform (see Linero (2018)). Default is <code>TRUE</code> but is ignored if <code>nest_v = TRUE</code>.</p></li>
 <li><p><code>a_u</code>: Hyper-parameter for the \(Beta(a_u,b_u)\) hyper-prior
   used to specify Linero (2018)'s sparse Dirichlet prior. Default is 0.5. Ignored if <code>nest_v=TRUE</code>.</p></li>
@@ -242,7 +242,7 @@ can be supplied using the <code>...</code>:</p>
 <li><p><code>save_trees</code>: Logical, indicating whether or not to save a text-based representation of the tree samples.
   This representation can be passed to <code><a href="predict.flexBART.html">predict.flexBART</a></code> to make predictions at a later time.
   Default is <code>TRUE</code>.</p></li>
-<li><p><code>verbose</code>: Logical, inciating whether to print progress to <span style="R">R</span> console. Default is <code>TRUE</code>.</p></li>
+<li><p><code>verbose</code>: Logical, indicating whether to print progress to the <span style="R">R</span> console. Default is <code>TRUE</code>.</p></li>
 <li><p><code>print_every</code>: As the MCMC runs, a message is printed every <code>print_every</code> iterations.
   Default is <code>floor( (nd*thin + burn)/10)</code> so that only 10 messages are printed.</p></li>
 </ul></div>
@@ -255,7 +255,7 @@ can be supplied using the <code>...</code>:</p>
 <dd><p>Essentially a list containing information about the input and output variables. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>trees</dt>
-<dd><p>A list (or length <code>nd</code>) of character vectors (of lenght <code>M</code>) containing textual representations of the regression trees. These strings are parsed by <code><a href="predict.flexBART.html">predict.flexBART</a></code> to reconstruct the C++ representations of the sampled trees.</p></dd>
+<dd><p>A list (or length <code>nd</code>) of character vectors (of length <code>M</code>) containing textual representations of the regression trees. These strings are parsed by <code><a href="predict.flexBART.html">predict.flexBART</a></code> to reconstruct the C++ representations of the sampled trees.</p></dd>
 
 <dt>scaling_info</dt>
 <dd><p>Essentially a list containing information for re-scaling raw MCMC output to the original outcome scale. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
@@ -279,13 +279,13 @@ can be supplied using the <code>...</code>:</p>
 <dd><p>Vector containing posterior mean of evaluations of regression function on training data.</p></dd>
 
 <dt>yhat.train</dt>
-<dd><p>Matrix with <code>nd</code> rows and <code>length(Y_train)</code> columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if <code>save_samples = TRUE</code>.</p></dd>
+<dd><p>Matrix with <code>nd</code> rows and <code>nrow(train_data)</code> columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if <code>save_samples = TRUE</code>.</p></dd>
 
 <dt>yhat.test.mean</dt>
 <dd><p>Vector containing posterior mean of evaluations of regression function on testing data, if testing data is provided.</p></dd>
 
 <dt>yhat.test</dt>
-<dd><p>If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of <code>yhat_train</code>. Only returned if testing data is passed and <code>save_samples = TRUE</code>.</p></dd>
+<dd><p>If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of <code>yhat.train</code>. Only returned if testing data is passed and <code>save_samples = TRUE</code>.</p></dd>
 
 <dt>beta.train.mean</dt>
 <dd><p>Matrix containing posterior mean of evaluations of coefficient function on training data.</p></dd>
@@ -323,17 +323,22 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <p>Deshpande, S.K. (2025) <b>flexBART:</b> Flexible Bayesian regression trees with categorical predictors.
 <em>Journal of Computational and Graphical Statistics.</em> <b>34</b>(3):1117–1126. <a href="https://doi.org/10.1080/10618600.2024.2431072" class="external-link">doi:10.1080/10618600.2024.2431072</a>
 .</p>
-<p>Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2024) VCBART:Bayesian trees for varying coefficients.
+<p>Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2024). VCBART:Bayesian trees for varying coefficients.
 <em>Bayesian Analysis</em>. <a href="https://doi.org/10.1214/24-BA1470" class="external-link">doi:10.1214/24-BA1470</a>
 .</p>
 <p>Linero, A.R. (2018) Bayesian regression trees for high-dimensional prediction and variable selection.
 <em>Journal of the American Statistical Association.</em> <b>113</b>(522):626–636.
-<a href="https://doi.org/10.1080/01621459.2016.1264957" class="external-link">doi:10.1080/01621459.2016.1264957</a></p>
+<a href="https://doi.org/10.1080/01621459.2016.1264957" class="external-link">doi:10.1080/01621459.2016.1264957</a>
+.</p>
+<p>Pratola, M.T., Chipman, H.A., George, E.I., and McCulloch R.E. (2020). Heteroskedastic BART via multiplicative regression trees.
+<em>Journal of Computational and Graphical Statistics.</em> <b>29</b>(2):405–417.
+<a href="https://doi.org/10.1080/10618600.2019.1677243" class="external-link">doi:10.1080/10618600.2019.1677243</a>
+.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## A modified version of Friedman's function (from the MARS paper)</span></span></span>
 <span class="r-in"><span><span class="co"># with 50 predictors in [-1,1]</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">99</span><span class="op">)</span></span></span>
@@ -345,34 +350,88 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-in"><span>           <span class="fl">10</span> <span class="op">*</span> <span class="va">tmp_X</span><span class="op">[</span>,<span class="fl">17</span><span class="op">]</span> <span class="op">+</span> </span></span>
 <span class="r-in"><span>           <span class="fl">5</span> <span class="op">*</span> <span class="va">tmp_X</span><span class="op">[</span>,<span class="fl">20</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-in"><span><span class="va">n_train</span> <span class="op">&lt;-</span> <span class="fl">1000</span></span></span>
-<span class="r-in"><span><span class="va">n_test</span> <span class="op">&lt;-</span> <span class="fl">100</span></span></span>
+<span class="r-in"><span><span class="va">n_train</span> <span class="op">&lt;-</span> <span class="fl">500</span></span></span>
 <span class="r-in"><span><span class="va">p_cont</span> <span class="op">&lt;-</span> <span class="fl">50</span></span></span>
 <span class="r-in"><span><span class="va">sigma</span> <span class="op">&lt;-</span> <span class="fl">1</span></span></span>
 <span class="r-in"><span><span class="va">train_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA</span>, times <span class="op">=</span> <span class="va">n_train</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="kw">for</span><span class="op">(</span><span class="va">j</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">p_cont</span><span class="op">)</span> <span class="va">train_data</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"X"</span>,<span class="va">j</span><span class="op">)</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_train</span>, min <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, max <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">mu_train</span> <span class="op">&lt;-</span> <span class="fu">mu_true</span><span class="op">(</span><span class="va">train_data</span><span class="op">[</span>,<span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"X"</span>,<span class="fl">1</span><span class="op">:</span><span class="va">p_cont</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">train_data</span><span class="op">[</span>,<span class="st">"Y"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">mu_train</span> <span class="op">+</span> <span class="va">sigma</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span>n <span class="op">=</span> <span class="va">n_train</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">test_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA</span>, times <span class="op">=</span> <span class="va">n_test</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="kw">for</span><span class="op">(</span><span class="va">j</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">p_cont</span><span class="op">)</span> <span class="va">test_data</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"X"</span>,<span class="va">j</span><span class="op">)</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_test</span>, min <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, max <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">mu_test</span> <span class="op">&lt;-</span> <span class="fu">mu_true</span><span class="op">(</span><span class="va">test_data</span><span class="op">[</span>,<span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"X"</span>,<span class="fl">1</span><span class="op">:</span><span class="va">p_cont</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span></span></span>
 <span class="r-in"><span>  <span class="fu">flexBART</span><span class="op">(</span>formula <span class="op">=</span> <span class="va">Y</span><span class="op">~</span><span class="fu">bart</span><span class="op">(</span><span class="va">.</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>           train_data <span class="op">=</span> <span class="va">train_data</span>,</span></span>
-<span class="r-in"><span>           test_data <span class="op">=</span> <span class="va">test_data</span>,</span></span>
 <span class="r-in"><span>           inform_sigma <span class="op">=</span> <span class="cn">TRUE</span>, sparse <span class="op">=</span> <span class="cn">TRUE</span>, </span></span>
 <span class="r-in"><span>           save_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [get_covariate_info]:  No padding for continuous variable ranges provided.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> By default, flexBART adds 0.1 SDs to min and max values of each continuous variable.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> no initial estimate of sigma provided. Initialize using LASSO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Initial sigma (after standardization) = 0.516291 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> n.chains =  4 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> n_train = 500 n_test = 0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> R = 1 p_cont = 50 p_cat = 0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Number of trees:  50 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Implied marginal priors:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Intercept: N(0, 1.690963) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 1 at 2025-11-19 22:41:35 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 600 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 800 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1000 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1200 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1400 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 1 at 2025-11-19 22:41:36 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 2 at 2025-11-19 22:41:36 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 600 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 800 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1000 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1200 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1400 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 2 at 2025-11-19 22:41:37 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 3 at 2025-11-19 22:41:37 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 600 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 800 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1000 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1200 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1400 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 3 at 2025-11-19 22:41:38 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 4 at 2025-11-19 22:41:38 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 600 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 800 of 2000; Warmup</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1000 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1200 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1400 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 4 at 2025-11-19 22:41:39 </span>
+<span class="r-in"><span><span class="co"># \donttest{           </span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>,<span class="fl">3</span>,<span class="fl">2</span>,<span class="fl">1</span><span class="op">)</span>, mgp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.8</span>, <span class="fl">0.5</span>, <span class="fl">0</span><span class="op">)</span>, mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">mu_train</span>, <span class="va">fit</span><span class="op">$</span><span class="va">yhat.train.mean</span>, ,</span></span>
 <span class="r-in"><span>     pch <span class="op">=</span> <span class="fl">16</span>, cex <span class="op">=</span> <span class="fl">0.5</span>,</span></span>
 <span class="r-in"><span>     xlab <span class="op">=</span> <span class="st">"Actual"</span>, ylab <span class="op">=</span> <span class="st">"Predicted"</span>, main <span class="op">=</span> <span class="st">"Training"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">0</span>, b <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">'blue'</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">mu_test</span>, <span class="va">fit</span><span class="op">$</span><span class="va">yhat.test.mean</span>, ,</span></span>
-<span class="r-in"><span>     pch <span class="op">=</span> <span class="fl">16</span>, cex <span class="op">=</span> <span class="fl">0.5</span>,</span></span>
-<span class="r-in"><span>     xlab <span class="op">=</span> <span class="st">"Actual"</span>, ylab <span class="op">=</span> <span class="st">"Predicted"</span>, main <span class="op">=</span> <span class="st">"Testing"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">0</span>, b <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">'blue'</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-plt img"><img src="flexBART-1.png" alt="" width="700" height="433"></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

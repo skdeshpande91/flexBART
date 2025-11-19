@@ -17,12 +17,12 @@ predict(object, newdata, ...)
 
 - object:
 
-  object of class inhereting from “flexBART”.
+  object of class inheriting from “flexBART”.
 
 - newdata:
 
-  Data frame in whch to look for variables with which to predict. Cannot
-  be omitted.
+  Data frame in which to look for variables with which to predict.
+  Cannot be omitted.
 
 - ...:
 

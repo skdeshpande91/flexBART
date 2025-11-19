@@ -9,10 +9,10 @@ control the splitting variables used in each ensemble. The optional
 coefficient models (e.g., logistic regression models in which the
 covariate effects vary as functions of effect modifiers). Conditionally
 Gaussian heteroskedastic regression models are also supported. This
-implementation includes several improvements on Deshpande (2024)'s
+implementation includes several improvements on Deshpande (2025)'s
 priors for decision rules for categorical predictors. Trees directly
 partition the levels of categorical predictors, enabling much more
-flexible “partially pool” across groups/categories (esp., when they are
+flexible “partial pooling” across groups/categories (esp., when they are
 network-structured or nested) than one-hot encoding.
 
 ## Usage
@@ -78,7 +78,7 @@ trees in the ensemble are allowed to split. A `terms` specification of
 the form `.` will include all variables *except* `response` that are
 found in `train_data`. A `terms` specification of the form `x1 + x2`
 will include just the variables `x1` and `x2`. A `terms` specification
-of the form `.-x1-x2` will include all variales found in `train_data`
+of the form `.-x1-x2` will include all variables found in `train_data`
 *except* `response`, `x1`, and `x2`. Of course, you can specify more
 than two variables in `terms`.
 
@@ -160,7 +160,7 @@ determines which prior is implemented:
   uniformly random spanning tree using Wilson's algorithm and then
   deleting a uniformly random edge from the tree.
 
-- `graph_cut_type = 3`: Like `graph_split_type=2` but the probability of
+- `graph_cut_type = 3`: Like `graph_cut_type=2` but the probability of
   deleting a spanning tree edge is proportional to the size of the
   smallest cluster that results from that deletion.
 
@@ -271,7 +271,7 @@ with the optional arguments
 The following arguments, which are passed to internal pre-processing and
 model fitting functions, can be supplied using the `...`:
 
-- `sparse`: Whether to perform variable selection baed on the sparse
+- `sparse`: Whether to perform variable selection based on the sparse
   Dirichlet prior rather than uniform (see Linero (2018)). Default is
   `TRUE` but is ignored if `nest_v = TRUE`.
 
@@ -304,8 +304,8 @@ model fitting functions, can be supplied using the `...`:
   [`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md)
   to make predictions at a later time. Default is `TRUE`.
 
-- `verbose`: Logical, inciating whether to print progress to R console.
-  Default is `TRUE`.
+- `verbose`: Logical, indicating whether to print progress to the R
+  console. Default is `TRUE`.
 
 - `print_every`: As the MCMC runs, a message is printed every
   `print_every` iterations. Default is `floor( (nd*thin + burn)/10)` so
@@ -323,7 +323,7 @@ An object of `class` “flexBART” (essentially a list) containing
 
 - trees:
 
-  A list (or length `nd`) of character vectors (of lenght `M`)
+  A list (or length `nd`) of character vectors (of length `M`)
   containing textual representations of the regression trees. These
   strings are parsed by
   [`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md)
@@ -366,7 +366,7 @@ An object of `class` “flexBART” (essentially a list) containing
 
 - yhat.train:
 
-  Matrix with `nd` rows and `length(Y_train)` columns. Each row
+  Matrix with `nd` rows and `nrow(train_data)` columns. Each row
   corresponds to a posterior sample of the regression function and each
   column corresponds to a training observation. Only returned if
   `save_samples = TRUE`.
@@ -380,7 +380,7 @@ An object of `class` “flexBART” (essentially a list) containing
 
   If testing data was supplied, matrix containing posterior samples of
   the regression function evaluated on the testing data. Structure is
-  similar to that of `yhat_train`. Only returned if testing data is
+  similar to that of `yhat.train`. Only returned if testing data is
   passed and `save_samples = TRUE`.
 
 - beta.train.mean:
@@ -439,18 +439,24 @@ Statistics.* **34**(3):1117–1126.
 .
 
 Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J.
-(2024) VCBART:Bayesian trees for varying coefficients. *Bayesian
+(2024). VCBART:Bayesian trees for varying coefficients. *Bayesian
 Analysis*. [doi:10.1214/24-BA1470](https://doi.org/10.1214/24-BA1470) .
 
 Linero, A.R. (2018) Bayesian regression trees for high-dimensional
 prediction and variable selection. *Journal of the American Statistical
 Association.* **113**(522):626–636.
 [doi:10.1080/01621459.2016.1264957](https://doi.org/10.1080/01621459.2016.1264957)
+.
+
+Pratola, M.T., Chipman, H.A., George, E.I., and McCulloch R.E. (2020).
+Heteroskedastic BART via multiplicative regression trees. *Journal of
+Computational and Graphical Statistics.* **29**(2):405–417.
+[doi:10.1080/10618600.2019.1677243](https://doi.org/10.1080/10618600.2019.1677243)
+.
 
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
 ## A modified version of Friedman's function (from the MARS paper)
 # with 50 predictors in [-1,1]
 set.seed(99)
@@ -462,32 +468,85 @@ mu_true <- function(df){
            10 * tmp_X[,17] + 
            5 * tmp_X[,20])
 }
-n_train <- 1000
-n_test <- 100
+n_train <- 500
 p_cont <- 50
 sigma <- 1
 train_data <- data.frame(Y = rep(NA, times = n_train))
 for(j in 1:p_cont) train_data[[paste0("X",j)]] <- runif(n_train, min = -1, max = 1)
 mu_train <- mu_true(train_data[,paste0("X",1:p_cont)])
 train_data[,"Y"] <- mu_train + sigma * rnorm(n = n_train, mean = 0, sd = 1)
-
-test_data <- data.frame(Y = rep(NA, times = n_test))
-for(j in 1:p_cont) test_data[[paste0("X",j)]] <- runif(n_test, min = -1, max = 1)
-mu_test <- mu_true(test_data[,paste0("X",1:p_cont)])
 fit <-
   flexBART(formula = Y~bart(.),
            train_data = train_data,
-           test_data = test_data,
            inform_sigma = TRUE, sparse = TRUE, 
            save_samples = FALSE)
+#> [get_covariate_info]:  No padding for continuous variable ranges provided.
+#> By default, flexBART adds 0.1 SDs to min and max values of each continuous variable.
+#> no initial estimate of sigma provided. Initialize using LASSO
+#> Initial sigma (after standardization) = 0.516291 
+#> n.chains =  4 
+#> n_train = 500 n_test = 0 
+#> R = 1 p_cont = 50 p_cat = 0 
+#> Number of trees:  50 
+#> Implied marginal priors:
+#>   Intercept: N(0, 1.690963) 
+#> Starting chain 1 at 2025-11-19 22:41:35 
+#>   MCMC Iteration: 1 of 2000; Warmup
+#>   MCMC Iteration: 200 of 2000; Warmup
+#>   MCMC Iteration: 400 of 2000; Warmup
+#>   MCMC Iteration: 600 of 2000; Warmup
+#>   MCMC Iteration: 800 of 2000; Warmup
+#>   MCMC Iteration: 1000 of 2000; Sampling
+#>   MCMC Iteration: 1200 of 2000; Sampling
+#>   MCMC Iteration: 1400 of 2000; Sampling
+#>   MCMC Iteration: 1600 of 2000; Sampling
+#>   MCMC Iteration: 1800 of 2000; Sampling
+#>   MCMC Iteration: 2000 of 2000; Sampling
+#> Ending chain 1 at 2025-11-19 22:41:36 
+#> Starting chain 2 at 2025-11-19 22:41:36 
+#>   MCMC Iteration: 1 of 2000; Warmup
+#>   MCMC Iteration: 200 of 2000; Warmup
+#>   MCMC Iteration: 400 of 2000; Warmup
+#>   MCMC Iteration: 600 of 2000; Warmup
+#>   MCMC Iteration: 800 of 2000; Warmup
+#>   MCMC Iteration: 1000 of 2000; Sampling
+#>   MCMC Iteration: 1200 of 2000; Sampling
+#>   MCMC Iteration: 1400 of 2000; Sampling
+#>   MCMC Iteration: 1600 of 2000; Sampling
+#>   MCMC Iteration: 1800 of 2000; Sampling
+#>   MCMC Iteration: 2000 of 2000; Sampling
+#> Ending chain 2 at 2025-11-19 22:41:37 
+#> Starting chain 3 at 2025-11-19 22:41:37 
+#>   MCMC Iteration: 1 of 2000; Warmup
+#>   MCMC Iteration: 200 of 2000; Warmup
+#>   MCMC Iteration: 400 of 2000; Warmup
+#>   MCMC Iteration: 600 of 2000; Warmup
+#>   MCMC Iteration: 800 of 2000; Warmup
+#>   MCMC Iteration: 1000 of 2000; Sampling
+#>   MCMC Iteration: 1200 of 2000; Sampling
+#>   MCMC Iteration: 1400 of 2000; Sampling
+#>   MCMC Iteration: 1600 of 2000; Sampling
+#>   MCMC Iteration: 1800 of 2000; Sampling
+#>   MCMC Iteration: 2000 of 2000; Sampling
+#> Ending chain 3 at 2025-11-19 22:41:38 
+#> Starting chain 4 at 2025-11-19 22:41:38 
+#>   MCMC Iteration: 1 of 2000; Warmup
+#>   MCMC Iteration: 200 of 2000; Warmup
+#>   MCMC Iteration: 400 of 2000; Warmup
+#>   MCMC Iteration: 600 of 2000; Warmup
+#>   MCMC Iteration: 800 of 2000; Warmup
+#>   MCMC Iteration: 1000 of 2000; Sampling
+#>   MCMC Iteration: 1200 of 2000; Sampling
+#>   MCMC Iteration: 1400 of 2000; Sampling
+#>   MCMC Iteration: 1600 of 2000; Sampling
+#>   MCMC Iteration: 1800 of 2000; Sampling
+#>   MCMC Iteration: 2000 of 2000; Sampling
+#> Ending chain 4 at 2025-11-19 22:41:39 
+# \donttest{           
 par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
 plot(mu_train, fit$yhat.train.mean, ,
      pch = 16, cex = 0.5,
      xlab = "Actual", ylab = "Predicted", main = "Training")
 abline(a = 0, b = 1, col = 'blue')
-plot(mu_test, fit$yhat.test.mean, ,
-     pch = 16, cex = 0.5,
-     xlab = "Actual", ylab = "Predicted", main = "Testing")
-abline(a = 0, b = 1, col = 'blue')
-} # }
+# }
 ```

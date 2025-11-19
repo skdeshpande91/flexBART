@@ -5,7 +5,7 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Probit flexBART for binary outcomes — probit_flexBART"><meta name="description" content="Fit a BART model of a binary responses using the the Albert and Chib (1993) data augmentation for probit models."><meta property="og:description" content="Fit a BART model of a binary responses using the the Albert and Chib (1993) data augmentation for probit models."></head><body>
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Probit flexBART for binary outcomes — probit_flexBART"><meta name="description" content="Fit a BART model of a binary responses using the Albert and Chib (1993) data augmentation for probit models."><meta property="og:description" content="Fit a BART model of a binary responses using the Albert and Chib (1993) data augmentation for probit models."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -47,7 +47,7 @@
     </div>
 
     <div class="ref-description section level2">
-    <p>Fit a BART model of a binary responses using the the Albert and Chib (1993) data augmentation for probit models.</p>
+    <p>Fit a BART model of a binary responses using the Albert and Chib (1993) data augmentation for probit models.</p>
     </div>
 
     <div class="section level2">
@@ -118,7 +118,7 @@ Use the <code>mu0_vec</code> and <code>tau_vec</code> arguments to set other hyp
 <dd><p>Essentially a list containing information about the input and output variables. Used by <code><a href="predict.flexBART.html">predict.flexBART</a></code>.</p></dd>
 
 <dt>trees</dt>
-<dd><p>A list (or length <code>nd</code>) of character vectors (of lenght <code>M</code>) containing textual representations of the regression trees.
+<dd><p>A list (or length <code>nd</code>) of character vectors (of length <code>M</code>) containing textual representations of the regression trees.
 These strings are parsed by <code><a href="predict.flexBART.html">predict.flexBART</a></code> to reconstruct the C++ representations of the sampled trees.</p></dd>
 
 <dt>scaling_info</dt>
@@ -135,7 +135,7 @@ These strings are parsed by <code><a href="predict.flexBART.html">predict.flexBA
 
 <dt>prob.train</dt>
 <dd><p>Matrix with <code>nd</code> rows and <code>length(Y_train)</code> columns containing posterior samples of \(P(Y=1 \vert X = x)\) for the training data.
-Each row corresponds to a posterior sample of the regression functionand each column corresponds to a training observation.
+Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation.
 Only returned if <code>save_samples = TRUE</code>.</p></dd>
 
 <dt>prob.test.mean</dt>

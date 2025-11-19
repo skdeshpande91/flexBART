@@ -1,7 +1,7 @@
 # Draw samples from the regression tree prior
 
-Draws M binary regression trees from the flexBART tree prior, resulting
-in a single prior draw from the sum-of-trees prior.
+Draws several binary regression trees from the flexBART tree prior,
+resulting in a single prior draw from the sum-of-trees prior.
 
 ## Usage
 
@@ -56,30 +56,31 @@ A list containing
 
 - num_leafs:
 
-  An integer vector of length `M` recording the number of leaf nodes in
+  An integer vector of length `nd` recording the number of leaf nodes in
   each tree of the ensemble.
 
 - num_singletons:
 
-  An integer vector of length `M` recording the number of leaf nodes in
+  An integer vector of length `nd` recording the number of leaf nodes in
   each tree that contain only one observation.
 
 - num_empty:
 
-  An integer vector of length `M` recording the number of leaf nodes in
+  An integer vector of length `nd` recording the number of leaf nodes in
   each tree that contain no observations.
 
 - max_leaf_size:
 
-  An integer vector of length `M` recording the maximum number of
+  An integer vector of length `nd` recording the maximum number of
   observation contained in a leaf in each tree of the ensemble.
 
 - min_leaf_size:
 
-  An integer vector of length `M` recording the minimum number of
+  An integer vector of length `nd` recording the minimum number of
   observation contained in a leaf in each tree of the ensemble.
 
 - kernel:
 
-  An n x n matrix whose (i,j) entry is the proportion of tree draws in
-  which observations i and j land in the same leaf of the tree.
+  An `nrow(train_data)` x `nrow(train_data)` matrix whose (i,j) entry is
+  the proportion of tree draws in which observations i and j land in the
+  same leaf of the tree.

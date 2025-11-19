@@ -1,7 +1,7 @@
 # Probit flexBART for binary outcomes
 
-Fit a BART model of a binary responses using the the Albert and Chib
-(1993) data augmentation for probit models.
+Fit a BART model of a binary responses using the Albert and Chib (1993)
+data augmentation for probit models.
 
 ## Usage
 
@@ -91,7 +91,7 @@ An object of `class` “flexBART” (essentially a list) containing
 
 - trees:
 
-  A list (or length `nd`) of character vectors (of lenght `M`)
+  A list (or length `nd`) of character vectors (of length `M`)
   containing textual representations of the regression trees. These
   strings are parsed by
   [`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md)
@@ -122,9 +122,9 @@ An object of `class` “flexBART” (essentially a list) containing
 
   Matrix with `nd` rows and `length(Y_train)` columns containing
   posterior samples of \\P(Y=1 \vert X = x)\\ for the training data.
-  Each row corresponds to a posterior sample of the regression
-  functionand each column corresponds to a training observation. Only
-  returned if `save_samples = TRUE`.
+  Each row corresponds to a posterior sample of the regression function
+  and each column corresponds to a training observation. Only returned
+  if `save_samples = TRUE`.
 
 - prob.test.mean:
 
