@@ -19,9 +19,12 @@ prepare_data <- function(train_data,
   } else if (inherits(usr_args[["family"]], "family")){
     family <- usr_args[["family"]][["family"]]
     link <- usr_args[["family"]][["link"]]
-  } else {
+  } else if(inherits(usr_args[["family"]], "character") & inherits(usr_args[["link"]], "character")){
+    family <- usr_args[["family"]]
+    link <- usr_args[["link"]]
+  } else{
     cat(paste("supplied family is class ", class(usr_args[["family"]]), " \n"))
-    stop("family must be a family object")
+    stop("family must be a family object or a character (i.e., \"gaussian\" or \"binomial\")")
   }
   
   # padding for re-scaling continuous covariates
