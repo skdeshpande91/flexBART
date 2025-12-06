@@ -490,7 +490,7 @@ fit <-
 #> Number of trees:  50 
 #> Implied marginal priors:
 #>   Intercept: N(0, 1.690963) 
-#> Starting chain 1 at 2025-11-19 22:41:35 
+#> Starting chain 1 at 2025-12-06 21:42:44 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -502,8 +502,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 1 at 2025-11-19 22:41:36 
-#> Starting chain 2 at 2025-11-19 22:41:36 
+#> Ending chain 1 at 2025-12-06 21:42:45 
+#> Starting chain 2 at 2025-12-06 21:42:45 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -515,8 +515,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 2 at 2025-11-19 22:41:37 
-#> Starting chain 3 at 2025-11-19 22:41:37 
+#> Ending chain 2 at 2025-12-06 21:42:46 
+#> Starting chain 3 at 2025-12-06 21:42:46 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -528,8 +528,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 3 at 2025-11-19 22:41:38 
-#> Starting chain 4 at 2025-11-19 22:41:38 
+#> Ending chain 3 at 2025-12-06 21:42:47 
+#> Starting chain 4 at 2025-12-06 21:42:47 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -541,7 +541,7 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 4 at 2025-11-19 22:41:39 
+#> Ending chain 4 at 2025-12-06 21:42:48 
 # \donttest{           
 par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
 plot(mu_train, fit$yhat.train.mean, ,
