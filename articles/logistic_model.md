@@ -125,8 +125,8 @@ coverage["test", "p"] <-
 
 print(round(coverage, digits = 3))
 #>           p
-#> train 0.925
-#> test  0.989
+#> train 0.253
+#> test  0.277
 ```
 
 ### Variable selection
@@ -158,9 +158,7 @@ The selected variables are
 marginal_split_prob <- 
   apply(fit$varcounts >= 1, MARGIN = c(2,3), FUN = mean)
 which(marginal_split_prob >= 0.5, arr.ind = TRUE)
-#>    row col
-#> X1   1   1
-#> X3   3   1
+#>      row col
 ```
 
 We see that \\X\_{1}\\ \\X\_{3}\\ are selected. So, at least for this

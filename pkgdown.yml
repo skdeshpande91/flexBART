@@ -6,7 +6,7 @@ articles:
   articles/heteroskedastic_model: heteroskedastic_model.html
   articles/logistic_model: logistic_model.html
   articles/varying_coefficients: varying_coefficients.html
-last_built: 2025-12-06T21:42Z
+last_built: 2025-12-06T22:08Z
 urls:
   reference: https://skdeshpande91.github.io/flexBART/reference
   article: https://skdeshpande91.github.io/flexBART/articles

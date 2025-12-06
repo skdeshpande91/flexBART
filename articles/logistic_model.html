@@ -191,8 +191,8 @@ intervals</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">coverage</span>, digits <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;           p</span></span>
-<span><span class="co">#&gt; train 0.925</span></span>
-<span><span class="co">#&gt; test  0.989</span></span></code></pre></div>
+<span><span class="co">#&gt; train 0.253</span></span>
+<span><span class="co">#&gt; test  0.277</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="variable-selection">Variable selection<a class="anchor" aria-label="anchor" href="#variable-selection"></a>
@@ -216,9 +216,7 @@ samples. The second indexes covariates (i.e., elements of <span class="math inli
 <code class="sourceCode R"><span><span class="va">marginal_split_prob</span> <span class="op">&lt;-</span> </span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">varcounts</span> <span class="op">&gt;=</span> <span class="fl">1</span>, MARGIN <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>,<span class="fl">3</span><span class="op">)</span>, FUN <span class="op">=</span> <span class="va">mean</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">marginal_split_prob</span> <span class="op">&gt;=</span> <span class="fl">0.5</span>, arr.ind <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    row col</span></span>
-<span><span class="co">#&gt; X1   1   1</span></span>
-<span><span class="co">#&gt; X3   3   1</span></span></code></pre></div>
+<span><span class="co">#&gt;      row col</span></span></code></pre></div>
 <p>We see that <span class="math inline">\(X_{1}\)</span> <span class="math inline">\(X_{3}\)</span> are selected. So, at least for this
 run, there are no false positive and no false negative
 identifications.</p>
