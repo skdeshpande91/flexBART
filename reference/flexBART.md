@@ -1,19 +1,20 @@
-# A more flexible (VC)BART
+# A more flexible BART
 
-Implements a more flexible version of Deshpande et al. (2024)'s varying
-coefficient BART model (VCBART) that, at a high-level, represents
-regression functions as the sum of several weighted ensembles of binary
-regression trees. Through the formula interface, users can carefully
-control the splitting variables used in each ensemble. The optional
-`family` argument allows users to fit generalized linear varying
-coefficient models (e.g., logistic regression models in which the
-covariate effects vary as functions of effect modifiers). Conditionally
-Gaussian heteroskedastic regression models are also supported. This
-implementation includes several improvements on Deshpande (2025)'s
-priors for decision rules for categorical predictors. Trees directly
-partition the levels of categorical predictors, enabling much more
-flexible “partial pooling” across groups/categories (esp., when they are
-network-structured or nested) than one-hot encoding.
+Implements a more flexible version of Bayesian Additive Regression Trees
+(BART) and Deshpande et al. (2024)'s varying coefficient BART model
+(VCBART) that, at a high-level, represents regression functions as the
+sum of several weighted ensembles of binary regression trees. Through
+the formula interface, users can carefully control the splitting
+variables used in each ensemble. The optional `family` argument allows
+users to fit generalized linear varying coefficient models (e.g.,
+logistic regression models in which the covariate effects vary as
+functions of effect modifiers). Conditionally Gaussian heteroskedastic
+regression models are also supported. This implementation includes
+several improvements on Deshpande (2025)'s priors for decision rules for
+categorical predictors. Trees directly partition the levels of
+categorical predictors, enabling much more flexible “partial pooling”
+across groups/categories (esp., when they are network-structured or
+nested) than one-hot encoding.
 
 ## Usage
 
@@ -47,7 +48,9 @@ flexBART(formula, train_data,
 
   a logical value for whether the residual variance should be
   initialized using regularized regression (`inform_sigma = TRUE`) or
-  not (`inform_sigma = FALSE`). Default is `TRUE`.
+  not (`inform_sigma = FALSE`). Default is `TRUE`. When
+  `inform_sigma = FALSE`, residual variance initialized to marginal
+  variance of the outcome/response. See ‘Details’ below.
 
 - ...:
 
@@ -214,7 +217,7 @@ covariates to have mean 0 and standard deviation 1. It then places
 independent BART priors on the coefficients for the varying coefficient
 model on the standardized scale.
 
-#### Regression tree priors
+### Regression tree priors
 
 `flexBART()` specifies independent priors on each tree in the ensemble
 approximating \\\beta\_{r}(x)\\. Under this prior, the tree structure is
@@ -245,7 +248,7 @@ following optional arguments (passed through ...):
   standardized response. When there are multiple ensembles, default is
   `1/sqrt(M_vec)` for all ensembles.
 
-#### Prior for the residual variance
+### Prior for the residual variance
 
 `flexBART()` specifies an \\Inv.\\ Gamma(\nu/2, \nu\*\lambda/2)\\ prior
 on the residual variance *on the standardized outcome scale*. The prior
@@ -265,6 +268,38 @@ with the optional arguments
 - `sigquant`: Amount of prior probability on the event that residual
   variance is less than initial over-estimate (i.e., \\\sigma \<
   \hat{\sigma}\_0\\). Default is 0.9.
+
+### Saving sampled trees and function evaluations
+
+The arguments `save_samples` and `save_trees` respectively control the
+amount of output returned by `flexBART()`.
+
+- `save_samples`: Logical, indicating whether to return all posterior
+  samples. Default is `TRUE`. If `FALSE`, only posterior mean is
+  returned.
+
+- `save_trees`: Logical, indicating whether or not to save a text-based
+  representation of the tree samples. This representation can be passed
+  to
+  [`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md)
+  to make predictions on other data and/or in another R session. Default
+  is `TRUE`.
+
+When `save_samples = TRUE`, `flexBART()` internally creates, populates,
+and outputs an array containing all post-"burn-in" posterior draws of
+each function specified in the `formula` evaluated at every training and
+testing observation. Storing this array can require considerable memory
+if the number of training or testing samples is large. For this reason,
+when there are more than 10,000 observations across the training and
+testing datasets, it is **highly** recommended to set
+`save_samples = FALSE` and `save_trees = TRUE`. With these settings,
+`flexBART()` just returns the posterior mean of the function evaluations
+for each observation and a text-based representation of the regression
+trees. To access posterior samples for individual observations, pass the
+fitted object returned by `flexBART` to
+[`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md)
+along with a data frame containing the values of the predictors. See the
+package vignettes for examples of this workflow.
 
 ### Additional arguments
 
@@ -292,17 +327,6 @@ model fitting functions, can be supplied using the `...`:
 
 - `thin`: Number of post-warmup MCMC iterations by which to thin.
   Default is 1.
-
-- `save_samples`: Logical, indicating whether to return all posterior
-  samples. Default is `TRUE`. If `FALSE`, only posterior mean is
-  returned. **If you have more than 10,000 observations in the training
-  data, it is recommended to set `save_samples = FALSE`**.
-
-- `save_trees`: Logical, indicating whether or not to save a text-based
-  representation of the tree samples. This representation can be passed
-  to
-  [`predict.flexBART`](https://skdeshpande91.github.io/flexBART/reference/predict.flexBART.md)
-  to make predictions at a later time. Default is `TRUE`.
 
 - `verbose`: Logical, indicating whether to print progress to the R
   console. Default is `TRUE`.
@@ -351,7 +375,7 @@ An object of `class` “flexBART” (essentially a list) containing
 
 - heteroskedastic:
 
-  A `bool` identifying whether or not there was a
+  A Boolean identifying whether or not there was a
   [`sigma()`](https://rdrr.io/r/stats/sigma.html) ensemble in the model.
 
 - cov_ensm:
@@ -362,13 +386,13 @@ An object of `class` “flexBART” (essentially a list) containing
 - yhat.train.mean:
 
   Vector containing posterior mean of evaluations of regression function
-  on training data.
+  for each observation in the training data.
 
 - yhat.train:
 
-  Matrix with `nd` rows and `nrow(train_data)` columns. Each row
-  corresponds to a posterior sample of the regression function and each
-  column corresponds to a training observation. Only returned if
+  Matrix with `nd` rows and \\n\\ columns. Each row corresponds to a
+  posterior sample of the regression function and each column
+  corresponds to a training observation. Only returned if
   `save_samples = TRUE`.
 
 - yhat.test.mean:
@@ -457,8 +481,7 @@ Computational and Graphical Statistics.* **29**(2):405–417.
 ## Examples
 
 ``` r
-## A modified version of Friedman's function (from the MARS paper)
-# with 50 predictors in [-1,1]
+## A modified version of Friedman's function with 50 predictors in [-1,1]
 set.seed(99)
 mu_true <- function(df){
   # Recenter to [0,1]
@@ -468,13 +491,21 @@ mu_true <- function(df){
            10 * tmp_X[,17] + 
            5 * tmp_X[,20])
 }
+## Set problem dimensions
 n_train <- 500
 p_cont <- 50
+
+## Set residual error variance
 sigma <- 1
+
+## Generate training data
 train_data <- data.frame(Y = rep(NA, times = n_train))
 for(j in 1:p_cont) train_data[[paste0("X",j)]] <- runif(n_train, min = -1, max = 1)
 mu_train <- mu_true(train_data[,paste0("X",1:p_cont)])
 train_data[,"Y"] <- mu_train + sigma * rnorm(n = n_train, mean = 0, sd = 1)
+
+
+## Fit flexBART model
 fit <-
   flexBART(formula = Y~bart(.),
            train_data = train_data,
@@ -490,7 +521,7 @@ fit <-
 #> Number of trees:  50 
 #> Implied marginal priors:
 #>   Intercept: N(0, 1.690963) 
-#> Starting chain 1 at 2025-12-08 14:30:15 
+#> Starting chain 1 at 2025-12-18 17:54:25 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -502,8 +533,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 1 at 2025-12-08 14:30:16 
-#> Starting chain 2 at 2025-12-08 14:30:16 
+#> Ending chain 1 at 2025-12-18 17:54:26 
+#> Starting chain 2 at 2025-12-18 17:54:26 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -515,8 +546,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 2 at 2025-12-08 14:30:17 
-#> Starting chain 3 at 2025-12-08 14:30:17 
+#> Ending chain 2 at 2025-12-18 17:54:27 
+#> Starting chain 3 at 2025-12-18 17:54:27 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -528,8 +559,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 3 at 2025-12-08 14:30:18 
-#> Starting chain 4 at 2025-12-08 14:30:18 
+#> Ending chain 3 at 2025-12-18 17:54:28 
+#> Starting chain 4 at 2025-12-18 17:54:28 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -541,8 +572,13 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 4 at 2025-12-08 14:30:19 
-# \donttest{           
+#> Ending chain 4 at 2025-12-18 17:54:29 
+           
+# \donttest{
+
+## Plot the posterior mean regression function evaluations (i.e., fitted values)
+## against the actual values. The points should cluster around the 45-degree diagonal
+## line y=x
 par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
 plot(mu_train, fit$yhat.train.mean, ,
      pch = 16, cex = 0.5,

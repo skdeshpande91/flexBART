@@ -72,7 +72,10 @@
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Make predictions at new inputs based on the output of <code><a href="flexBART.html">flexBART</a></code>.
-Useful when the testing dataset is quite large.
+When the training and/or testing dataset is large, it is recommended to run <code><a href="flexBART.html">flexBART</a></code> with the arguments
+<code>save_samples = FALSE</code> and <code>save_trees = TRUE</code>.
+Then, to access posterior samples of the function evaluations, pass the fitted “flexBART” object to <code>predict.flexBART()</code>
+along with the appropriate <code>newdata</code> argument.
 If <code>fit</code> were produced by <code><a href="probit_flexBART.html">probit_flexBART</a></code>, then the function outputs draws of the fitted probabilities.</p>
     </div>
     <div class="section level2">

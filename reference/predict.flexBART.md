@@ -33,8 +33,13 @@ predict(object, newdata, ...)
 
 Make predictions at new inputs based on the output of
 [`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md).
-Useful when the testing dataset is quite large. If `fit` were produced
-by
+When the training and/or testing dataset is large, it is recommended to
+run
+[`flexBART`](https://skdeshpande91.github.io/flexBART/reference/flexBART.md)
+with the arguments `save_samples = FALSE` and `save_trees = TRUE`. Then,
+to access posterior samples of the function evaluations, pass the fitted
+“flexBART” object to `predict.flexBART()` along with the appropriate
+`newdata` argument. If `fit` were produced by
 [`probit_flexBART`](https://skdeshpande91.github.io/flexBART/reference/probit_flexBART.md),
 then the function outputs draws of the fitted probabilities.
 
