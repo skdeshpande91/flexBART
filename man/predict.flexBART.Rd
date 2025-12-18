@@ -17,7 +17,10 @@ Predicting new observations with previously fitted flexBART model
 }
 \details{
 Make predictions at new inputs based on the output of \code{\link{flexBART}}. 
-Useful when the testing dataset is quite large.
+When the training and/or testing dataset is large, it is recommended to run \code{\link{flexBART}} with the arguments
+\code{save_samples = FALSE} and \code{save_trees = TRUE}.
+Then, to access posterior samples of the function evaluations, pass the fitted \dQuote{flexBART} object to \code{predict.flexBART()}
+along with the appropriate \code{newdata} argument.
 If \code{fit} were produced by \code{\link{probit_flexBART}}, then the function outputs draws of the fitted probabilities.
 }
 \value{

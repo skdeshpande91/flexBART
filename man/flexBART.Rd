@@ -2,10 +2,10 @@
 \alias{flexBART}
 
 \title{
-A more flexible (VC)BART
+A more flexible BART
 }
 \description{
-Implements a more flexible version of Deshpande et al. (2024)'s varying coefficient BART model (VCBART) that, at a high-level, represents regression functions as the sum of several weighted ensembles of binary regression trees. 
+Implements a more flexible version of Bayesian Additive Regression Trees (BART) and Deshpande et al. (2024)'s varying coefficient BART model (VCBART) that, at a high-level, represents regression functions as the sum of several weighted ensembles of binary regression trees. 
 Through the formula interface, users can carefully control the splitting variables used in each ensemble. 
 The optional \code{family} argument allows users to fit generalized linear varying coefficient models (e.g., logistic regression models in which the covariate effects vary as functions of effect modifiers).
 Conditionally Gaussian heteroskedastic regression models are also supported. 
@@ -24,7 +24,8 @@ flexBART(formula, train_data,
   \item{test_data}{an optional object of class \code{data.frame} containing test-set (i.e., out-of-sample) data. 
   Default is \code{NULL}.}
   \item{initialize_sigma}{a logical value for whether the residual variance 
-  should be initialized using regularized regression (\code{inform_sigma = TRUE}) or not (\code{inform_sigma = FALSE}). Default is \code{TRUE}.}
+  should be initialized using regularized regression (\code{inform_sigma = TRUE}) or not (\code{inform_sigma = FALSE}). 
+  Default is \code{TRUE}. When \code{inform_sigma = FALSE}, residual variance initialized to marginal variance of the outcome/response. See \sQuote{Details} below.}
   \item{\dots}{Additional arguments for specifying error distribution (\code{family}) and setting prior hyperparameters and MCMC control parameters (e.g., number of chains, iterations, etc.). 
   See \sQuote{Details} below.}
 }
@@ -130,6 +131,7 @@ This argument is ignored when nested structure is not detected.
 Internally, \code{flexBART()} re-centers and re-scales the outcome Y to have mean 0 and standard deviation 1.
 Except when \eqn{Z_{r}}{Z_r} is all ones (i.e., for intercept terms), \code{flexBART()} also standardizes the covariates to have mean 0 and standard deviation 1.
 It then places independent BART priors on the coefficients for the varying coefficient model on the standardized scale. 
+}
 
 \subsection{Regression tree priors}{
 \code{flexBART()} specifies independent priors on each tree in the ensemble approximating \eqn{\beta_{r}(x)}{beta_r(x)}.
@@ -165,7 +167,33 @@ Users can control this prior with the optional arguments
 
 }
 
+\subsection{Saving sampled trees and function evaluations}{
+
+The arguments \code{save_samples} and \code{save_trees} respectively control the
+amount of output returned by \code{flexBART()}.
+
+\itemize{
+  \item \code{save_samples}: Logical, indicating whether to return all posterior samples. 
+  Default is \code{TRUE}. If \code{FALSE}, only posterior mean is returned. 
+  \item \code{save_trees}: Logical, indicating whether or not to save a text-based representation of the tree samples. 
+  This representation can be passed to \code{\link{predict.flexBART}} to make predictions on other data and/or in another R session. 
+  Default is \code{TRUE}.
 }
+
+When \code{save_samples = TRUE}, \code{flexBART()} internally creates, populates, and 
+outputs an array containing all post-"burn-in" posterior draws of each function 
+specified in the \code{formula} evaluated at every training and testing observation.
+Storing this array can require considerable memory if the number of training or testing samples is large.
+For this reason, when there are more than 10,000 observations across the training and testing datasets,
+it is \strong{highly} recommended to set \code{save_samples = FALSE} and \code{save_trees = TRUE}.
+With these settings, \code{flexBART()} just returns the posterior mean of the function evaluations 
+for each observation and a text-based representation of the regression trees.
+To access posterior samples for individual observations, pass the fitted object 
+returned by \code{flexBART} to \code{\link{predict.flexBART}} along with a data 
+frame containing the values of the predictors.
+See the package vignettes for examples of this workflow.
+}
+
 \subsection{Additional arguments}{
 The following arguments, which are passed to internal pre-processing and model fitting functions, 
 can be supplied using the \code{\dots}:
@@ -181,13 +209,6 @@ can be supplied using the \code{\dots}:
   \item \code{nd}: Number of posterior draws to return per chain. Default is 1000.
   \item \code{burn}: Number of "burn-in" or "warm-up" iterations per chain. Default is 1000.
   \item \code{thin}: Number of post-warmup MCMC iterations by which to thin. Default is 1.
-  \item \code{save_samples}: Logical, indicating whether to return all posterior samples. 
-  Default is \code{TRUE}. If \code{FALSE}, only posterior mean is returned. 
-  \strong{If you have more than 10,000 observations in the training data, 
-  it is recommended to set \code{save_samples = FALSE}}.
-  \item \code{save_trees}: Logical, indicating whether or not to save a text-based representation of the tree samples. 
-  This representation can be passed to \code{\link{predict.flexBART}} to make predictions at a later time. 
-  Default is \code{TRUE}.
   \item \code{verbose}: Logical, indicating whether to print progress to the \R console. Default is \code{TRUE}.
   \item \code{print_every}: As the MCMC runs, a message is printed every \code{print_every} iterations. 
   Default is \code{floor( (nd*thin + burn)/10)} so that only 10 messages are printed.
@@ -202,10 +223,10 @@ An object of \code{class} \dQuote{flexBART} (essentially a list) containing
 \item{M}{A copy of the argument \code{M_vec}. Used by \code{\link{predict.flexBART}}.}
 \item{family}{Records the \code{family} argument passed when the model was fit.}
 \item{link}{Records the link function specified in the \code{family} object passed when the model was fit.}
-\item{heteroskedastic}{A \code{bool} identifying whether or not there was a \code{sigma()} ensemble in the model.}
+\item{heteroskedastic}{A Boolean identifying whether or not there was a \code{sigma()} ensemble in the model.}
 \item{cov_ensm}{An \eqn{p \times R}{p x R} binary matrix encoding whose (j,r)-element is 1 if trees in the ensemble for \eqn{\beta_{r}(X)}{beta_r(X)} can split on \eqn{X_{j}}{X_j}.}
-\item{yhat.train.mean}{Vector containing posterior mean of evaluations of regression function on training data.}
-\item{yhat.train}{Matrix with \code{nd} rows and \code{nrow(train_data)} columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if \code{save_samples = TRUE}.}
+\item{yhat.train.mean}{Vector containing posterior mean of evaluations of regression function for each observation in the training data.}
+\item{yhat.train}{Matrix with \code{nd} rows and \eqn{n}{n} columns. Each row corresponds to a posterior sample of the regression function and each column corresponds to a training observation. Only returned if \code{save_samples = TRUE}.}
 \item{yhat.test.mean}{Vector containing posterior mean of evaluations of regression function on testing data, if testing data is provided.}
 \item{yhat.test}{If testing data was supplied, matrix containing posterior samples of the regression function evaluated on the testing data. Structure is similar to that of \code{yhat.train}. Only returned if testing data is passed and \code{save_samples = TRUE}.}
 \item{beta.train.mean}{Matrix containing posterior mean of evaluations of coefficient function on training data.}
@@ -225,8 +246,7 @@ Only returned if \code{save_samples = TRUE}.}
 
 \examples{
 
-## A modified version of Friedman's function (from the MARS paper)
-# with 50 predictors in [-1,1]
+## A modified version of Friedman's function with 50 predictors in [-1,1]
 set.seed(99)
 mu_true <- function(df){
   # Recenter to [0,1]
@@ -236,19 +256,32 @@ mu_true <- function(df){
            10 * tmp_X[,17] + 
            5 * tmp_X[,20])
 }
+## Set problem dimensions
 n_train <- 500
 p_cont <- 50
+
+## Set residual error variance
 sigma <- 1
+
+## Generate training data
 train_data <- data.frame(Y = rep(NA, times = n_train))
 for(j in 1:p_cont) train_data[[paste0("X",j)]] <- runif(n_train, min = -1, max = 1)
 mu_train <- mu_true(train_data[,paste0("X",1:p_cont)])
 train_data[,"Y"] <- mu_train + sigma * rnorm(n = n_train, mean = 0, sd = 1)
+
+
+## Fit flexBART model
 fit <-
   flexBART(formula = Y~bart(.),
            train_data = train_data,
            inform_sigma = TRUE, sparse = TRUE, 
            save_samples = FALSE)
-\donttest{           
+           
+\donttest{
+
+## Plot the posterior mean regression function evaluations (i.e., fitted values)
+## against the actual values. The points should cluster around the 45-degree diagonal
+## line y=x
 par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
 plot(mu_train, fit$yhat.train.mean, ,
      pch = 16, cex = 0.5,
