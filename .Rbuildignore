@@ -13,3 +13,4 @@
 ^examples/*$
 ^new_pacage_testing/*$
 ^data/*$
+^_freeze/*$
