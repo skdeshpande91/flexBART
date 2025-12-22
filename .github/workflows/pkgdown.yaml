@@ -37,7 +37,7 @@ jobs:
         with:
           cache: true
           cache-version: 1
-          extra-packages: any::pkgdown, local::.
+          #extra-packages: any::pkgdown, local::.
           extra-packages: any::pkgdown, quarto=quarto-dev/quarto-r@libpaths, local::.
           needs: website
 
