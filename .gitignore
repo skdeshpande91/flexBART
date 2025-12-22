@@ -16,3 +16,5 @@ docs
 inst/doc
 **/.quarto/
 test/*
+
+/.quarto/

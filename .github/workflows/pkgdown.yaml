@@ -30,10 +30,19 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with: 
+          tinytex: true
+
+      - name: Add Quarto to PATH for R
+        run: echo "$(dirname $(which quarto))" >> $GITHUB_PATH
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::pkgdown, local::.
+          extra-packages: any::pkgdown, local::., any::quarto
           needs: website
 
       - name: Build site
