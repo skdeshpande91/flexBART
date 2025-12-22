@@ -32,10 +32,13 @@ jobs:
           use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2
+        env:
+          R_QUARTO_QUIET: FALSE
         with:
           cache: true
           cache-version: 1
           extra-packages: any::pkgdown, local::.
+          extra-packages: any::pkgdown, quarto=quarto-dev/quarto-r@libpaths, local::.
           needs: website
 
       - name: Build site
