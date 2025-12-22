@@ -19,4 +19,3 @@ Suggests:
     quarto
 URL: https://skdeshpande91.github.io/flexBART/
 Config/Needs/website: rmarkdown, quarto, BART, igraph, glmnet, dbarts, colorBlindness, knitr
-VignetteBuilder: quarto

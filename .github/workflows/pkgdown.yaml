@@ -24,11 +24,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: quarto-dev/quarto-actions/setup@v2
-        with:
-          tinytex: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: r-lib/actions/setup-pandoc@v2
 
       - uses: r-lib/actions/setup-r@v2
@@ -36,13 +32,8 @@ jobs:
           use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2
-        env:
-          R_QUARTO_QUIET: FALSE
         with:
-          cache: true
-          cache-version: 1
           extra-packages: any::pkgdown, local::.
-          #extra-packages: any::pkgdown, quarto=quarto-dev/quarto-r@libpaths, local::.
           needs: website
 
       - name: Build site

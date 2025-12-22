@@ -1,32 +1,4 @@
 url: https://skdeshpande91.github.io/flexBART/
-
-home:
-  title: Towards a more flexible BART
-
-authors:
-  Sameer K. Deshpande:
-    href: https://skdeshpande91.github.io
-
-  George Perrett:
-
-  Ryan Yee:
-    href: https://ryanyee3.github.io
-
-  Cecilia Balocchi:
-    href: https://cecilia-balocchi.owlstown.net
-
-  Jennifer Hill:
-    href: https://steinhardt.nyu.edu/people/jennifer-hill
-
 template:
   bootstrap: 5
-  math-rendering: mathjax
 
-repo:
-  url:
-    home: https://github.com/skdeshpande91/flexBART
-    source: https://github.com/skdeshpande91/flexBART/
-    issue: https://github.com/skdeshpande91/flexBART/issues/
-
-development:
-  mode: auto

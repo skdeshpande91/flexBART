@@ -278,15 +278,14 @@ fit <-
            save_samples = FALSE)
            
 \donttest{
-
-## Plot the posterior mean regression function evaluations (i.e., fitted values)
-## against the actual values. The points should cluster around the 45-degree diagonal
-## line y=x
-par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
-plot(mu_train, fit$yhat.train.mean, ,
-     pch = 16, cex = 0.5,
-     xlab = "Actual", ylab = "Predicted", main = "Training")
-abline(a = 0, b = 1, col = 'blue')
+  ## Plot the posterior mean regression function evaluations (i.e., fitted values)
+  ## against the actual values. The points should cluster around the 45-degree diagonal
+  ## line y=x
+  par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
+  plot(mu_train, fit$yhat.train.mean, ,
+       pch = 16, cex = 0.5,
+       xlab = "Actual", ylab = "Predicted", main = "Training")
+  abline(a = 0, b = 1, col = 'blue')
 }
 }
 \references{
