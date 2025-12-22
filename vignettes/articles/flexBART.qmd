@@ -1,5 +1,8 @@
 ---
 title: "Introduction to flexBART"
+description: >
+  Demonstrate basic usage
+format: html
 knitr:
   opts_chunk:
     collapse: true
