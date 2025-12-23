@@ -521,7 +521,7 @@ fit <-
 #> Number of trees:  50 
 #> Implied marginal priors:
 #>   Intercept: N(0, 1.690963) 
-#> Starting chain 1 at 2025-12-23 17:03:10 
+#> Starting chain 1 at 2025-12-23 18:19:12 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -533,8 +533,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 1 at 2025-12-23 17:03:10 
-#> Starting chain 2 at 2025-12-23 17:03:10 
+#> Ending chain 1 at 2025-12-23 18:19:13 
+#> Starting chain 2 at 2025-12-23 18:19:13 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -546,8 +546,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 2 at 2025-12-23 17:03:11 
-#> Starting chain 3 at 2025-12-23 17:03:11 
+#> Ending chain 2 at 2025-12-23 18:19:14 
+#> Starting chain 3 at 2025-12-23 18:19:14 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -559,8 +559,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 3 at 2025-12-23 17:03:12 
-#> Starting chain 4 at 2025-12-23 17:03:12 
+#> Ending chain 3 at 2025-12-23 18:19:15 
+#> Starting chain 4 at 2025-12-23 18:19:15 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -572,7 +572,7 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 4 at 2025-12-23 17:03:13 
+#> Ending chain 4 at 2025-12-23 18:19:16 
            
 # \donttest{
   ## Plot the posterior mean regression function evaluations (i.e., fitted values)
