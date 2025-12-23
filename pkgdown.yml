@@ -1,8 +1,9 @@
 pandoc: 3.1.11
 pkgdown: 2.2.0
 pkgdown_sha: ~
-articles: {}
-last_built: 2025-12-23T16:43Z
+articles:
+  articles/flexBART: flexBART.html
+last_built: 2025-12-23T16:50Z
 urls:
   reference: https://skdeshpande91.github.io/flexBART/reference
   article: https://skdeshpande91.github.io/flexBART/articles

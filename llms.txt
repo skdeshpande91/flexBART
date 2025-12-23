@@ -146,3 +146,11 @@ these priors.
 - [`rflexBART()`](https://skdeshpande91.github.io/flexBART/reference/rflexBART.md)
   : Draw samples from the regression tree prior
 
+# Articles
+
+### All vignettes
+
+- [Introduction to
+  flexBART](https://skdeshpande91.github.io/flexBART/articles/flexBART.md):
+
+  Basic Usage
