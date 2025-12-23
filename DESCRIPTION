@@ -18,5 +18,5 @@ Suggests:
     knitr,
     quarto
 URL: https://skdeshpande91.github.io/flexBART/
-Config/Needs/website: quarto
+Config/Needs/website: rmarkdown, quarto, BART, igraph, glmnet, colorBlindness, knitr
 VignetteBuilder: quarto

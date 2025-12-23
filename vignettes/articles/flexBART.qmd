@@ -1,0 +1,15 @@
+---
+title: "Introduction to flexBART"
+description: >
+  Basic Usage
+format: html
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+```{r}
+#| label: setup
+library(flexBART)
+```
