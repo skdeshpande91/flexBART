@@ -1,0 +1,10 @@
+---
+title: "Linear Varying Coefficient Models"
+format: html
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+Coming soon!
