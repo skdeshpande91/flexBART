@@ -39,6 +39,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/skdeshpande91/flexBART" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -53,7 +54,7 @@
 
 
 
-
+      <small class="dont-index">Source: <a href="https://github.com/skdeshpande91/flexBART/vignettes/articles/flexBART.qmd" class="external-link"><code>vignettes/articles/flexBART.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
     </div>
 
@@ -62,14 +63,132 @@
 
 
 
-    <div class="cell">
+    <section class="level2"><h2 id="basic-usage">Basic Usage<a class="anchor" aria-label="anchor" href="#basic-usage"></a>
+</h2>
+<p>We will demonstrate the basic functionality of <strong>flexBART</strong> using a slightly modified version of the <a href="https://www.sfu.ca/~ssurjano/fried.html" class="external-link">Friedman function</a>, which is often used to check and benchmark BART implementations.</p>
+<p>We begin by defining the Friedman function.</p>
+<div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://skdeshpande91.github.io/flexBART/">flexBART</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">friedman_func</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">df</span><span class="op">)</span><span class="op">{</span></span>
+<span>  <span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">5</span> <span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"df must have at least 5 columns"</span><span class="op">)</span></span>
+<span>  <span class="kw">if</span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">df</span><span class="op">[</span>,<span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">-</span><span class="fl">0.5</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"all entries in the first 5 columns of df must be between 0 and 1"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span> <span class="kw">else</span><span class="op">{</span></span>
+<span>    </span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fl">10</span><span class="op">*</span><span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="va">pi</span><span class="op">*</span><span class="va">df</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="va">df</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>           <span class="fl">20</span> <span class="op">*</span> <span class="op">(</span><span class="va">df</span><span class="op">[</span>,<span class="fl">3</span><span class="op">]</span> <span class="op">-</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> </span>
+<span>           <span class="fl">10</span> <span class="op">*</span> <span class="va">df</span><span class="op">[</span>,<span class="fl">4</span><span class="op">]</span> <span class="op">+</span> </span>
+<span>           <span class="fl">5</span> <span class="op">*</span> <span class="va">df</span><span class="op">[</span>,<span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 </div>
-
-
-
-<script id="quarto-html-after-body" type="application/javascript">
+<p>Although the function depends on only 5 covariates, for this demonstration, we will create a total of <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>50</mn></mrow><annotation encoding="application/x-tex">p = 50</annotation></semantics></math> predictors, each drawn uniformly from the interval <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">[</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="true" form="postfix">]</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">[0,1].</annotation></semantics></math> We will also add <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝒩</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mn>2.5</mn><mn>2</mn></msup><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal{N}(0, 2.5^{2})</annotation></semantics></math> noise.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">724</span><span class="op">)</span></span>
+<span><span class="va">n_train</span> <span class="op">&lt;-</span> <span class="fl">10000</span></span>
+<span><span class="va">p_cont</span> <span class="op">&lt;-</span> <span class="fl">50</span></span>
+<span><span class="va">sigma</span> <span class="op">&lt;-</span> <span class="fl">2.5</span></span>
+<span></span>
+<span><span class="va">train_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA</span>, times <span class="op">=</span> <span class="va">n_train</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="kw">for</span><span class="op">(</span><span class="va">j</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">p_cont</span><span class="op">)</span> <span class="va">train_data</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"X"</span>,<span class="va">j</span><span class="op">)</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_train</span>, min <span class="op">=</span> <span class="fl">0</span>, max <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">mu_train</span> <span class="op">&lt;-</span> <span class="fu">friedman_func</span><span class="op">(</span><span class="va">train_data</span><span class="op">[</span>,<span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"X"</span>,<span class="fl">1</span><span class="op">:</span><span class="va">p_cont</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">train_data</span><span class="op">[</span>,<span class="st">"Y"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">mu_train</span> <span class="op">+</span> <span class="va">sigma</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span>n <span class="op">=</span> <span class="va">n_train</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>The basic BART model asserts that for each observation <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><mo>=</mo><mn>1</mn><mo>,</mo><mi>…</mi><mo>,</mo><mi>n</mi><mo>,</mo></mrow><annotation encoding="application/x-tex">i = 1, \ldots, n,</annotation></semantics></math> we have <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">|</mo><mi>f</mi><mo>,</mo><mi>σ</mi><mo>∼</mo><mi>𝒩</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+y_{i} \vert f, \sigma \sim \mathcal{N}(f(\boldsymbol{\mathbf{x}}_{i}), \sigma^{2}).
+</annotation></semantics></math> To fit this model to these data using <code><a href="../reference/flexBART.html">flexBART()</a></code>, it suffices to specify two arguments:</p>
+<ol type="1">
+<li>The <code>formula</code> argument, which in this case should be <code>Y ~ bart(.)</code>
+</li>
+<li>The <code>train_data</code> argument, which should be a <code>data.frame</code> or <code>tibble</code> containing our data.</li>
+</ol>
+<p>Like Stan<a class="footnote-ref" role="doc-noteref" tabindex="0" data-bs-toggle="popover" data-bs-content='&lt;p&gt;See &lt;a href="https://discourse.mc-stan.org/t/why-are-4-chains-used/7670" class="external-link"&gt;this post&lt;/a&gt; explaining why Stan uses these defaults.&lt;/p&gt;'><sup>1</sup></a>By default, <code>flexBART</code> simulates 4 Markov chains for 2,000 iterations each and discards the first 1,000 iterations of each chain as “burn-in”. You can adjust these values using the optional <code>n.chains</code>, <code>nd</code>, and <code>burn</code> arguments.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> </span>
+<span>  <span class="fu">flexBART</span><span class="fu">::</span><span class="fu"><a href="../reference/flexBART.html">flexBART</a></span><span class="op">(</span></span>
+<span>    formula <span class="op">=</span> <span class="va">Y</span><span class="op">~</span><span class="fu">bart</span><span class="op">(</span><span class="va">.</span><span class="op">)</span>,</span>
+<span>    train_data <span class="op">=</span> <span class="va">train_data</span><span class="op">)</span></span></code></pre></div>
+</div>
+<section class="level3"><h3 id="posterior-summaries">Posterior Summaries<a class="anchor" aria-label="anchor" href="#posterior-summaries"></a>
+</h3>
+<p><code><a href="../reference/flexBART.html">flexBART()</a></code> will always output the posterior mean of the function evaluations <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mrow><mo stretchy="true" form="prefix">[</mo><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo stretchy="false" form="postfix">|</mo><mi>𝐲</mi><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">E[f(\boldsymbol{\mathbf{x}}_{i}) \vert \boldsymbol{\mathbf{y}}]</annotation></semantics></math> for each training observation <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><mo>=</mo><mn>1</mn><mo>,</mo><mi>…</mi><mo>,</mo><mi>n</mi><mi>.</mi></mrow><annotation encoding="application/x-tex">i = 1, \ldots, n.</annotation></semantics></math> These posterior means are contained in the <code>yhat.train.mean</code> attribute of <code><a href="../reference/flexBART.html">flexBART()</a></code>’s output.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">oi_colors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/palette.html" class="external-link">palette.colors</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Okabe-Ito"</span><span class="op">)</span></span>
+<span><span class="va">limits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">mu_train</span>, <span class="va">fit</span><span class="op">$</span><span class="va">yhat.train.mean</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>,<span class="fl">3</span>,<span class="fl">2</span>,<span class="fl">1</span><span class="op">)</span>, mgp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.8</span>, <span class="fl">0.5</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">mu_train</span>, <span class="va">fit</span><span class="op">$</span><span class="va">yhat.train.mean</span>,</span>
+<span>     pch <span class="op">=</span> <span class="fl">16</span>, cex <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>     xlim <span class="op">=</span> <span class="va">limits</span>, ylim <span class="op">=</span> <span class="va">limits</span>,</span>
+<span>     xlab <span class="op">=</span> <span class="st">"Actual"</span>, ylab <span class="op">=</span> <span class="st">"Posterior Mean"</span>,</span>
+<span>     main <span class="op">=</span> <span class="st">"Training Evaluations"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">0</span>, b <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">oi_colors</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-yhat-train-mean" class="quarto-float quarto-figure quarto-figure-center" data-fig-align="center">
+<figure class="quarto-float quarto-float-fig"><div aria-describedby="fig-yhat-train-mean-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="flexBART_files/figure-html/fig-yhat-train-mean-1.png" class="quarto-figure quarto-figure-center" width="576">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-yhat-train-mean-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure 1: Actual (horizontal) vs fitted (vertical) values of regression function evaluated at training observations.
+</figcaption></figure>
+</div>
+</div>
+</div>
+<p>When the argument <code>save_samples = TRUE</code> (the default setting), it will also return all posterior draws of the individual evaluations <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">f(\boldsymbol{\mathbf{x}}_{i}).</annotation></semantics></math> Using these samples, we can compute, for instance, 95% credible intervals for each <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">f(\boldsymbol{\mathbf{x}}_{i})</annotation></semantics></math>. For these data, the coverage of the pointwise 95% credible intervals is 97.75%.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">post_quantiles</span> <span class="op">&lt;-</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">yhat.train</span>, MARGIN <span class="op">=</span> <span class="fl">2</span>, </span>
+<span>        FUN <span class="op">=</span> <span class="va">quantile</span>, </span>
+<span>        probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span> <span class="va">mu_train</span> <span class="op">&gt;=</span> <span class="va">post_quantiles</span><span class="op">[</span>,<span class="st">"2.5%"</span><span class="op">]</span> <span class="op">&amp;</span> <span class="va">mu_train</span> <span class="op">&lt;=</span> <span class="va">post_quantiles</span><span class="op">[</span>,<span class="st">"97.5%"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.9775</span></span></code></pre></div>
+</div>
+</section><section class="level3"><h3 id="variable-importance">Variable Importance<a class="anchor" aria-label="anchor" href="#variable-importance"></a>
+</h3>
+<p>By default, <code><a href="../reference/flexBART.html">flexBART()</a></code> uses <a href="https://doi.org/10.1080/01621459.2016.1264957" class="external-link">Linero (2018)</a> “DART” prior over the splitting variable. <!--
+ say more
+--></p>
+<p>The attribute <code>varcounts</code> returned by <code><a href="../reference/flexBART.html">flexBART()</a></code> contains an three-dimensional array tracking the number of times each covariate is used as a splitting variable in every MCMC iteration. The first dimension indexes post-“burn-in” MCMC samples across the four chains and the second dimension indexes the total number of covariates. The third dimension indexes the total number of ensembles, which in this simple example is just one.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">varcounts</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 4000   50    1</span></span></code></pre></div>
+</div>
+<p>Intuitively, we might expect the <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>-th covariate <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>j</mi></msub><annotation encoding="application/x-tex">X_{j}</annotation></semantics></math> to be predictive of the outcome <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Y</mi><annotation encoding="application/x-tex">Y</annotation></semantics></math> if <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>j</mi></msub><annotation encoding="application/x-tex">X_{j}</annotation></semantics></math> is used as a splitting variable at least once in the tree ensemble. We can operationalize this intuition by computing marginal posterior inclusion probabilities of the form <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℙ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>j</mi></msub><mrow><mspace width="0.333em"></mspace><mtext mathvariant="normal"> used at least once</mtext></mrow><mo stretchy="false" form="postfix">|</mo><mi>𝐲</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
+\mathbb{P}(X_{j} \text{ used at least once} \vert \boldsymbol{\mathbf{y}})
+</annotation></semantics></math> and then selecting only those <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>j</mi></msub><annotation encoding="application/x-tex">X_{j}</annotation></semantics></math> whose marginal inclusion probabilites exceed 50%.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pip</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">varcounts</span> <span class="op">&gt;=</span> <span class="fl">1</span>, MARGIN <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>,<span class="fl">3</span><span class="op">)</span>, FUN <span class="op">=</span> <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">pip</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">pip</span> <span class="op">&gt;=</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; [1] "X1" "X2" "X3" "X4" "X5"</span></span></code></pre></div>
+</div>
+</section><section class="level3"><h3 id="posterior-predictive">Posterior Predictive<a class="anchor" aria-label="anchor" href="#posterior-predictive"></a>
+</h3>
+<p>The attributes <code>yhat.train</code> and <code>yhat.train.mean</code> in the object returned by <code><a href="../reference/flexBART.html">flexBART()</a></code> contain the posterior draws and posterior mean of the function evaluations. To draw from and to summarize the posterior predictive distribution at each observe <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>𝐱</mi><mi>i</mi></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">\boldsymbol{\mathbf{x}}_{i},</annotation></semantics></math> one must add in additional random noise. Specifically, given posterior samples <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">(</mo><msup><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow></msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><msup><mi>σ</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow></msup><mo stretchy="true" form="postfix">)</mo></mrow><mi>…</mi><mo>,</mo><mrow><mo stretchy="true" form="prefix">(</mo><msup><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>M</mi><mo stretchy="true" form="postfix">)</mo></mrow></msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><msup><mi>σ</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>M</mi><mo stretchy="true" form="postfix">)</mo></mrow></msup><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo></mrow><annotation encoding="application/x-tex">(f^{(1)}(\boldsymbol{\mathbf{x}}_{i}), \sigma^{(1)}) \ldots, (f^{(M)}(\boldsymbol{\mathbf{x}}_{i}), \sigma^{(M)}),</annotation></semantics></math> the <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>-th draw from the posterior predictive distribution of <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>Y</mi><mi>i</mi><mo>⋆</mo></msubsup><mo stretchy="false" form="postfix">|</mo><mi>𝐲</mi></mrow><annotation encoding="application/x-tex">Y^{\star}_{i} \vert \boldsymbol{\mathbf{y}}</annotation></semantics></math> is formed by (i) drawing an independent realization <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>ε</mi><mi>i</mi><mrow><mi>⋆</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>m</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msubsup><mo>∼</mo><mi>𝒩</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\varepsilon_{i}^{\star (m)} \sim \mathcal{N}(0,1)</annotation></semantics></math> and (ii) computing <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>m</mi><mo stretchy="true" form="postfix">)</mo></mrow></msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><msup><mi>σ</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>m</mi><mo stretchy="true" form="postfix">)</mo></mrow></msup><msup><mi>ε</mi><mrow><mi>⋆</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>m</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msup><mi>.</mi></mrow><annotation encoding="application/x-tex">f^{(m)}(\boldsymbol{\mathbf{x}}_{i}) + \sigma^{(m)}\varepsilon^{\star(m)}.</annotation></semantics></math></p>
+<p>In the code below, we loop over all training observations and generate draws from the corresponding posterior predictive distribution. Then, we form 95% posterior predictive intervals and calculate the fraction of observed outcomes that fall within these interval.s At least for this example, we see that 95.94% of the observed <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>i</mi></msub><annotation encoding="application/x-tex">y_{i}</annotation></semantics></math>’s fall within the predictive intervals.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">yhat.train</span><span class="op">)</span></span>
+<span><span class="va">ystar_train</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span>nrow <span class="op">=</span> <span class="va">nd</span>, ncol <span class="op">=</span> <span class="va">n_train</span><span class="op">)</span></span>
+<span><span class="kw">for</span><span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">n_train</span><span class="op">)</span><span class="op">{</span></span>
+<span>  <span class="va">ystar_train</span><span class="op">[</span>,<span class="va">i</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">yhat.train</span><span class="op">[</span>,<span class="va">i</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span>n <span class="op">=</span> <span class="va">nd</span> , mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">sigma</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">ystar_quantiles</span> <span class="op">&lt;-</span> </span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">ystar_train</span>, MARGIN <span class="op">=</span> <span class="fl">2</span>, </span>
+<span>        FUN <span class="op">=</span> <span class="va">quantile</span>, probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span> <span class="va">train_data</span><span class="op">$</span><span class="va">Y</span> <span class="op">&gt;=</span> <span class="va">ystar_quantiles</span><span class="op">[</span>,<span class="st">"2.5%"</span><span class="op">]</span> <span class="op">&amp;</span> <span class="va">train_data</span><span class="op">$</span><span class="va">Y</span> <span class="op">&lt;=</span> <span class="va">ystar_quantiles</span><span class="op">[</span>,<span class="st">"97.5%"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.959</span></span></code></pre></div>
+</div>
+</section></section><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
@@ -152,12 +271,13 @@
       }
     }
   });
-  </script></main>
+  </script></main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Sameer K. Deshpande, George Perrett, Ryan Yee, Cecilia Balocchi, Jennifer Hill.</p>
+  <p>Developed by <a href="https://skdeshpande91.github.io" class="external-link">Sameer K. Deshpande</a>, George Perrett, <a href="https://ryanyee3.github.io" class="external-link">Ryan Yee</a>, <a href="https://cecilia-balocchi.owlstown.net" class="external-link">Cecilia Balocchi</a>, <a href="https://steinhardt.nyu.edu/people/jennifer-hill" class="external-link">Jennifer Hill</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

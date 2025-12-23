@@ -3,7 +3,7 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   articles/flexBART: flexBART.html
-last_built: 2025-12-23T16:50Z
+last_built: 2025-12-23T17:03Z
 urls:
   reference: https://skdeshpande91.github.io/flexBART/reference
   article: https://skdeshpande91.github.io/flexBART/articles
