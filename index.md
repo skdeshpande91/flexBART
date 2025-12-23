@@ -46,12 +46,11 @@ given a data frame `train_data` containing named columns for an outcome
 
 **flexBART** also supports fitting VCBART models of the form
 
-\\ Y = \beta\_{0}(X) + \beta\_{1}(X)Z\_{1} + \cdots + \beta\_{R}Z\_{R} +
-\sigma \epsilon; \epsilon \sim N(0,1), \\
+$$Y = \beta_{0}(X) + \beta_{1}(X)Z_{1} + \cdots + \beta_{R}Z_{R} + \sigma\epsilon;\epsilon \sim N(0,1),$$
 
-where each coefficient function \\\beta\_{r}(X)\\ is approximated with
-its own tree ensemble. To fit such a model in **flexBART**, you can use
-a formula like `Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.)`, including a
+where each coefficient function $\beta_{r}(X)$ is approximated with its
+own tree ensemble. To fit such a model in **flexBART**, you can use a
+formula like `Y ~ bart(.) + Z1 * bart(.) + Z2 * bart(.)`, including a
 separate `bart()` for each coefficient function.
 
 The formula interface also provides fine control over the predictor
@@ -60,10 +59,10 @@ few variables (e.g., `X1`, `X2`, and `X3`), you would specify
 `bart(X1 + X2 + X3)` and to allow an ensemble to split on all variables
 except `X1` and `X2`, you would specify `bart(.-X1-X2)`. Note that when
 it detects multiple ensembles in the formula, **flexBART** will *not*
-include any of the \\Z\_{r}\\’s as splitting variables when it expands
-the `.` So, to include, say, a piecewise linear function, \\X\_{1} \*
-\beta\_{1}(X\_{1}),\\ you would need to specify `X1 * bart(X1)` in the
-formula argument.
+include any of the $Z_{r}$’s as splitting variables when it expands the
+`.` So, to include, say, a piecewise linear function,
+$X_{1}*\beta_{1}\left( X_{1} \right),$ you would need to specify
+`X1 * bart(X1)` in the formula argument.
 
 By default, **flexBART** simulates 4 Markov chains with 2,000 iterations
 each and discards the first 1,000 iterations as “burn-in.” The numbers
@@ -86,36 +85,35 @@ Internally, **flexBART** treats all predictors passed as a `factor` or
 predictor is discrete (e.g., age measured in years) or whether it is
 continuous by looking at the number of pairwise differences between
 consecutive values. Decision rules based on numerical predictors take
-the form \\\\X\_{j} \< c\\.\\
+the form $\{ X_{j} < c\}.$
 
-If **flexBART** detects that \\X\_{j}\\ is continuous, it will rescale
-the supplied values of \\X\_{j}\\ to the interval \[-1,1\] and allow
-regression trees to select the cutpoint \\c\\ uniformly from that
-interval. **flexBART** adds \\0.1\text{sd}(X\_{j})\\ to the maximum
-value of \\X\_{j}\\ and subtracts \\0.1\text{sd}(X\_{j})\\ from the
-minimum value of \\X\_{j}\\ before re-scaling the predictor. If testing
+If **flexBART** detects that $X_{j}$ is continuous, it will rescale the
+supplied values of $X_{j}$ to the interval \[-1,1\] and allow regression
+trees to select the cutpoint $c$ uniformly from that interval.
+**flexBART** adds $0.1\text{sd}\left( X_{j} \right)$ to the maximum
+value of $X_{j}$ and subtracts $0.1\text{sd}\left( X_{j} \right)$ from
+the minimum value of $X_{j}$ before re-scaling the predictor. If testing
 data is provided, **flexBART** determines the min, max, and standard
-deviation of \\X\_{j}\\ using both the training and testing data.
+deviation of $X_{j}$ using both the training and testing data.
 
-If, on the other hand, **flexBART** determines that \\X\_{j}\\ is
-discrete, it will not re-scale the predictor and instead forces
-regression trees to select the cutpoint \\c\\ from the unique values of
-\\X\_{j}.\\ If testing data is provided, **flexBART** determines the
-unique values of \\X\_{j}\\ using both the training and testing data.
+If, on the other hand, **flexBART** determines that $X_{j}$ is discrete,
+it will not re-scale the predictor and instead forces regression trees
+to select the cutpoint $c$ from the unique values of $X_{j}.$ If testing
+data is provided, **flexBART** determines the unique values of $X_{j}$
+using both the training and testing data.
 
 ### Priors for categorical predictors
 
 In **flexBART** ensembles, decision rules based on categorical
-predictors take the form \\\\X\_{j} \in \mathcal{C}\\\\ where
-\\\mathcal{C}\\ is a random subset of the discrete values that
-\\X\_{j}\\ can assume. This is in stark contrast to most other
-implementations of BART, which one-hot encode categorical predictors.
-Please see [Deshpande
+predictors take the form $\{ X_{j} \in \mathcal{C}\}$ where
+$\mathcal{C}$ is a random subset of the discrete values that $X_{j}$ can
+assume. This is in stark contrast to most other implementations of BART,
+which one-hot encode categorical predictors. Please see [Deshpande
 (2024)](https://doi.org/10.1080/10618600.2024.2431072) for arguments
 against the use of one-hot encoding with BART.
 
 Internally, **flexBART** determines the set of available values of
-\\X\_{j}\\ by looking at the
+$X_{j}$ by looking at the
 [`levels()`](https://rdrr.io/r/base/levels.html) of all predictors saved
 as [`factor()`](https://rdrr.io/r/base/factor.html) variables. As a
 result, **flexBART** is able to make predictions at new values of a
@@ -124,13 +122,13 @@ values are included as levels of that predictor.*
 
 **flexBART** also includes support for network-structured categorical
 predictors (e.g., spatial areas with known adjacency structure). To
-force the “cutset” \\\mathcal{C}\\ to correspond to connect components
-of these networks, you should provide the corresponding adjacency
-matrices via the `adjacency_list` argument. This argument should be a
-named list with one element per network-structured predictor. Each
-element should be a binary or weighted adjacency matrix whose row and
-column names correspond to the levels of the predictor. **flexBART**
-implements four different priors over decision rues for
-network-structured predictors. See the documentation and Section 3.2 of
-[Deshpande (2024)](https://doi.org/10.1080/10618600.2024.2431072) for
-details about these priors.
+force the “cutset” $\mathcal{C}$ to correspond to connect components of
+these networks, you should provide the corresponding adjacency matrices
+via the `adjacency_list` argument. This argument should be a named list
+with one element per network-structured predictor. Each element should
+be a binary or weighted adjacency matrix whose row and column names
+correspond to the levels of the predictor. **flexBART** implements four
+different priors over decision rues for network-structured predictors.
+See the documentation and Section 3.2 of [Deshpande
+(2024)](https://doi.org/10.1080/10618600.2024.2431072) for details about
+these priors.

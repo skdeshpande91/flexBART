@@ -521,7 +521,7 @@ fit <-
 #> Number of trees:  50 
 #> Implied marginal priors:
 #>   Intercept: N(0, 1.690963) 
-#> Starting chain 1 at 2025-12-18 17:54:25 
+#> Starting chain 1 at 2025-12-23 16:43:25 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -533,8 +533,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 1 at 2025-12-18 17:54:26 
-#> Starting chain 2 at 2025-12-18 17:54:26 
+#> Ending chain 1 at 2025-12-23 16:43:26 
+#> Starting chain 2 at 2025-12-23 16:43:26 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -546,8 +546,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 2 at 2025-12-18 17:54:27 
-#> Starting chain 3 at 2025-12-18 17:54:27 
+#> Ending chain 2 at 2025-12-23 16:43:27 
+#> Starting chain 3 at 2025-12-23 16:43:27 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -559,8 +559,8 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 3 at 2025-12-18 17:54:28 
-#> Starting chain 4 at 2025-12-18 17:54:28 
+#> Ending chain 3 at 2025-12-23 16:43:28 
+#> Starting chain 4 at 2025-12-23 16:43:28 
 #>   MCMC Iteration: 1 of 2000; Warmup
 #>   MCMC Iteration: 200 of 2000; Warmup
 #>   MCMC Iteration: 400 of 2000; Warmup
@@ -572,17 +572,16 @@ fit <-
 #>   MCMC Iteration: 1600 of 2000; Sampling
 #>   MCMC Iteration: 1800 of 2000; Sampling
 #>   MCMC Iteration: 2000 of 2000; Sampling
-#> Ending chain 4 at 2025-12-18 17:54:29 
+#> Ending chain 4 at 2025-12-23 16:43:29 
            
 # \donttest{
-
-## Plot the posterior mean regression function evaluations (i.e., fitted values)
-## against the actual values. The points should cluster around the 45-degree diagonal
-## line y=x
-par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
-plot(mu_train, fit$yhat.train.mean, ,
-     pch = 16, cex = 0.5,
-     xlab = "Actual", ylab = "Predicted", main = "Training")
-abline(a = 0, b = 1, col = 'blue')
+  ## Plot the posterior mean regression function evaluations (i.e., fitted values)
+  ## against the actual values. The points should cluster around the 45-degree diagonal
+  ## line y=x
+  par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
+  plot(mu_train, fit$yhat.train.mean, ,
+       pch = 16, cex = 0.5,
+       xlab = "Actual", ylab = "Predicted", main = "Training")
+  abline(a = 0, b = 1, col = 'blue')
 # }
 ```
