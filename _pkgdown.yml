@@ -24,6 +24,20 @@ repo:
     source: https://github.com/skdeshpande91/flexBART/
     issue: https://github.com/skdeshpande91/flexBART/issues/
 
+article:
+- title: Single-ensemble Models
+  navbar: ~
+  contents:
+  - categorical
+- title: Multi-ensemble Models
+  desc: Models with multiple ensembles
+  navbar: ~
+  contents:
+  - varying_coefficients
+
+
+llm-docs: false
+
 template:
   bootstrap: 5
 
