@@ -125,7 +125,7 @@ flexBART <- function(formula,
         if(p_cont == 1 & p_cat == 0){
           cat("no initial estimate of sigma provided. Initializing using OLS\n")
         } else{
-          cat("no initial estimate of sigma provided. Initialize using LASSO\n")
+          cat("no initial estimate of sigma provided. Initializing using LASSO\n")
         }
         sigest <- 
           get_sigma(tmp_data$training_info, tmp_data$data_info)

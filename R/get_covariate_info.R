@@ -130,7 +130,7 @@ parse_adjacency <- function(adjacency_list, dinfo)
 
 # Determines the max and min ranges of each truly continuous variable 
 # This allows us to scale them appropriately
-get_continuous_info <- function(x, name, pad = 0.1, n_unik_diffs = 5)
+get_continuous_info <- function(x, name, pad = 0.2, n_unik_diffs = 5)
 {
   n <- length(x)
   unik_x <- sort(unique(x))
@@ -140,7 +140,7 @@ get_continuous_info <- function(x, name, pad = 0.1, n_unik_diffs = 5)
   if(length(unique(consecutive_diffs)) < n_unik_diffs){
     cat("[get_continuous info]:", name, " suspected to be discrete. Defining a grid of cutpoints for", name, "\n")
     cat("Using the unique values of x as splitting points.\n")
-    cat("To use a different grid, manually set the `cutpoints_list` argument of flexBART.\n")
+    #cat("To use a different grid, manually set the `cutpoints_list` argument of flexBART.\n")
     x_sd <- NA
     x_min <- min(x)
     x_max <- max(x)
@@ -198,8 +198,8 @@ get_covariate_info <- function(cov_data, pad = NULL, n_unik_diffs = NULL)
     dinfo$cont_names <- colnames(cov_data)[!is_cat]
     if(is.null(pad)){
       cat("[get_covariate_info]:  No padding for continuous variable ranges provided.\n")
-      cat("By default, flexBART adds 0.1 SDs to min and max values of each continuous variable.\n")
-      pad <- rep(0.1, times = dinfo$p_cont)
+      cat("By default, flexBART adds 0.2 SDs to min and max values of each continuous variable.\n")
+      pad <- rep(0.2, times = dinfo$p_cont)
       names(pad) <- dinfo$cont_names
     } else{
       if(length(pad) != dinfo$p_cont){

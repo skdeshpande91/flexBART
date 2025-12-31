@@ -76,7 +76,26 @@ Users can specify the appropriate error distribution using the optional argument
 }
 }
 
+\subsection{Numerical predictors}{
+Decision rules based on a numerical predictor \eqn{X}{X} take the form \eqn{\{X < c\}}{X<c}.
+The \dQuote{cutpoint} \eqn{c}{c} in such a decision rule at a given node in a regression tree is drawn uniformly from a set of available values of \eqn{X}{X}.
+This set of available values is determined by the decision rules at the node's ancestors in the tree.
+This set can be a discrete set of continuous interval, depending on the nature of \eqn{X}{X}.
 
+\code{flexBART()} initially determins whether \eqn{X}{X} is discrete (i.e., ordinal) or continuous by first sorting the unique values of \eqn{X}{X} and computing consecutive differences.
+If there are fewer than (resp. more than) \code{n_unik_diffs} unique consecutive differences, \eqn{X}{X} is treated as a discrete (resp., continuous) predictor.
+For discrete, numerical \eqn{X}{X}, the initial set of available cutpoints is set of unique values of \eqn{X}{X}.
+\code{flexBART()} rescales continuous \eqn{X}{X} values to the interval [-1,1], which forms the initial set of available cutpoint values. 
+When re-scaling a continuous \eqn{X}{X}, \code{flexBART()} \code{flexBART()} adds (resp. subtracts) \code{pad} standard deviations to the maximal (resp. minimal) value of \eqn{X}{X}.
+The maximal and minimal values and the standard deviation of \eqn{X}{X} is determined using training data (i.e., \code{train_data}) and, if provided, the testing data (i.e., \code{test_data}).
+
+The amount of padding and the cut-off for 
+
+\itemize{
+  \item \code{n_unik_diffs}: Threshold for the number of unique consecutive differences for a numerical predictor to be considered discrete. Default is 5.
+  \item \code{pad}: Number of standard deviations with which to pad range of continuous predictors before internally re-scaling to [-1,1]. Default is 0.2. 
+}
+}
 
 \subsection{Categorical predictors}{
 Many implementations of BART and its extensions represent categorical predictors using several binary indicators, one for each level of each categorical predictor. 
@@ -128,9 +147,11 @@ This argument is ignored when nested structure is not detected.
 }
 
 \subsection{Prior specification and standardization}{
-Internally, \code{flexBART()} re-centers and re-scales the outcome Y to have mean 0 and standard deviation 1.
+Internally, \code{flexBART()} re-centers and re-scales continuous outcomes Y to have mean 0 and standard deviation 1.
 Except when \eqn{Z_{r}}{Z_r} is all ones (i.e., for intercept terms), \code{flexBART()} also standardizes the covariates to have mean 0 and standard deviation 1.
 It then places independent BART priors on the coefficients for the varying coefficient model on the standardized scale. 
+
+No transformations are applied when \code{family} is \dQuote{binomial}.
 }
 
 \subsection{Regression tree priors}{
@@ -273,15 +294,12 @@ train_data[,"Y"] <- mu_train + sigma * rnorm(n = n_train, mean = 0, sd = 1)
 ## Fit flexBART model
 fit <-
   flexBART(formula = Y~bart(.),
-           train_data = train_data,
-           inform_sigma = TRUE, sparse = TRUE, 
-           save_samples = FALSE)
+           train_data = train_data)
            
 \donttest{
   ## Plot the posterior mean regression function evaluations (i.e., fitted values)
   ## against the actual values. The points should cluster around the 45-degree diagonal
   ## line y=x
-  par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
   plot(mu_train, fit$yhat.train.mean, ,
        pch = 16, cex = 0.5,
        xlab = "Actual", ylab = "Predicted", main = "Training")
