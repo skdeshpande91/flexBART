@@ -135,7 +135,22 @@ For continuous outcomes, <code>flexBART</code> fits regression models with condi
 Users can specify the appropriate error distribution using the optional arguments</p><ul><li><p><code>family</code>: a family object, or the result of a call to a family function. Currently only “gaussian” and “binomial” are supported. Default is “gaussian”.</p></li>
 </ul></div>
 
-
+<div class="section">
+<h3 id="numerical-predictors">Numerical predictors<a class="anchor" aria-label="anchor" href="#numerical-predictors"></a></h3>
+<p>Decision rules based on a numerical predictor \(X\) take the form \(\{X &lt; c\}\).
+The “cutpoint” \(c\) in such a decision rule at a given node in a regression tree is drawn uniformly from a set of available values of \(X\).
+This set of available values is determined by the decision rules at the node's ancestors in the tree.
+This set can be a discrete set of continuous interval, depending on the nature of \(X\).</p>
+<p><code>flexBART()</code> initially determins whether \(X\) is discrete (i.e., ordinal) or continuous by first sorting the unique values of \(X\) and computing consecutive differences.
+If there are fewer than (resp. more than) <code>n_unik_diffs</code> unique consecutive differences, \(X\) is treated as a discrete (resp., continuous) predictor.
+For discrete, numerical \(X\), the initial set of available cutpoints is set of unique values of \(X\).
+<code>flexBART()</code> rescales continuous \(X\) values to the interval [-1,1], which forms the initial set of available cutpoint values.
+When re-scaling a continuous \(X\), <code>flexBART()</code> <code>flexBART()</code> adds (resp. subtracts) <code>pad</code> standard deviations to the maximal (resp. minimal) value of \(X\).
+The maximal and minimal values and the standard deviation of \(X\) is determined using training data (i.e., <code>train_data</code>) and, if provided, the testing data (i.e., <code>test_data</code>).</p>
+<p>The amount of padding and the cut-off for</p>
+<ul><li><p><code>n_unik_diffs</code>: Threshold for the number of unique consecutive differences for a numerical predictor to be considered discrete. Default is 5.</p></li>
+<li><p><code>pad</code>: Number of standard deviations with which to pad range of continuous predictors before internally re-scaling to [-1,1]. Default is 0.2.</p></li>
+</ul></div>
 
 <div class="section">
 <h3 id="categorical-predictors">Categorical predictors<a class="anchor" aria-label="anchor" href="#categorical-predictors"></a></h3>
@@ -182,9 +197,10 @@ This argument is ignored when nested structure is not detected.</p>
 
 <div class="section">
 <h3 id="prior-specification-and-standardization">Prior specification and standardization<a class="anchor" aria-label="anchor" href="#prior-specification-and-standardization"></a></h3>
-<p>Internally, <code>flexBART()</code> re-centers and re-scales the outcome Y to have mean 0 and standard deviation 1.
+<p>Internally, <code>flexBART()</code> re-centers and re-scales continuous outcomes Y to have mean 0 and standard deviation 1.
 Except when \(Z_{r}\) is all ones (i.e., for intercept terms), <code>flexBART()</code> also standardizes the covariates to have mean 0 and standard deviation 1.
 It then places independent BART priors on the coefficients for the varying coefficient model on the standardized scale.</p>
+<p>No transformations are applied when <code>family</code> is “binomial”.</p>
 </div>
 
 <div class="section">
@@ -378,12 +394,10 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-in"><span><span class="co">## Fit flexBART model</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span></span></span>
 <span class="r-in"><span>  <span class="fu">flexBART</span><span class="op">(</span>formula <span class="op">=</span> <span class="va">Y</span><span class="op">~</span><span class="fu">bart</span><span class="op">(</span><span class="va">.</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>           train_data <span class="op">=</span> <span class="va">train_data</span>,</span></span>
-<span class="r-in"><span>           inform_sigma <span class="op">=</span> <span class="cn">TRUE</span>, sparse <span class="op">=</span> <span class="cn">TRUE</span>, </span></span>
-<span class="r-in"><span>           save_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span>           train_data <span class="op">=</span> <span class="va">train_data</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [get_covariate_info]:  No padding for continuous variable ranges provided.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> By default, flexBART adds 0.1 SDs to min and max values of each continuous variable.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> no initial estimate of sigma provided. Initialize using LASSO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> By default, flexBART adds 0.2 SDs to min and max values of each continuous variable.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> no initial estimate of sigma provided. Initializing using LASSO</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Initial sigma (after standardization) = 0.516291 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> n.chains =  4 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> n_train = 500 n_test = 0 </span>
@@ -391,7 +405,7 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Number of trees:  50 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Implied marginal priors:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Intercept: N(0, 1.690963) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 1 at 2025-12-26 16:26:19 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 1 at 2025-12-31 15:01:54 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -403,8 +417,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 1 at 2025-12-26 16:26:20 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 2 at 2025-12-26 16:26:20 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 1 at 2025-12-31 15:01:55 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 2 at 2025-12-31 15:01:55 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -416,8 +430,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 2 at 2025-12-26 16:26:21 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 3 at 2025-12-26 16:26:21 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 2 at 2025-12-31 15:01:56 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 3 at 2025-12-31 15:01:56 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -429,8 +443,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 3 at 2025-12-26 16:26:22 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 4 at 2025-12-26 16:26:22 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 3 at 2025-12-31 15:01:57 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 4 at 2025-12-31 15:01:57 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -442,19 +456,18 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 4 at 2025-12-26 16:26:23 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 4 at 2025-12-31 15:01:57 </span>
 <span class="r-in"><span>           </span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span>  <span class="co">## Plot the posterior mean regression function evaluations (i.e., fitted values)</span></span></span>
 <span class="r-in"><span>  <span class="co">## against the actual values. The points should cluster around the 45-degree diagonal</span></span></span>
 <span class="r-in"><span>  <span class="co">## line y=x</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>,<span class="fl">3</span>,<span class="fl">2</span>,<span class="fl">1</span><span class="op">)</span>, mgp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.8</span>, <span class="fl">0.5</span>, <span class="fl">0</span><span class="op">)</span>, mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">mu_train</span>, <span class="va">fit</span><span class="op">$</span><span class="va">yhat.train.mean</span>, ,</span></span>
 <span class="r-in"><span>       pch <span class="op">=</span> <span class="fl">16</span>, cex <span class="op">=</span> <span class="fl">0.5</span>,</span></span>
 <span class="r-in"><span>       xlab <span class="op">=</span> <span class="st">"Actual"</span>, ylab <span class="op">=</span> <span class="st">"Predicted"</span>, main <span class="op">=</span> <span class="st">"Training"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">0</span>, b <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">'blue'</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-plt img"><img src="flexBART-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
