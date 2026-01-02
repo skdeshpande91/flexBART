@@ -1,5 +1,7 @@
 ---
 title: "Heteroskedastic BART"
+aliases: 
+  - /vignettes/articles/heteroskedastic.qmd
 knitr:
   opts_chunk:
     collapse: true
