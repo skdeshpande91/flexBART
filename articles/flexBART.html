@@ -164,7 +164,7 @@ Figure 1: Actual (horizontal) vs fitted (vertical) values of regression functio
 <span><span class="co">#&gt; [1] 0.972</span></span></code></pre></div>
 </div>
 <p>For these data, the coverage of the pointwise 95% credible intervals is 97.2%.</p>
-</section><section class="level3"><h3 id="variable-importance">Variable Importance<a class="anchor" aria-label="anchor" href="#variable-importance"></a>
+</section><section class="level3"><h3 id="variable-selection">Variable Selection<a class="anchor" aria-label="anchor" href="#variable-selection"></a>
 </h3>
 <p>Intuitively, we might expect the <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>-th covariate <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>j</mi></msub><annotation encoding="application/x-tex">X_{j}</annotation></semantics></math> to be predictive of the outcome <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Y</mi><annotation encoding="application/x-tex">Y</annotation></semantics></math> if <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>j</mi></msub><annotation encoding="application/x-tex">X_{j}</annotation></semantics></math> is used as a splitting variable at least once in the tree ensemble. We can operationalize this intuition by computing marginal posterior inclusion probabilities of the form <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℙ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>X</mi><mi>j</mi></msub><mrow><mspace width="0.333em"></mspace><mtext mathvariant="normal"> used at least once</mtext></mrow><mo stretchy="false" form="postfix">|</mo><mi>𝐲</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
 \mathbb{P}(X_{j} \text{ used at least once} \vert \boldsymbol{\mathbf{y}})
@@ -273,7 +273,7 @@ Figure 2: Actual (horizontal) vs fitted (vertical) values of regression functio
 <span>     xlab <span class="op">=</span> <span class="st">"Test passed at training time"</span>, ylab <span class="op">=</span> <span class="st">"Using predict"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">0</span>, b <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">oi_colors</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
-<div id="fig-test-preds" class="quarto-float quarto-figure quarto-figure-center" width="576" data-fig-align="center">
+<div id="fig-test-preds" class="quarto-float quarto-figure quarto-figure-center" data-fig-align="center" width="576">
 <figure class="quarto-float quarto-float-fig"><div aria-describedby="fig-test-preds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="flexBART_files/figure-html/fig-test-preds-1.png" id="fig-test-preds" class="quarto-figure quarto-figure-center" width="576">
 </div>
