@@ -1,7 +1,6 @@
 ---
 title: "nonidentified_vc"
-aliases: 
-  - /vignettes/articles/nonidentified_vc.qmd
+
 knitr:
   opts_chunk:
     collapse: true

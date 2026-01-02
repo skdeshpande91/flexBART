@@ -1,8 +1,6 @@
 ---
 title: "Categorical Predictors"
 format: html
-aliases: 
-  - /vignettes/articles/categorical.qmd
 knitr:
   opts_chunk:
     collapse: true

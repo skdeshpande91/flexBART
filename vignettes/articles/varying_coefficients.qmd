@@ -1,8 +1,7 @@
 ---
 title: varying_coefficients
 format: html
-aliases: 
-  - /vignettes/articles/varying_coefficients.qmd
+
 knitr:
   opts_chunk:
     collapse: true
