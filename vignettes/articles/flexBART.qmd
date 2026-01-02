@@ -19,7 +19,7 @@ In this vignette, we demonstrate how to use **flexBART** to fit a basic BART mod
 
 Suppose we observe $n$ pairs $(\boldsymbol{\mathbf{x}}_{1}, y_{1}), \ldots, (\boldsymbol{\mathbf{x}}_{n}, y_{n})$ of $p$-dimensional covariate vectors[^covariates] $\boldsymbol{\mathbf{x}} \in [0,1]^{p}$ and scalar outputs $y \in \mathbb{R}.$
 
-[^covariates]: In fact, **flexBART** supports both numerical and categorical inputs. See [](categorical.qmd) 
+[^covariates]: In fact, **flexBART** supports both numerical and categorical inputs. See [this vignette for more details](categorical.qmd) 
 
 The basic BART model asserts that for each $i = 1, \ldots, n,$
 

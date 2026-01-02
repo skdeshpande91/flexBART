@@ -24,17 +24,23 @@ repo:
     source: https://github.com/skdeshpande91/flexBART/
     issue: https://github.com/skdeshpande91/flexBART/issues/
 
-article:
-- title: Single-ensemble Models
-  navbar: ~
-  contents:
-  - categorical
-- title: Multi-ensemble Models
-  desc: Models with multiple ensembles
+articles:
+- title: Basic Usage
   navbar: ~
   contents:
   - varying_coefficients
+  - heteroskedastic
+  - categorical
+- title: Advanced Usage 
+  navbar: ~
+  contents:
+  - nonidentified_vc
 
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
 
 llm-docs: false
 
