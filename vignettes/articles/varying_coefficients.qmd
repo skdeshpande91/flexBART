@@ -1,5 +1,5 @@
 ---
-title: varying_coefficients
+title: "Linear Varying Coefficient Models"
 format: html
 
 knitr:
