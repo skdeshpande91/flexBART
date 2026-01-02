@@ -140,7 +140,7 @@ For these data, the coverage of the pointwise 95% credible intervals is `{r} rou
 
 
 
-### Variable Importance
+### Variable Selection
 
 Intuitively, we might expect the $j$-th covariate $X_{j}$ to be predictive of the outcome $Y$ if $X_{j}$ is used as a splitting variable at least once in the tree ensemble.
 We can operationalize this intuition by computing marginal posterior inclusion probabilities of the form

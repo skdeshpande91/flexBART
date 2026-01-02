@@ -8,19 +8,26 @@ knitr:
 ---
 
 ## Overview
-**flexBART** supports fitting varying coefficient models with Bayesian ensembles of regression trees.
-Specifically, it can be used to fit models of the form
+
+A linear varying coefficient model posits a linear relationship between an outcome $Y$ and certain covariates $Z_{1}, \ldots, Z_{R}$ but allows that relationship to change with respect to the values of other variables $X_{1}, \ldots, X_{p}.$
+That is, a linear varying coefficient model has the form
 $$
-Y = \beta_{0}(X) + \beta_{1}(X) \times Z_{1} + \cdots + \beta_{R-1}(X) \times Z_{R-1} + \sigma \epsilon
+Y = \beta_{0}(X) + \beta_{1}(X) \times Z_{1} + \cdots + \beta_{R-1}(X) \times Z_{R-1} + \sigma \epsilon,
 $$
 where each function $\beta_{r}(X)$ is approximated with an ensemble of regression trees and the error $\epsilon \sim N(0,1).$
-**flexBART** allows the size (specified using the optional argument `M_vec` or `M`), the tree prior hyperparameters (specified using the optional arguments `alpha_vec` and `beta_vec`), and the variables used for splitting (specified via the `formula` argument) to vary in each ensemble.
+[Deshpande et al. (2024)](https://doi.org/10.1214/24-BA1470) introduced VCBART, which extends the basic BART model and estimates each covariate function $\beta_{0}(\boldsymbol{\mathbf{X}}), \ldots, \beta_{R-1}(\boldsymbol{\mathbf{X}})$ with its own regression tree ensemble[^notation].
+**flexBART** supports fitting such VCBART models but provides much more control over the individual ensembles than the [original VCBART implementation](https://github.com/skdeshpande91/VCBART). 
+Specifically, **flexBART** allows the size (specified using the optional argument `M_vec` or `M`), the tree prior hyperparameters (specified using the optional arguments `alpha_vec` and `beta_vec`), and the variables used for splitting (specified via the `formula` argument) to vary in each ensemble.
+**flexBART** also allows different splitting variables to used for each coefficient ensemble. 
 
-## Example 1
+[^notation]: In the original VCBART paper and implementation, the roles of $X$ and $Z$ were reversed, so that $Y$ was linear in the $X_{j}$'s and the coefficient functions depended on the $Z_{r}$'s.  
+
+
+## Example
 
 We first demonstrate **flexBART**'s functionality using data generated from the model 
-$$Y = \beta_{0}(X) + \beta_{1}(X)Z_{1} + \beta_{2}(X)Z_{2} + \sigma\epsilon,$$ 
-where $X$ contains $p_{\text{cont}} = 10$ continuous and $p_{\text{cat}} = 10$ categorical covariates.
+$$Y = \beta_{0}(\boldsymbol{\mathbf{X}}) + \beta_{1}(\boldsymbol{\mathbf{X}})Z_{1} + \beta_{2}(\boldsymbol{\mathbf{X}})Z_{2} + \sigma\epsilon,$$ 
+where $\boldsymbol{\mathbf{X}}$ contains $p_{\text{cont}} = 10$ continuous and $p_{\text{cat}} = 10$ categorical predictor.
 Each categorical covariate will take on 10 different values.
 We will generate $n = 10000$ training observations and $n = 5000$ testing observations.
 ```{r}
@@ -64,7 +71,7 @@ train_data[,"Z2"] <- rnorm(n = n_train, mean = 0, sd = 1)
 test_data[,"Z2"] <- rnorm(n = n_test, mean = 0, sd = 1)
 ```
 
-The three coefficient functions $\beta_{0}(X), \beta_{1}(X),$ and $\beta_{2}(X)$ are defined below.
+The three coefficient functions $\beta_{0}(\boldsymbol{\mathbf{X}}), \beta_{1}(\boldsymbol{\mathbf{X}}),$ and $\beta_{2}(\boldsymbol{\mathbf{X}})$ are defined below.
 ```{r}
 #| label: define-beta
 #| eval: true
@@ -102,7 +109,7 @@ beta2_true <- function(df){
 }
 ```
 
-We now evaluate the true slopes and response surface function $\mathbb{E}[Y \vert X, Z]$ on the training and testing observations
+We now evaluate the true slopes and response surface function $\mathbb{E}[Y \vert \boldsymbol{\mathbf{X}}, \boldsymbol{\mathbf{Z}}]$ on the training and testing observations
 ```{r}
 #| label: generate-vcbart1-slopes-Y
 #| eval: true
@@ -144,7 +151,7 @@ fit <- flexBART(
   train_data = train_data, test_data = test_data)
 ```
 
-`flexBART::flexBART` returns the posterior mean estimate and posterior samples for each $\beta_{j}(x)$ evaluation (outputs named `beta`) and for the whole response surface (outputs named `yhat`).
+`flexBART::flexBART` returns the posterior mean estimate and posterior samples for each $\beta_{j}(\boldsymbol{\mathbf{x}})$ evaluation (outputs named `beta`) and for the whole response surface $\mathbb{E}[Y \vert \boldsymbol{\mathbf{X}} = \boldsymbol{\mathbf{x}}, \boldsymbol{\mathbf{Z}} = \boldsymbol{\mathbf{z}}] (outputs named `yhat`).
 We first plot the posterior mean evaluations of each $\beta_{j}$ and the response surface for both training and testing observations.
 
 ```{r plot-fits-vcbart1, fig.align = 'center'}
@@ -155,7 +162,7 @@ We first plot the posterior mean evaluations of each $\beta_{j}$ and the respons
 #| fig-width: 8
 #| fig-height: 4
 #| fig-align: center
-#| fig-cap: Actual (horizontal) vs Estimated (vertical) evaluations of $E[Y \vert X,Z]$ and the individual coefficient functions $\beta_{0}(X), \beta_{1}(X),$ and $\beta_{2}(X).$
+#| fig-cap: Actual (horizontal) vs Estimated (vertical) evaluations of $\mathbb{E}[Y \vert \boldsymbol{\mathbf{X}},\boldsymbol{\mathbf{Z}}]$ and the individual coefficient functions $\beta_{0}(\boldsymbol{\mathbf{X}}), \beta_{1}(\boldsymbol{\mathbf{X}}),$ and $\beta_{2}(\boldsymbol{\mathbf{X}}).$
 
 # Okabe-Ito colorblind friendly palette
 oi_colors <- palette.colors(palette = "Okabe-Ito")
@@ -197,7 +204,7 @@ abline(a = 0, b = 1, col = oi_colors[3])
 
 When the optional argument `save_samples` is set to `TRUE` (the default setting), `flexBART::flexBART` returns the posterior samples of the response surface and individual covariate function evaluations at each training and testing observation.
 The output attribute `yhat.train` (resp. `yhat.test`) is a matrix whose rows index MCMC draws and whose columns index training (resp. testing) observations.
-We can form posterior credible intervals for evaluations of the response surface $\E[Y \vert X, Z]$ at each training (resp. testing) observation by computing quantiles in each column of `yhat.train` (resp. `yhat.test`).
+We can form posterior credible intervals for evaluations of the response surface $\mathbb{E}[Y \vert \boldsymbol{\mathbf{X}}, \boldsymbol{\mathbf{Z}}]$ at each training (resp. testing) observation by computing quantiles in each column of `yhat.train` (resp. `yhat.test`).
 
 ```{r}
 #| label: vcbart1-yhat-quantiles
@@ -226,7 +233,7 @@ cat("Testing coverage: ", round(mean(mu_test >= mu_test_l95 & mu_test <= mu_test
 ```
 
 The output attribute `beta.train` (resp. `beta.test`) is a three-dimensional array whose dimensions respectively index MCMC draws, training (resp. testing) observations, and ensembles (i.e., covariate functions).
-To form credidble intervals for each $\beta_{j}(\boldsymbol{\mathbf{x}}_{i})$, we must compute column-wise quantiles in the corresponding slice of `beta.train` or `beta.test`.
+To form credible intervals for each $\beta_{j}(\boldsymbol{\mathbf{x}}_{i})$, we must compute column-wise quantiles in the corresponding slice of `beta.train` or `beta.test`.
 ```{r}
 #| label: vcbart1-beta-quantiles
 #| eval: true
@@ -272,10 +279,10 @@ print(round(coverage, digits = 3))
 ### Variable Selection
 
 By default `flexBART::flexBART` uses [Linero (2018)](https://www.tandfonline.com/doi/abs/10.1080/01621459.2016.1264957)'s sparsity-inducing Dirichlet prior on splitting variables.
-Following the recommendations from Section 3.2 of that paper, we can compute the marginal posterior probability inclusion probability that each $X_{j}$ is used at least once in the ensemble for each $\beta_{r}(X).$
-We can then select those covariates for which this probability exceeds 50\%.
+Following the recommendations from Section 3.2 of that paper, we can compute the marginal posterior probability inclusion probability that each $X_{j}$ is used at least once in the ensemble for each $\beta_{r}(\boldsymbol{\mathbf{X}}).$
+We can then select those $X_{j}$'s for which this probability exceeds 50\%.
 The `varcounts` element of `flexBART::flexBART`'s output is an array holding the posterior samples of the counts of rules based on each $X_{j}.$
-The dimensions of this array, respectively, index MCMC draws, covariates (i.e., elements of $\boldsymbol{\mathbf{X}}$), and ensembles/covariate functions (i.e., $\beta_{0}, \ldots, \beta_{R-1}$).
+The dimensions of this array, respectively, index MCMC draws, elements of $\boldsymbol{\mathbf{X}}$, and ensembles/coefficient functions (i.e., $\beta_{0}, \ldots, \beta_{R-1}$).
 ```{r varcounts-vcbart1}
 dim(fit$varcounts)
 ```
@@ -294,7 +301,7 @@ So, at least for this run, there is no false positive and no false negative iden
 
 Although $\boldsymbol{\mathbf{X}}$ contains $p = 20$ predictors, these coefficient functions only depend on $X_{1}$ and $X_{11}.$
 So, we can visualize these functions pretty easily.
-To do so, we first define a new data frame containing a fine grid of $X_{1}$ values, two different $X_{11}$ values (which induce different $\beta_{0}(X)$ values), and dummy values for the remaining predictors and covariates.
+To do so, we first define a new data frame containing a fine grid of $X_{1}$ values, two different $X_{11}$ values (which induce different $\beta_{0}(\boldsymbol{\mathbf{X}})$ values), and dummy values for the remaining predictors and covariates.
 ```{r}
 #| label: vcbart1-plot-df
 #| eval: true
