@@ -26,16 +26,15 @@ repo:
 
 articles:
 - title: Basic Usage
-  navbar: ~
+  navbar:
   contents:
   - varying_coefficients
   - heteroskedastic
   - categorical
 - title: Advanced Usage 
-  navbar: ~
+  navbar:
   contents:
   - nonidentified_vc
-
 
 navbar:
   structure:

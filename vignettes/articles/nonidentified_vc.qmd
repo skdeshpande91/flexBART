@@ -1,0 +1,14 @@
+---
+title: "nonidentified_vc"
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+# Non-identified Varying Coefficient Model
+
+```{r}
+#| label: setup
+library(flexBART)
+```

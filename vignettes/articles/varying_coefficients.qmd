@@ -1,5 +1,5 @@
 ---
-title: "Linear Varying Coefficient Models"
+title: varying_coefficients
 format: html
 knitr:
   opts_chunk:
