@@ -1,0 +1,9 @@
+---
+title: "Categorical Predictors"
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+Coming soon!
