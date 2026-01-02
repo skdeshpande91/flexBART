@@ -1,6 +1,5 @@
 ---
 title: "Categorical Predictors"
-format: html
 knitr:
   opts_chunk:
     collapse: true
