@@ -22,8 +22,9 @@ Because this specification is not conditionally conjugate, we cannot use the con
 Instead, **flexBART** follows [Linero (2025)](https://doi.org/10.1080/01621459.2024.2337156) and updates both the tree structure and leaf outputs in a single Metropolis-Hastings step.
 New leaf node parameters are proposed from a Laplace approximation of their conditional posterior distribution given the proposed tree structure. 
 
-To fit a heteroskedastic BART model using **flexBART**, one must include a `sigma()` term in the `formula` argument.
 
+Fitting a heteroskedastic BART model using **flexBART** is [nearly identical](/vignettes/articles/flexBART.qmd) to fitting a basic BART model with one important difference: we must specify a `formula` argument and provide data via the `training_data` argument.
+The key difference is that for heteroskedastic models, we need to include a `sigma()` term on the right-hand side of the `~` in the `formula` argument: `~ bart(.) + sigma(.)`. 
 
 ## Illustration
 
@@ -57,7 +58,7 @@ sigma_train <- sigma_true(train_data)
 train_data$Y <- mu_train + sigma_train * rnorm(n = n_train, mean = 0, sd = 1)
 ```
 
-We can fit the model
+We can now fit the model.
 
 ```{r}
 #| label: fit-model
@@ -72,20 +73,166 @@ fit <- flexBART(formula = Y ~ bart(.) + sigma(.),
                 train_data = train_data)
 ```
 
-## Making Predictions
+### Computing Posterior Summaries
 
+In addition to its `yhat.train` and `yhat.train.mean` attributions, which respectively contains MCMC draws and posterior means of the $f(\boldsymbol{\mathbf{x}}_{i})$'s, `fit` contains two additional attributions, `sigma.train` and `sigma.train.mean`, which respectively contains MCMC draws and posterior means of the $\sigma(\boldsymbol{\mathbf{x}}_{i})$'s.
 
 ```{r}
+#| label: fig-mean-sd-plots
+#| eval: true
+#| echo: true
+#| code-fold: true
+#| code-summary: View Code
+#| fig-width: 8
+#| fig-height: 4
+#| fig-align: center
+#| fig-cap: Actual (horiztonal) vs fitted (vertical) values of regression (left) and residual standard deviation function (right) functions evaluated at training observations.
 
-test_df <- data.frame(X1 = seq(0, 1, by = 0.01))
-mu_test <- mu_true(test_df)
-sigma_test <- sigma_true(test_df)
+oi_colors <- palette.colors(palette = "Okabe-Ito")
+par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
+f_limits <- range(c(mu_train, fit$yhat.train.mean))
+plot(mu_train, fit$yhat.train.mean, 
+     pch = 16, cex = 0.5,
+     xlim= f_limits, ylim = f_limits,
+     xlab = "Actual", ylab = "Posterior Mean",
+     main = "Regression Function")
+abline(a = 0, b = 1, col = oi_colors[3])
 
-pred <- predict(object = fit, newdata = test_df)
+sigma_limits <- range(c(sigma_train, fit$sigma.train.mean))
+plot(sigma_train, fit$sigma.train.mean, 
+     pch = 16, cex = 0.5,
+     xlim= sigma_limits, ylim = sigma_limits,
+     xlab = "Actual", ylab = "Posterior Mean",
+     main = "Standard Deviation Function")
+abline(a = 0, b = 1, col = oi_colors[3])
+
+```
+The coverage of the pointwise 95% posterior credible intervals for the $f(\boldsymbol{\mathbf{x}}_{i})$'s and $\sigma(\boldsymbol{\mathbf{x}}_{i})$'s is also quite high.
+
+```{r}
+#| label: train-coverage
+#| eval: true
+#| echo: true
+
+train_mean_summary <-
+  data.frame(
+    MEAN = apply(fit$yhat.train, MARGIN = 2, FUN = mean),
+    L95 = apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.025),
+    U95 = apply(fit$yhat.train, MARGIN = 2, FUN = quantile, probs = 0.975))
+
+train_sigma_summary <-
+  data.frame(
+    MEAN = apply(fit$sigma.train, MARGIN = 2, FUN = mean),
+    L95 = apply(fit$sigma.train, MARGIN = 2, FUN = quantile, probs = 0.025),
+    U95 = apply(fit$sigma.train, MARGIN = 2, FUN = quantile, probs = 0.975))
+
+
+cat("Coverage for f:", round ( mean( mu_train >= train_mean_summary$L95 & mu_train <= train_mean_summary$U95), digits = 3), "\n")
+cat("Coverage for sigma:", round ( mean( sigma_train >= train_sigma_summary$L95 & sigma_train <= train_sigma_summary$U95), digits = 3), "\n")
 ```
 
-<!--
+### Posterior Predictive Simulation
+
+Posterior predictive simulation with heteroskedastic BART proceeds almost exactly like it does with homoskedastic BART.
+In the code below, we loop over the training observations and for each MCMC sample of $(f(\boldsymbol{\mathbf{x}}), \sigma(\boldsymbol{\mathbf{x}}))$, we draw an independent $\epsilon^{\star} \sim N(0,1)$ and compute $f(\boldsymbol{\mathbf{x}}) + \sigma(\boldsymbol{\mathbf{x}})\epsilon^{\star}.$
+
+```{r}
+#| label: heteroskedastic-train-post-pred
+#| eval: true
+#| echo: true
+nd <- nrow(fit$yhat.train)
+ystar_train <- matrix(nrow = nd, ncol = n_train)
+for(i in 1:n_train){
+  ystar_train[,i] <- fit$yhat.train[,i] + rnorm(n = nd , mean = 0, sd = fit$sigma.train[,i])
+}
+
+ystar_quantiles <- 
+  apply(ystar_train, MARGIN = 2, 
+        FUN = quantile, probs = c(0.025, 0.975)) |>
+  t()
+mean( train_data$Y >= ystar_quantiles[,"2.5%"] & train_data$Y <= ystar_quantiles[,"97.5%"])
+
+
+```
+
+## Making Predictions
+
+We can use **flexBART**'s prediction method (`predict.flexBART()`, accessed via the generic `predict()`) to make predictions about $f$ and $\sigma$  evaluated at new inputs.
+In the code below, we create a grid of equally-spaced $X_{1}$ values running from 0 to 1.
+We then use `predict()` to compute posterior samples of these evaluations, which we then compare to the actual values.
+
+```{r}
+#| label: heteroskedastic-predict
+#| eval: true
+#| echo: true
+
+# Predicted Draws
+test_df <- data.frame(X1 = seq(0, 1, by = 0.01))
+test_pred <- predict(object = fit, newdata = test_df)
+
+# Actual values
+mu_test <- mu_true(test_df)
+sigma_test <- sigma_true(test_df)
+```
+
+The `yhat` and `sigma` attributes of `pred` respectively contains MCMC samples for evaluations of the mean and standard deviation functions.
+In the code below, we compute the posterior means and 95% credible intervals for both functions on the test data.
+
+```{r}
+#| label: compute-test-summaries
+#| eval: true
+#| echo: true
+
+test_mean_summary <- 
+  data.frame(
+    MEAN = apply(test_pred$yhat, MARGIN = 2, FUN = mean),
+    L95 = apply(test_pred$yhat, MARGIN = 2, FUN = quantile, probs = 0.025),
+    U95 = apply(test_pred$yhat, MARGIN = 2, FUN = quantile, probs = 0.975))
+test_sigma_summary <-
+  data.frame(
+    MEAN = apply(test_pred$sigma, MARGIN = 2, FUN = mean),
+    L95 = apply(test_pred$sigma, MARGIN = 2, FUN = quantile, probs = 0.025),
+    U95 = apply(test_pred$sigma, MARGIN = 2, FUN = quantile, probs = 0.975))
+```
+
+
+Since both $f$ and $\sigma$ depends only on $X_{1},$ we can visualize the posterior mean and pointwise credible interval.
+
+```{r}
+#| label: fig-posterior
+#| eval: true
+#| echo: true
+#| code-fold: true
+#| fig-width: 8
+#| fig-height: 4
+#| fig-align: center
+#| fig-cap: True mean (left) and standard deviation (right) functions (black) and the posterior mean and pointwise 95% credible interval (blue)
+
+f_limits <- range(c(mu_test, test_mean_summary))
+sigma_limits <- range(c(sigma_test, test_sigma_summary))
+
 par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
-plot(mu_test, colMeans(pred$yhat))
-plot(sigma_test, colMeans(pred$sigma))
--->
+
+plot(1, type = "n", xlim = c(0,1), ylim = f_limits,
+     main = "Mean Function", xlab = "X1", ylab = "f(X)")
+
+polygon(x = c(test_df$X1, rev(test_df$X1)),
+        y = c(test_mean_summary$L95, rev(test_mean_summary$U95)),
+        col = adjustcolor(oi_colors[3], alpha.f = 0.5), border = NA)
+lines(x = test_df$X1, y = test_mean_summary$MEAN, 
+      col = oi_colors[3])
+lines(test_df$X1, y = mu_test)
+
+plot(1, type = "n", xlim = c(0,1), ylim = sigma_limits,
+     main = "Std. Dev. Function", xlab = "X1", ylab = "f(X)")
+
+polygon(x = c(test_df$X1, rev(test_df$X1)),
+        y = c(test_sigma_summary$L95, rev(test_sigma_summary$U95)),
+        col = adjustcolor(oi_colors[3], alpha.f = 0.5), border = NA)
+lines(x = test_df$X1, y = test_sigma_summary$MEAN, 
+      col = oi_colors[3])
+lines(test_df$X1, y = sigma_test)
+
+
+```
+

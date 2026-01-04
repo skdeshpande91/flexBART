@@ -6,28 +6,29 @@ knitr:
     comment: '#>'
 ---
 
+## Overview
+
 **flexBART** is a new implementation of Bayesian Additive Regression Trees (BART; [Chipman et al. (2010)](https://doi.org/10.1214/09-AOAS285)) that introduces a new formula interface and implements a lot of data pre-processing in an effort to make it easier than ever to fit BART models.
-**flexBART** also supports fitting (generalized) linear varying coefficient models, which posit a linear relationship between the inverse link and some covariates but allow that relationship to change as a function of other covariates, and heteroskedastic BART models, in which both the mean and log-variance are approximated with separate regression tree ensembles.
+**flexBART** also supports fitting (generalized) linear varying coefficient models, which posit a linear relationship between the inverse link and some predictors but allow that relationship to change as a function of other predictors, and heteroskedastic BART models, in which both the mean and log-variance are approximated with separate regression tree ensembles.
 
 
 In this vignette, we demonstrate how to use **flexBART** to fit a basic BART model in the standard nonparametric regression problem with homoskedastic Gaussian errors.
 
-## Setup
+## Background
 
-Suppose we observe $n$ pairs $(\boldsymbol{\mathbf{x}}_{1}, y_{1}), \ldots, (\boldsymbol{\mathbf{x}}_{n}, y_{n})$ of $p$-dimensional covariate vectors[^covariates] $\boldsymbol{\mathbf{x}} \in [0,1]^{p}$ and scalar outputs $y \in \mathbb{R}.$
+Suppose we observe $n$ pairs $(\boldsymbol{\mathbf{x}}_{1}, y_{1}), \ldots, (\boldsymbol{\mathbf{x}}_{n}, y_{n})$ of $p$-dimensional predictor vectors[^predictors] $\boldsymbol{\mathbf{x}} \in [0,1]^{p}$ and scalar outputs $y \in \mathbb{R}.$
 
-[^covariates]: In fact, **flexBART** supports both numerical and categorical inputs. See [this article for more details](categorical.qmd) 
+[^predictors]: In fact, **flexBART** supports both numerical and categorical inputs. See [this article for more details](categorical.qmd) 
 
-The basic BART model asserts that for each $i = 1, \ldots, n,$
-
+According to the basic BART model, for each $i = 1, \ldots, n,$
 $$
 y_{i} \vert f, \sigma \sim N(f(\boldsymbol{\mathbf{x}}_{i}), \sigma^{2}),
 $$
 where $f$ is the unknown regression function and $\sigma$ is the unknown residual variance.
-At a high-level BART works by approximating $f$ as a piecewise constant step-function, which it represents as a sum of several binary regression trees. 
-As a Bayesian method, BART specifies a joint prior over the regression trees used to approximate $f$ and the residual variance and then, based on the observed data, computes a joint posterior distribution over the trees and $\sigma.$
+BART approximates $f$ as a piecewise constant step-function, which it represents as a sum of several binary regression trees. 
+Fitting a BART model formally involves (i) specifying a joint prior over the regression trees used to approximate $f$ and the residual variance $\sigma^{2}$; and (ii) computing a joint posterior distribution over the trees and $\sigma^{2}.$ 
 Since the posterior distribution is analytically intractable, posterior summaries are computed using Markov chain Monte Carlo (MCMC).
-See [Chipman et al. (2010)](https://doi.org/10.1214/09-AOAS285) for full details details. 
+See [Chipman et al. (2010)](https://doi.org/10.1214/09-AOAS285) for full details. 
 
 ## Basic Usage
 
@@ -51,7 +52,7 @@ friedman_func <- function(df){
 ```
 
 
-Although the function depends on only 5 covariates, for this demonstration, we will create a total of $p = 50$ predictors, each drawn uniformly from the interval $[0,1].$
+Although the function depends on only 5 predictors, for this demonstration, we will create a total of $p = 50$ predictors, each drawn uniformly from the interval $[0,1].$
 We will also add $N(0, 2.5^{2})$ noise. 
 ```{r}
 #| label: generate-data
@@ -69,12 +70,22 @@ train_data[,"Y"] <- mu_train + sigma * rnorm(n = n_train, mean = 0, sd = 1)
 ```
 
 
-To fit a basic BART model to these data with **flexBART**, it suffices to specify two arguments:
-  
-  1. The `formula` argument, which in this case should be `Y ~ bart(.)`
-  2. The `train_data` argument, which should be a `data.frame` or `tibble` containing our data.
+To fit a basic BART model to these data with **flexBART**, it suffices to specify the `formula` and `train_data` arguments.
 
-Like Stan[^stan4chains]By default, `flexBART` simulates 4 Markov chains for 2,000 iterations each and discards the first 1,000 iterations of each chain as "burn-in".
+### The `formula` argument
+
+Models for **flexBART** are specified symbolically using syntax similar to that used to fit (generalized) linear models with `lm()` and `glm()`.
+To fit the vanilla BART model with `flexBART()`, the formula should take the form `response ~ bart(terms)` where `response` is the numeric response and `terms` specifies the predictors on which the trees are allowed to split.
+
+The `terms` specification of `.` will include all variables *except* `response` that are found in `train_data` as predictors. 
+A `terms` specification of the form `x1 + x2` will include just the variables `x1` and `x2` while a specification of the form `.-x1-x2` will include all variables in `train_data` *except* `response`, `x1`, and `x2.`
+
+The `formula` argument **must** include the string "bart" on the right-hand side. Expressions like `Y ~ X1 + X2` will be not work.
+Additionally, **flexBART** does not support the special R formula symbols `:`, `*`, `1`, `^`, and `I()`. 
+
+### Fitting the Model
+
+Like Stan[^stan4chains], `flexBART` simulates 4 Markov chains for 2,000 iterations each and discards the first 1,000 iterations of each chain as "burn-in".
 You can adjust these values using the optional `n.chains`, `nd`, and `burn` arguments.
  
 [^stan4chains]: See [this post](https://discourse.mc-stan.org/t/why-are-4-chains-used/7670) explaining why Stan uses these defaults.
@@ -90,16 +101,18 @@ fit <-
     train_data = train_data)
 ```
 
-### Posterior Summaries 
+### Computing Posterior Summaries 
 
-`flexBART()` always returns the posterior mean of the function evaluations $\mathbb{E}[f(\boldsymbol{\mathbf{x}}_{i}) \vert \boldsymbol{\mathbf{y}}]$ for each training observation $i = 1, \ldots, n.$
+`flexBART()` always returns the posterior mean of the function evaluations for each training observation (i.e., $\mathbb{E}[f(\boldsymbol{\mathbf{x}}_{i}) \vert \boldsymbol{\mathbf{y}}]$ for each $i = 1, \ldots, n.$)
 These posterior means are contained in the `yhat.train.mean` attribute of `flexBART()`'s output.
-The code below plots these posterior means against the actual regression function evaluations contained in `mu_train`.
+In the code below, we plot these posterior means against the actual regression function evaluations.
 
 ```{r}
 #| label: fig-yhat-train-mean
 #| echo: true
 #| eval: true
+#| code-fold: true
+#| code-summary: "View code"
 #| fig-width: 6
 #| fig-height: 6
 #| fig-align: "center"
@@ -114,40 +127,36 @@ plot(mu_train, fit$yhat.train.mean,
      xlab = "Actual", ylab = "Posterior Mean",
      main = "Training Evaluations")
 abline(a = 0, b = 1, col = oi_colors[3])
-
 ```
 
-When the argument `save_samples = TRUE` (the default setting), `flexBART()` will also return all posterior draws of the individual evaluations $f(\boldsymbol{\mathbf{x}}_{i}).$
-Using these samples, we can compute, for instance, 95% credible intervals for each $f(\boldsymbol{\mathbf{x}}_{i})$.
+When the argument `save_samples` is set to `TRUE` (the default setting), `flexBART()` will also return all posterior draws of the individual evaluations $f(\boldsymbol{\mathbf{x}}_{i}).$
+These draws are contained in the `yhat.train` attribute, which is a matrix whose rows index post-"burn-in" MCMC draws and whose columns index training observations.
+Using these samples, we can compute, for instance, 95% posterior credible intervals for each $f(\boldsymbol{\mathbf{x}}_{i})$.
 ```{r}
 #| label: get-quantiles
 #| eval: true
 #| echo: true
-
 post_quantiles <-
   apply(fit$yhat.train, MARGIN = 2, 
         FUN = quantile, 
         probs = c(0.025, 0.975)) |>
   t() |>
   as.data.frame()
-
 mean( mu_train >= post_quantiles[,"2.5%"] & mu_train <= post_quantiles[,"97.5%"])
 ```
 For these data, the coverage of the pointwise 95% credible intervals is `{r} round(100 * mean( mu_train >= post_quantiles[,"2.5%"] & mu_train <= post_quantiles[,"97.5%"]), digits = 2)`%.
 
-
-
 ### Variable Selection
 
-Intuitively, we might expect the $j$-th covariate $X_{j}$ to be predictive of the outcome $Y$ if $X_{j}$ is used as a splitting variable at least once in the tree ensemble.
+Intuitively, we might expect the $j$-th predictor $X_{j}$ to be predictive of the outcome $Y$ if $X_{j}$ is used as a splitting variable at least once in the tree ensemble.
 We can operationalize this intuition by computing marginal posterior inclusion probabilities of the form
 $$
 \mathbb{P}(X_{j} \text{ used at least once} \vert \boldsymbol{\mathbf{y}})
 $$
-and then selecting only those $X_{j}$ whose marginal inclusion probabilites exceed 50%. 
+and then selecting only those $X_{j}$ whose marginal inclusion probabilities exceed 50%. 
 
-The `varcount` attribute of flexBART()`'s output contains an three-dimensional array tracking the number of times each covariate is used as a splitting variable in every MCMC iteration.
-The first dimension indexes post-"burn-in" MCMC samples across the four chains and the second dimension indexes the total number of covariates.
+The `varcount` attribute of `flexBART()`'s output contains an three-dimensional array tracking the number of times each predictor is used as a splitting variable in every MCMC iteration.
+The first dimension indexes post-"burn-in" MCMC samples across the four chains and the second dimension indexes the total number of predictor.
 The third dimension indexes the total number of ensembles, which in this simple example is just one.
 
 ```{r}
@@ -155,30 +164,26 @@ The third dimension indexes the total number of ensembles, which in this simple 
 dim(fit$varcounts)
 ```
 
-
 The code below shows how to compute the posterior inclusions probabilities.
-
 ```{r}
 #| label: posterior-inclusion
 pip <- apply(fit$varcounts >= 1, MARGIN = c(2,3), FUN = mean)
 rownames(pip)[which(pip >= 0.5)]
 ```
 
-In this example, we see that the only variables with posterior inclusion probabilities exceeding 50% are $X_{1}, \ldots, X_{5}.$
-Although thresholding these marginal posterior inclusion probabilities is somewhat ad hoc, we have found it to work rather well when used in conjunction with [Linero (2018)](https://doi.org/10.1080/01621459.2016.1264957) "DART" prior over the splitting variable used in each decision rule.
-Briefly, if we let $\theta_{j}$ denote the prior probability that a decision rule will be based on the $j$-th covariate $X_{j},$ the DART prior places a sparsity-inducing Dirichlet prior on the vector $\boldsymbol{\theta} = (\theta_{1}, \ldots, \theta_{p}).$
-`flexBART()` implements the DART prior by default but it can also be run with constant prior splitting probabilities (i.e. each $\theta_{j} = 1/p$) by setting the optional argument `sparse = TRUE`.
+In this example, we see that the only predictors with posterior inclusion probabilities exceeding 50% are $X_{1}, \ldots, X_{5}.$
+Although thresholding these marginal posterior inclusion probabilities is somewhat *ad hoc*, we have found it to work rather well when used in conjunction with [Linero (2018)](https://doi.org/10.1080/01621459.2016.1264957) "DART" prior over the splitting variable used in each decision rule.
+Briefly, if we let $\theta_{j}$ denote the prior probability that a decision rule will be based on the $j$-th predictor $X_{j},$ the DART prior places a sparsity-inducing Dirichlet prior on the vector $\boldsymbol{\theta} = (\theta_{1}, \ldots, \theta_{p}).$
+`flexBART()` implements the DART prior by default but it can also be run with constant prior splitting probabilities (i.e. each $\theta_{j} = 1/p$) by setting the optional argument `sparse = FALSE`.
 
 ### Posterior Predictive Simulation
 
-The attributes `yhat.train` and `yhat.train.mean` in the object returned by `flexBART()` contain the posterior draws and posterior mean of the function evaluations.
+The attributes `yhat.train` and `yhat.train.mean` of `flexBART()`'s output contain the posterior draws and posterior mean of the function evaluations.
 To draw from and to summarize the posterior predictive distribution at each observed $\boldsymbol{\mathbf{x}}_{i},$ one must add in additional random noise.
-Specificially, given a posterior sample $(f(\boldsymbol{\mathbf{x}}_{i}), \sigma)$ we can form a posterior predictive draw by computing $f(\boldsymbol{\mathbf{x}}_{i}) + \sigma\varepsilon^{\star}$ where $\varepsilon^{\star}$ is drawn independently from a $N(0,1)$ distribution. 
+Specifically, given a posterior sample $(f(\boldsymbol{\mathbf{x}}_{i}), \sigma)$ we can form a posterior predictive draw by computing $f(\boldsymbol{\mathbf{x}}_{i}) + \sigma\varepsilon^{\star}$ where $\varepsilon^{\star}$ is drawn independently from a $N(0,1)$ distribution. 
 
 In the code below, we loop over all training observations and generate draws from the corresponding posterior predictive distribution.
-Then, we form 95% posterior predictive intervals and calculate the fraction of observed outcomes that fall within these interval.s
-
-
+Then, we form 95% posterior predictive intervals and calculate the fraction of observed outcomes that fall within these intervals.
 ```{r}
 #| label: posterior-predictive
 
@@ -197,11 +202,11 @@ mean( train_data$Y >= ystar_quantiles[,"2.5%"] & train_data$Y <= ystar_quantiles
 ```
 At least for this example, we see that `{r} round(100 * mean( train_data$Y >= ystar_quantiles[,"2.5%"] & train_data$Y <= ystar_quantiles[,"97.5%"]), digits = 2)`% of the observed $y_{i}$'s fall within the predictive intervals.
 
-## Making Predictions
+## Making Predictions at New Inputs
 
-So far, we have focused only on the posterior distribution of the regression function evaluated at the observed covariates $\boldsymbol{\mathbf{x}}_{1}, \ldots, \boldsymbol{\mathbf{x}}_{n}.$
-There are two ways to compute the posterior distribution of regression function evaluations at new values of the covariate vector $\boldsymbol{\mathbf{x}}^{\star}_{1}, \ldots, \boldsymbol{\mathbf{x}}^{\star}_{N}.$
-To demonstrate these options, we first create some test set observations
+So far, we have focused only on the posterior distribution of the regression function evaluated at the observed predictor vectors $\boldsymbol{\mathbf{x}}_{1}, \ldots, \boldsymbol{\mathbf{x}}_{n}.$
+To compute the posterior distribution of "out-of-sample" or "testing" evaluations (i.e., the value of $f(\boldsymbol{\mathbf{x}}^{\star})$ at a new predictor vector $\boldsymbol{\mathbf{x}}^{\star}$), we can use **flexBART**'s `predict()` method.
+To demonstrate, we first create some test set observations.
 
 ```{r}
 #| label: create-test
@@ -213,77 +218,78 @@ mu_test <- friedman_func(test_data[,paste0("X",1:p_cont)])
 
 ```
 
-### Option 1: Passing test data at training time
-
-If these new inputs are available at training time (i.e., when we first call `flexBART()` to fit our model), we can pass these inputs to `flexBART()` via the `test_data` argument.
-When we specify `test_data`, `flexBART()` internally computes and stores the posterior samples of the regression function evaluated at both the training data and testing data. 
-```{r}
-#| label: fit-with-test
-#| message: false
-#| output: false
-#| results: hide
-
-fit1 <-
-  flexBART::flexBART(formula = Y~bart(.), 
-                     train_data = train_data,
-                     test_data = test_data)
-```
-Here is a plot of the posterior means $\mathbb{E}[f(\boldsymbol{\mathbf{x}}^{\star}_{i}) \vert \boldsymbol{y}]$ against the actual values $f(\boldsymbol{\mathbf{x}}^{\star}_{i}).$
-
-```{r}
-#| label: fig-test
-#| fig-width: 6
-#| fig-height: 6
-#| fig-align: center
-#| fig-cap: "Actual (horizontal) vs fitted (vertical) values of regression function evaluated at testing observations."
-
-limits <- range(c(mu_test, fit1$yhat.test.mean))
-par(mar = c(3,3,2,1), mgp = c(1.8, 0.5,0))
-plot(mu_test, fit1$yhat.test.mean, 
-     pch = 16, cex = 0.5,
-     xlim = limits, ylim = limits, main = "Testing Evaluations",
-     xlab = "Actual", ylab = "Posterior Mean")
-abline(a = 0, b = 1, col = oi_colors[3])
-```
-
-
-### Option 2 (Recommended): Using `predict()`
-
 **flexBART** implements its own prediction method (`predict.flexBART()`), which can be accessed through the generic `predict()`.
-This method takes two inputs: (i) `object`, which should be the full object returned by `flexBART()` and (ii) `newdata`, which is a `data.frame` or `tibble` containing test set observations.
-To demonstrate, we 
+This method takes two inputs: 
+
+  * `object`, which should be the full object returned by `flexBART()`
+  * `newdata`, which is a `data.frame` containing test set observations.
+  
+It is critical that `newdata` contains measurements of all the predictors used for training the BART model (i.e. `colnames(newdata)` should be a subset of `colnames(train_data)`). 
+Additionally, it is critical that `flexBART()` was run with the setting `save_trees = TRUE` (the default).
+
 ```{r}
 #| label: fit-with-predict
 #| message: false
 #| output: false
 #| results: hide
-
-fit2 <-
-  flexBART::flexBART(formula = Y~bart(.), 
-                     train_data = train_data)
-
-train_preds <- predict(object = fit2, newdata = train_data)
+test_preds <- predict(object = fit, newdata = test_data)
 ```
 
+The object `test_preds` contains MCMC samples of $f$ evaluated at each observation in `test_data`.
+So, we can compute posterior means and credible intervals by computing column-wise means and quantiles.
 
-As a sanity check, we can compare the posterior samples of the $f(\boldsymbol{\mathbf{x}}_{i})$'s computed during the MCMC simulation to the ones obtained using `predict()`.
 ```{r}
-#| label: compare-train-predictions
-range(fit2$yhat.train - train_preds)
+#| label: compute-test-summaries
+#| eval: true
+#| echo: true
+test_summary <-
+  data.frame(MEAN = apply(test_preds, MARGIN = 2, FUN = mean),
+             L95 = apply(test_preds, MARGIN = 2, FUN = quantile, probs = 0.025),
+             U95 = apply(test_preds, MARGIN = 2, FUN = quantile, probs = 0.975))
 ```
-In this case, the difference is within tolerable numerical precision.
 
-We can also plot the posterior means on the test data from the two different approaches.
-We see that they are very closely aligned.
+We see that the posterior means of out-of-sample evaluations of $f$ line up pretty well with the actual values.
 ```{r}
-#| label: fig-test-preds
+#| label: fig-test-means
+#| eval: true
+#| echo: true
+#| code-fold: true
+#| code-summary: "View code"
 #| fig-width: 6
 #| fig-height: 6
-#| fig-align: center
-test_preds <- predict(object = fit2, newdata = test_data)
+#| fig-align: "center"
+#| fig-cap: "Actual (horizontal) vs fitted (vertical) values of regression function evaluated at testing observations."
+
+limits <- range(c(mu_test, test_summary$MEAN))
 par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0))
-plot(fit1$yhat.test.mean, colMeans(test_preds), pch = 16, cex = 0.5,
-     xlab = "Test passed at training time", ylab = "Using predict")
+plot(mu_test, test_summary$MEAN,
+     pch = 16, cex = 0.5,
+     xlim = limits, ylim = limits,
+     xlab = "Actual", ylab = "Posterior Mean",
+     main = "Testing Evaluations")
 abline(a = 0, b = 1, col = oi_colors[3])
 ```
+At least for these data, the coverage of the 95% posterior credible intervals for out-of-sample regression function evaluations is excellent.
+
+```{r}
+#| label: test-coverage
+#| eval: true
+#| echo: true
+mean( (mu_test >= test_summary$L95 & mu_test <= test_summary$U95))
+
+```
+
+
+Finally, just as an optional sanity check, we can compare the posterior samples of the $f(\boldsymbol{\mathbf{x}}_{i})$'s computed during the MCMC simulation to the ones obtained using `predict()`.
+```{r}
+#| label: compare-train-predictions
+#| echo: true
+#| eval: true
+train_preds <- predict(object = fit, newdata = train_data)
+range(fit$yhat.train - train_preds)
+```
+In this case, the differences are within tolerable numerical precision.
+
+
+
 

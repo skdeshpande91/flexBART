@@ -277,10 +277,13 @@ print(round(coverage, digits = 3))
 
 ### Variable Selection
 
-By default `flexBART::flexBART` uses [Linero (2018)](https://www.tandfonline.com/doi/abs/10.1080/01621459.2016.1264957)'s sparsity-inducing Dirichlet prior on splitting variables.
+As we did in the [Getting Started article](/vignettes/articles/flexBART.qmd), we can compute the marginal posterior probability inclusion probability that each $X_{j}$ is used in at least one splitting rule in the ensemble for each $\beta_{r}(\boldsymbol{\mathbf{X}}).$
+<!--By default `flexBART()` uses [Linero (2018)](https://www.tandfonline.com/doi/abs/10.1080/01621459.2016.1264957)'s sparsity-inducing Dirichlet prior on splitting variables.
 Following the recommendations from Section 3.2 of that paper, we can compute the marginal posterior probability inclusion probability that each $X_{j}$ is used at least once in the ensemble for each $\beta_{r}(\boldsymbol{\mathbf{X}}).$
+-->
 We can then select those $X_{j}$'s for which this probability exceeds 50\%.
-The `varcounts` element of `flexBART::flexBART`'s output is an array holding the posterior samples of the counts of rules based on each $X_{j}.$
+
+The `varcounts` element of `flexBART()`'s output is an array holding the posterior samples of the counts of rules based on each $X_{j}.$
 The dimensions of this array, respectively, index MCMC draws, elements of $\boldsymbol{\mathbf{X}}$, and ensembles/coefficient functions (i.e., $\beta_{0}, \ldots, \beta_{R-1}$).
 ```{r varcounts-vcbart1}
 dim(fit$varcounts)
@@ -294,7 +297,6 @@ which(pip >= 0.5, arr.ind = TRUE)
 ```
 We see that $X_{1}$ and $X_{11}$ are selected for $\beta_{0};$ $X_{1}$ is selected for $\beta_{2};$ and $X_{1}$ is selected for $\beta_{3}.$
 So, at least for this run, there is no false positive and no false negative identifications.
-
 
 ## Plotting Coefficient Functions
 
@@ -387,7 +389,7 @@ plot_fit <- predict(object = fit, newdata = plot_df)
 dim(plot_fit$beta)
 ```
 
-We can get the posterior mean and 50%, 80%, and 95% pointwise credible intervals for each evaluation.
+We can get the posterior mean and 95% pointwise credible intervals for each evaluation.
 ```{r}
 #| label: vcbart1-plot-summary
 #| eval: true
@@ -398,34 +400,22 @@ beta0_summary <-
   data.frame(
     MEAN = apply(plot_fit$beta[,,1], MAR = 2, FUN = mean),
     L95 = apply(plot_fit$beta[,,1], MAR = 2, FUN = quantile, probs = 0.025),
-    L80 = apply(plot_fit$beta[,,1], MAR = 2, FUN = quantile, probs = 0.1),
-    L50 = apply(plot_fit$beta[,,1], MAR = 2, FUN = quantile, probs = 0.25),
-    U50 = apply(plot_fit$beta[,,1], MAR = 2, FUN = quantile, probs = 0.75),
-    U80 = apply(plot_fit$beta[,,1], MAR = 2, FUN = quantile, probs = 0.9),
     U95 = apply(plot_fit$beta[,,1], MAR = 2, FUN = quantile, probs = 0.975))
 
 beta1_summary <-
   data.frame(
     MEAN = apply(plot_fit$beta[,,2], MAR = 2, FUN = mean),
     L95 = apply(plot_fit$beta[,,2], MAR = 2, FUN = quantile, probs = 0.025),
-    L80 = apply(plot_fit$beta[,,2], MAR = 2, FUN = quantile, probs = 0.1),
-    L50 = apply(plot_fit$beta[,,2], MAR = 2, FUN = quantile, probs = 0.25),
-    U50 = apply(plot_fit$beta[,,2], MAR = 2, FUN = quantile, probs = 0.75),
-    U80 = apply(plot_fit$beta[,,2], MAR = 2, FUN = quantile, probs = 0.9),
     U95 = apply(plot_fit$beta[,,2], MAR = 2, FUN = quantile, probs = 0.975))
 
 beta2_summary <-
   data.frame(
     MEAN = apply(plot_fit$beta[,,3], MAR = 2, FUN = mean),
     L95 = apply(plot_fit$beta[,,3], MAR = 2, FUN = quantile, probs = 0.025),
-    L80 = apply(plot_fit$beta[,,3], MAR = 2, FUN = quantile, probs = 0.1),
-    L50 = apply(plot_fit$beta[,,3], MAR = 2, FUN = quantile, probs = 0.25),
-    U50 = apply(plot_fit$beta[,,3], MAR = 2, FUN = quantile, probs = 0.75),
-    U80 = apply(plot_fit$beta[,,3], MAR = 2, FUN = quantile, probs = 0.9),
     U95 = apply(plot_fit$beta[,,3], MAR = 2, FUN = quantile, probs = 0.975))
 ```
 
-
+We can visualize the posterior mean and pointwise credible intervals of each coefficient function.
 ```{r}
 #| label: fig-vcbart1-post
 #| eval: true
@@ -434,7 +424,7 @@ beta2_summary <-
 #| fig-width: 9
 #| fig-height: 3
 #| fig-align: center
-#| fig-cap: True coefficient functions (black) and the posterior mean and 50%, 80%, and 95% pointwise credible intervals (blue). 
+#| fig-cap: True coefficient functions (black) and the posterior mean and 95% pointwise credible intervals (blue). 
 
 
 par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,3))
@@ -443,28 +433,12 @@ plot(1, type = "n", xlim = c(-1,1), ylim = c(-5,5),
 
 polygon(x = c(x1_seq, rev(x1_seq)),
         y = c(beta0_summary$L95[ix0], rev(beta0_summary$U95[ix0])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
-polygon(x = c(x1_seq, rev(x1_seq)),
-        y = c(beta0_summary$L80[ix0], rev(beta0_summary$U80[ix0])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
-polygon(x = c(x1_seq, rev(x1_seq)),
-        y = c(beta0_summary$L50[ix0], rev(beta0_summary$U50[ix0])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
+        col = adjustcolor(oi_colors[3], alpha.f = 0.5),
         border = NA)
 
 polygon(x = c(x1_seq, rev(x1_seq)),
         y = c(beta0_summary$L95[ix1], rev(beta0_summary$U95[ix1])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
-polygon(x = c(x1_seq, rev(x1_seq)),
-        y = c(beta0_summary$L80[ix1], rev(beta0_summary$U80[ix1])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
-polygon(x = c(x1_seq, rev(x1_seq)),
-        y = c(beta0_summary$L50[ix1], rev(beta0_summary$U50[ix1])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
+        col = adjustcolor(oi_colors[3], alpha.f = 0.5),
         border = NA)
 
 lines(x1_seq, beta0_summary$MEAN[ix0], col = oi_colors[3])
@@ -484,16 +458,9 @@ plot(1, type = "n", xlim = c(-1,1), ylim = c(-5,5),
 
 polygon(x = c(x1_seq, rev(x1_seq)),
         y = c(beta1_summary$L95[ix0], rev(beta1_summary$U95[ix0])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
+        col = adjustcolor(oi_colors[3], alpha.f = 0.5),
         border = NA)
-polygon(x = c(x1_seq, rev(x1_seq)),
-        y = c(beta1_summary$L80[ix0], rev(beta1_summary$U80[ix0])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
-polygon(x = c(x1_seq, rev(x1_seq)),
-        y = c(beta1_summary$L50[ix0], rev(beta1_summary$U50[ix0])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
+
 lines(x1_seq, beta1_summary$MEAN[ix0], col = oi_colors[3])
 lines(x1_seq, beta1_plot[ix0])
 
@@ -503,47 +470,26 @@ plot(1, type = "n", xlim = c(-1,1), ylim = c(-5,5),
 
 polygon(x = c(x1_seq[ix2_0], rev(x1_seq[ix2_0])),
         y = c(beta2_summary$L95[ix2_0], rev(beta2_summary$U95[ix2_0])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
+        col = adjustcolor(oi_colors[3], alpha.f = 0.5),
         border = NA)
-polygon(x = c(x1_seq[ix2_0], rev(x1_seq[ix2_0])),
-        y = c(beta2_summary$L80[ix2_0], rev(beta2_summary$U80[ix2_0])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
-polygon(x = c(x1_seq[ix2_0], rev(x1_seq[ix2_0])),
-        y = c(beta2_summary$L50[ix2_0], rev(beta2_summary$U50[ix2_0])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
+
 lines(x1_seq[ix2_0], beta2_summary$MEAN[ix2_0], col = oi_colors[3])
 lines(x1_seq[ix2_0], beta2_plot[ix2_0])
 
 
 polygon(x = c(x1_seq[ix2_1], rev(x1_seq[ix2_1])),
         y = c(beta2_summary$L95[ix2_1], rev(beta2_summary$U95[ix2_1])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
+        col = adjustcolor(oi_colors[3], alpha.f = 0.5),
         border = NA)
-polygon(x = c(x1_seq[ix2_1], rev(x1_seq[ix2_1])),
-        y = c(beta2_summary$L80[ix2_1], rev(beta2_summary$U80[ix2_1])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
-polygon(x = c(x1_seq[ix2_1], rev(x1_seq[ix2_1])),
-        y = c(beta2_summary$L50[ix2_1], rev(beta2_summary$U50[ix2_1])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
+
 lines(x1_seq[ix2_1], beta2_summary$MEAN[ix2_1], col = oi_colors[3])
 lines(x1_seq[ix2_1], beta2_plot[ix2_1])
 
 polygon(x = c(x1_seq[ix2_2], rev(x1_seq[ix2_2])),
         y = c(beta2_summary$L95[ix2_2], rev(beta2_summary$U95[ix2_2])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
+        col = adjustcolor(oi_colors[3], alpha.f = 0.5),
         border = NA)
-polygon(x = c(x1_seq[ix2_2], rev(x1_seq[ix2_2])),
-        y = c(beta2_summary$L80[ix2_2], rev(beta2_summary$U80[ix2_2])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
-polygon(x = c(x1_seq[ix2_2], rev(x1_seq[ix2_2])),
-        y = c(beta2_summary$L50[ix2_2], rev(beta2_summary$U50[ix2_2])),
-        col = adjustcolor(oi_colors[3], alpha.f = 0.2),
-        border = NA)
+
 lines(x1_seq[ix2_2], beta2_summary$MEAN[ix2_2], col = oi_colors[3])
 lines(x1_seq[ix2_2], beta2_plot[ix2_2])
 

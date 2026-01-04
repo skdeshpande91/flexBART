@@ -135,8 +135,6 @@ flexBART <- function(formula,
       }
     }
     if (heteroskedastic){
-      # stop("`sigma()` ensemble is not supported!")
-
       hyper <- 
         parse_hyper_heteroskedastic(R = R + 1,
                                     y_range = y_range,
@@ -144,12 +142,6 @@ flexBART <- function(formula,
                                     sigest = sigest,
                                     cov_var = cov_var,
                                     ...)
-      # stop("`sigma()` ensemble is not supported!")
-      hyper <- 
-        parse_hyper_heteroskedastic(R = R + 1,
-                    y_range = y_range,
-                    nest_v = nest_v, nest_v_option = nest_v_option, nest_c = nest_c, 
-                    sigest = sigest, ...)
     } else{
       hyper <- 
         parse_hyper(R = R,
@@ -217,16 +209,18 @@ flexBART <- function(formula,
     if(heteroskedastic){
       # containers for sigma samples
       sigma_train_mean <- rep(0, times = n_train)
-      if (control$save_samples) sigma_train_samples <- array(NA, dim = c(total_draws, n_train, control$n.chains))
+      #if (control$save_samples) sigma_train_samples <- array(NA, dim = c(total_draws, n_train, control$n.chains))
+      if(control$save_samples) sigma_train_samples <- array(NA, dim = c(total_samples, n_train))
       if (n_test > 0){
         sigma_test_mean <- rep(0, times = n_test)
-        if (control$save_samples) sigma_test_samples <- array(NA, dim = c(total_draws - control$burn, n_test, control$n.chains))
+        #if (control$save_samples) sigma_test_samples <- array(NA, dim = c(total_draws - control$burn, n_test, control$n.chains))
+        if(control$save_samples) sigma_test_samples <- array(NA, dim = c(total_samples, n_test))
       }
+      
+
     } else{
       # Container for sigma samples:
-      # all_sigma could be useful for assessing convergence
       # sigma_samples will get passed to predict to do posterior predictive sampling
-      all_sigma <- array(NA, dim = c(total_draws, control$n.chains))
       sigma_samples <- rep(NA, times = total_samples)
     }
     # Containers for posterior mean of total fit & each beta
@@ -419,11 +413,14 @@ flexBART <- function(formula,
             }
           }
         }
+        
         sigma_train_mean <- sigma_train_mean + fit$sigma_train_mean/control$n.chains
-        if(control$save_samples) sigma_train_samples[,,chain_num] <- fit$sigma_train
+        if(control$save_samples) sigma_train_samples[start_index:end_index,] <- fit$sigma_train[-(1:control$burn),]
+        #if(control$save_samples) sigma_train_samples[,,chain_num] <- fit$sigma_train
         if(n_test > 0){
           sigma_test_mean <- sigma_test_mean + fit$sigma_test_mean/control$n.chains
-          if(control$save_samples) sigma_test_samples[,,chain_num] <- fit$sigma_test
+          #if(control$save_samples) sigma_test_samples[,,chain_num] <- fit$sigma_test
+          if(control$save_samples) sigma_test_samples[start_index:end_index,] <- fit$sigma_test[-(1:control$burn),]
         }
         
         yhat_train_mean <- yhat_train_mean + fit$fit_train_mean/control$n.chains
@@ -529,7 +526,6 @@ flexBART <- function(formula,
           }
         }
         
-        all_sigma[,chain_num] <- fit$sigma
         sigma_samples[start_index:end_index] <- fit$sigma[-(1:control$burn)]
         
         yhat_train_mean <- yhat_train_mean + fit$fit_train_mean/control$n.chains
@@ -952,7 +948,9 @@ flexBART <- function(formula,
 
     if (heteroskedastic){
       results[["sigma.train.mean"]] <- sigma_train_mean * y_sd
-      if(control$save_samples) results[["sigma.train"]] <- sigma_train_samples * y_sd
+      if(control$save_samples){
+        results[["sigma.train"]] <- sigma_train_samples * y_sd
+      }
       if(n_test > 0){
         results[["sigma.test.mean"]] <- sigma_test_mean * y_sd
         if(control$save_samples) results[["sigma.test"]] <- sigma_test_samples * y_sd
