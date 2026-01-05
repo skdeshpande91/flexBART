@@ -1,7 +1,7 @@
 ---
 title: "Introduction to flexBART"
 aliases: 
-  - /vignettes/articles/flexBART.html
+  - /vignettes/articles/flexBART.qmd
 knitr:
   opts_chunk:
     collapse: true
