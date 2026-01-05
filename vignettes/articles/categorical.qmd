@@ -1,7 +1,13 @@
 ---
 title: "Categorical Predictors"
 aliases: 
+  - categorical
+  - categorical.qmd
+  - categorical.html
+  - /vignettes/articles/categorical
   - /vignettes/articles/categorical.qmd
+  - /vignettes/articles/categorical.html
+  
 knitr:
   opts_chunk:
     collapse: true

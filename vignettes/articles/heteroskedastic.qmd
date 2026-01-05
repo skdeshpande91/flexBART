@@ -1,7 +1,13 @@
 ---
 title: "Heteroskedastic BART"
 aliases: 
+  - heteroskedastic
+  - heteroskedastic.qmd
+  - heteroskedastic.html
+  - /vignettes/articles/heteroskedastic
   - /vignettes/articles/heteroskedastic.qmd
+  - /vignettes/articles/heteroskedastic.html
+
 knitr:
   opts_chunk:
     collapse: true

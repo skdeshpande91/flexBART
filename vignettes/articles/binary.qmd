@@ -1,7 +1,13 @@
 ---
 title: "Probit BART"
 aliases: 
+  - binary
+  - binary.qmd
+  - binary.html
+  - /vignettes/articles/binary
   - /vignettes/articles/binary.qmd
+  - /vignettes/articles/binary.html
+
 knitr:
   opts_chunk:
     collapse: true

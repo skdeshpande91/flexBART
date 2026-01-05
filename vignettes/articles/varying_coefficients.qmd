@@ -1,7 +1,13 @@
 ---
 title: "Linear Varying Coefficients Model"
 aliases: 
+  - varying_coefficients
+  - varying_coefficients.qmd
+  - varying_coefficients.html
+  - /vignettes/articles/varying_coefficients
   - /vignettes/articles/varying_coefficients.qmd
+  - /vignettes/articles/varying_coefficients.html
+
 knitr:
   opts_chunk:
     collapse: true
