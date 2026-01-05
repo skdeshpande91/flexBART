@@ -1,0 +1,16 @@
+---
+title: "Non-identified Ensembles"
+aliases: 
+  - /vignettes/articles/nonid_vc.html
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+```{r}
+#| label: setup
+library(flexBART)
+```
+
+Coming soon!

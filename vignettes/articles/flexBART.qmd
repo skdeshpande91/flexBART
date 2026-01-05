@@ -1,5 +1,7 @@
 ---
 title: "Introduction to flexBART"
+aliases: 
+  - /vignettes/articles/flexBART.html
 knitr:
   opts_chunk:
     collapse: true
@@ -18,7 +20,7 @@ In this vignette, we demonstrate how to use **flexBART** to fit a basic BART mod
 
 Suppose we observe $n$ pairs $(\boldsymbol{\mathbf{x}}_{1}, y_{1}), \ldots, (\boldsymbol{\mathbf{x}}_{n}, y_{n})$ of $p$-dimensional predictor vectors[^predictors] $\boldsymbol{\mathbf{x}} \in [0,1]^{p}$ and scalar outputs $y \in \mathbb{R}.$
 
-[^predictors]: In fact, **flexBART** supports both numerical and categorical inputs. See [this article for more details](categorical.qmd) 
+[^predictors]: In fact, **flexBART** supports both numerical and categorical inputs. See [this article for more details](/vignettes/articles/categorical.html) 
 
 According to the basic BART model, for each $i = 1, \ldots, n,$
 $$

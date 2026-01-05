@@ -1,5 +1,7 @@
 ---
 title: "Linear Varying Coefficients Model"
+aliases: 
+  - /vignettes/articles/varying_coefficients.html
 knitr:
   opts_chunk:
     collapse: true
@@ -277,7 +279,7 @@ print(round(coverage, digits = 3))
 
 ### Variable Selection
 
-As we did in the [Getting Started article](/vignettes/articles/flexBART.qmd), we can compute the marginal posterior probability inclusion probability that each $X_{j}$ is used in at least one splitting rule in the ensemble for each $\beta_{r}(\boldsymbol{\mathbf{X}}).$
+As we did in the [Getting Started article](/vignettes/articles/flexBART.html), we can compute the marginal posterior probability inclusion probability that each $X_{j}$ is used in at least one splitting rule in the ensemble for each $\beta_{r}(\boldsymbol{\mathbf{X}}).$
 <!--By default `flexBART()` uses [Linero (2018)](https://www.tandfonline.com/doi/abs/10.1080/01621459.2016.1264957)'s sparsity-inducing Dirichlet prior on splitting variables.
 Following the recommendations from Section 3.2 of that paper, we can compute the marginal posterior probability inclusion probability that each $X_{j}$ is used at least once in the ensemble for each $\beta_{r}(\boldsymbol{\mathbf{X}}).$
 -->

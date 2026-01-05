@@ -1,5 +1,7 @@
 ---
 title: "Heteroskedastic BART"
+aliases: 
+  - /vignettes/articles/heteroskedastic.html
 knitr:
   opts_chunk:
     collapse: true
@@ -23,7 +25,7 @@ Instead, **flexBART** follows [Linero (2025)](https://doi.org/10.1080/01621459.2
 New leaf node parameters are proposed from a Laplace approximation of their conditional posterior distribution given the proposed tree structure. 
 
 
-Fitting a heteroskedastic BART model using **flexBART** is [nearly identical](/vignettes/articles/flexBART.qmd) to fitting a basic BART model with one important difference: we must specify a `formula` argument and provide data via the `training_data` argument.
+Fitting a heteroskedastic BART model using **flexBART** is [nearly identical](/vignettes/articles/flexBART.html) to fitting a basic BART model with one important difference: we must specify a `formula` argument and provide data via the `training_data` argument.
 The key difference is that for heteroskedastic models, we need to include a `sigma()` term on the right-hand side of the `~` in the `formula` argument: `~ bart(.) + sigma(.)`. 
 
 ## Illustration

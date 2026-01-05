@@ -1,5 +1,7 @@
 ---
 title: "Categorical Predictors"
+aliases: 
+  - /vignettes/articles/categorical.html
 knitr:
   opts_chunk:
     collapse: true
