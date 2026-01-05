@@ -29,8 +29,10 @@ Trees directly partition the levels of categorical predictors, enabling much mor
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/categorical.html">Categorical Predictors</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/binary.html">Probit BART</a></li>
+    <li><a class="dropdown-item" href="../articles/categorical.html">Categorical Predictors</a></li>
     <li><a class="dropdown-item" href="../articles/heteroskedastic.html">Heteroskedastic BART</a></li>
+    <li><a class="dropdown-item" href="../articles/nonid_vc.html">Non-identified Ensembles</a></li>
     <li><a class="dropdown-item" href="../articles/varying_coefficients.html">Linear Varying Coefficients Model</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -406,7 +408,7 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Number of trees:  50 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Implied marginal priors:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Intercept: N(0, 1.690963) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 1 at 2026-01-04 18:38:57 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 1 at 2026-01-05 18:39:27 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -418,8 +420,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 1 at 2026-01-04 18:38:58 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 2 at 2026-01-04 18:38:58 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 1 at 2026-01-05 18:39:28 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 2 at 2026-01-05 18:39:28 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -431,8 +433,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 2 at 2026-01-04 18:38:59 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 3 at 2026-01-04 18:38:59 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 2 at 2026-01-05 18:39:29 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 3 at 2026-01-05 18:39:29 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -444,8 +446,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 3 at 2026-01-04 18:39:00 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 4 at 2026-01-04 18:39:00 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 3 at 2026-01-05 18:39:30 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 4 at 2026-01-05 18:39:30 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -457,7 +459,7 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 4 at 2026-01-04 18:39:01 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 4 at 2026-01-05 18:39:31 </span>
 <span class="r-in"><span>           </span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span>  <span class="co">## Plot the posterior mean regression function evaluations (i.e., fitted values)</span></span></span>
