@@ -31,20 +31,6 @@ navbar:
 
 llm-docs: false
 
-articles:
-- title: Basic Usage
-  navbar:
-  contents:
-  - categorical
-  - binary
-  - heteroskedastic
-  - varying_coefficients
-- title: Advanced Usage
-  navbar:
-  contents:
-  - nonid_vc
-
-
 
 template:
   bootstrap: 5
