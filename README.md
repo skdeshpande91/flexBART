@@ -5,8 +5,8 @@
   <!-- badges: end -->
 
 Welcome to version 2.0 of the **flexBART** package!
-**flexBART** (>= 2.0.0) is a new implementation of BART and VCBART that is designed to fit flexible varying coefficient models using ensembles of binary regression trees.
-In addition to the flexible priors for categorical decision rules introduced in earlier versions, this new version introduces a formula interface and implements a lot of data pre-processing that (hopefully) makes it easier than ever fit BART models.
+**flexBART** (>= 2.0.0) is a new implementation of BART that is designed to fit flexible varying coefficient models using ensembles of binary regression trees.
+In addition to the flexible priors for categorical decision rules introduced in earlier versions, this new version introduces a formula interface and implements a lot of data pre-processing that (hopefully) makes it easier than ever to fit BART models.
 
 ## Installation & Basic Usage
 
@@ -30,7 +30,7 @@ So, given a data frame `train_data` containing named columns for an outcome (e.g
 flexBART(formula = Y ~ bart(.), train_data = train_data)
 ```
 
-**flexBART** also supports fitting VCBART models of the form
+**flexBART** also supports fitting varying coefficient models of the form
 
 $$
 Y = \beta_{0}(X) + \beta_{1}(X)Z_{1} + \cdots + \beta_{R}Z_{R} + \sigma \epsilon; \epsilon \sim N(0,1),
@@ -42,11 +42,11 @@ To fit such a model in **flexBART**, you can use a formula like `Y ~ bart(.) + Z
 The formula interface also provides fine control over the predictor variables used in each ensemble.
 To allow an ensemble to only split on a few variables (e.g., `X1`, `X2`, and `X3`), you would specify `bart(X1 + X2 + X3)` and to allow an ensemble to split on all variables except `X1` and `X2`, you would specify `bart(.-X1-X2)`. 
 Note that when it detects multiple ensembles in the formula, **flexBART** will *not* include any of the $Z_{r}$'s as splitting variables when it expands the `.`
-So, to include, say, a piecewise linear function, $X_{1} * \beta_{1}(X_{1}),$ you would need to specify `X1 * bart(X1)` in the formula argument. 
+So, to include, say, a piece-wise linear function, $X_{1} * \beta_{1}(X_{1}),$ you would need to specify `X1 * bart(X1)` in the formula argument. 
 
-By default, **flexBART** simulates 4 Markov chains with 2,000 iterations each and discards the first 1,000 iterations as "burn-in."
-The numbers of chains, burn-in iterations, and post-burn-in iterations can be adjusted using the optional arguments `n.chains`, `burn`, and `nd`. 
+See the package articles at [the package website](https://skdeshpande91.github.io/flexBART) for more details.
 
+<!--
 ## Pre-processing
 
 Like earlier version (e.g., 1.2.0 and earlier), the latest version of **flexBART** assumes that all continuous predictors are re-scaled to the interval [-1,1] and represents the distinct values of categorical predictors with non-negative integers.
@@ -81,6 +81,8 @@ To force the "cutset" $\mathcal{C}$ to correspond to connect components of these
 This argument should be a named list with one element per network-structured predictor.
 Each element should be a binary or weighted adjacency matrix whose row and column names correspond to the levels of the predictor.
 **flexBART** implements four different priors over decision rues for network-structured predictors. See the documentation and Section 3.2 of [Deshpande (2024)](https://doi.org/10.1080/10618600.2024.2431072) for details about these priors.
+-->
+
 
 <!--
 The **flexBART** package overcomes this limitation by utilizing a new prior for decision trees.

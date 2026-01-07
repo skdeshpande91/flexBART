@@ -20,7 +20,7 @@ In this vignette, we demonstrate how to use **flexBART** to fit a basic BART mod
 
 Suppose we observe $n$ pairs $(\boldsymbol{\mathbf{x}}_{1}, y_{1}), \ldots, (\boldsymbol{\mathbf{x}}_{n}, y_{n})$ of $p$-dimensional predictor vectors[^predictors] $\boldsymbol{\mathbf{x}} \in [0,1]^{p}$ and scalar outputs $y \in \mathbb{R}.$
 
-[^predictors]: In fact, **flexBART** supports both numerical and categorical inputs. See [this article for more details](/vignettes/articles/categorical.html) 
+[^predictors]: In fact, **flexBART** supports both numerical and categorical inputs. See [this article for more details](/articles/categorical.html) 
 
 According to the basic BART model, for each $i = 1, \ldots, n,$
 $$
@@ -84,6 +84,30 @@ A `terms` specification of the form `x1 + x2` will include just the variables `x
 
 The `formula` argument **must** include the string "bart" on the right-hand side. Expressions like `Y ~ X1 + X2` will be not work.
 Additionally, **flexBART** does not support the special R formula symbols `:`, `*`, `1`, `^`, and `I()`. 
+
+
+### Data Pre-Processing
+
+**flexBART** internally re-scales all numeric predictors to the interval [-1,1] and represents the distinct values of categorical predictors with non-negative integers.
+Decision rules based on a numerical predictor $X$ take the form $\{X < c\}$.
+The "cutpoint" $c$ in such a decision rule at a given node in a regression tree is drawn uniformly from a set of available values of $X,$ which is itself determined by the decision rules at the node's ancestors in the tree.
+This set can be a discrete set of continuous interval, depending on the nature of $X$.
+
+`flexBART()` initially determines whether $X$ is discrete (i.e., ordinal) or continuous by first sorting the unique values of $X$ and computing consecutive differences.
+If there are fewer than (resp. more than) `n_unik_diffs` unique consecutive differences, $X$ is treated as a discrete (resp., continuous) predictor.
+For discrete, numerical $X,$ the initial set of available cutpoints is set of unique values of $X$.
+`flexBART()` maps a padded range of $X$ values to the interval $[-1,1]$ by adding (resp. subtracting) `pad` standard deviations to the maximal (resp. minimal) value of $X$
+The maximal and minimal values and the standard deviation of $X$ is determined using training data (i.e., `train_data`) and the testing data (i.e., `test_data`), if provided. 
+The default values of `n_unik_diffs` and `pad` are, respectively, 5 and 0.2.
+
+#### Categorical Predictors
+
+In **flexBART** ensembles, decision rules based on categorical predictors take the form $\{X \in \mathcal{C}\}$ where $\mathcal{C}$ is a random subset of the discrete values that $X_{j}$ can assume.
+To support such decision rules, **flexBART** implements a new decision rule prior for categorical predictors in which, conditionally on the splitting variable $X,$ the "cutset" $\mathcal{C}$ is formed by looping over all available values of $X$ and randomly assigning each to $\mathcal{C}$ with probability 1/2. 
+
+
+
+
 
 ### Fitting the Model
 

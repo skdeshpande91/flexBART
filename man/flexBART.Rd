@@ -82,7 +82,7 @@ The \dQuote{cutpoint} \eqn{c}{c} in such a decision rule at a given node in a re
 This set of available values is determined by the decision rules at the node's ancestors in the tree.
 This set can be a discrete set of continuous interval, depending on the nature of \eqn{X}{X}.
 
-\code{flexBART()} initially determins whether \eqn{X}{X} is discrete (i.e., ordinal) or continuous by first sorting the unique values of \eqn{X}{X} and computing consecutive differences.
+\code{flexBART()} initially determines whether \eqn{X}{X} is discrete (i.e., ordinal) or continuous by first sorting the unique values of \eqn{X}{X} and computing consecutive differences.
 If there are fewer than (resp. more than) \code{n_unik_diffs} unique consecutive differences, \eqn{X}{X} is treated as a discrete (resp., continuous) predictor.
 For discrete, numerical \eqn{X}{X}, the initial set of available cutpoints is set of unique values of \eqn{X}{X}.
 \code{flexBART()} rescales continuous \eqn{X}{X} values to the interval [-1,1], which forms the initial set of available cutpoint values. 
