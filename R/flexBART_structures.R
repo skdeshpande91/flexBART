@@ -94,9 +94,9 @@ validate_flexBART_training <- function(trinfo)
 new_flexBART_testing <- function()
 {
   out <- list()
-  out["X_cont"] <- matrix(0, nrow = 1, ncol = 1)
-  out["X_cat"] <- matrix(0, nrow = 1, ncol = 1)
-  out["Z"] <- matrix(0, nrow = 1, ncol = 1)
+  out[["X_cont"]] <- matrix(0, nrow = 0, ncol = 0)
+  out[["X_cat"]] <- matrix(0, nrow = 0, ncol = 0)
+  out[["Z"]] <- matrix(0, nrow = 0, ncol = 0)
   structure(out, class = "flexBART_testing")
 }
 
