@@ -398,8 +398,6 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span></span></span>
 <span class="r-in"><span>  <span class="fu">flexBART</span><span class="op">(</span>formula <span class="op">=</span> <span class="va">Y</span><span class="op">~</span><span class="fu">bart</span><span class="op">(</span><span class="va">.</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>           train_data <span class="op">=</span> <span class="va">train_data</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [get_covariate_info]:  No padding for continuous variable ranges provided.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> By default, flexBART adds 0.2 SDs to min and max values of each continuous variable.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> no initial estimate of sigma provided. Initializing using LASSO</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Initial sigma (after standardization) = 0.516291 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> n.chains =  4 </span>
@@ -408,7 +406,7 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Number of trees:  50 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Implied marginal priors:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Intercept: N(0, 1.690963) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 1 at 2026-02-03 15:42:50 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 1 at 2026-02-03 16:55:59 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -420,8 +418,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 1 at 2026-02-03 15:42:51 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 2 at 2026-02-03 15:42:51 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 1 at 2026-02-03 16:56:00 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 2 at 2026-02-03 16:56:00 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -433,8 +431,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 2 at 2026-02-03 15:42:52 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 3 at 2026-02-03 15:42:52 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 2 at 2026-02-03 16:56:01 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 3 at 2026-02-03 16:56:01 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -446,8 +444,8 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 3 at 2026-02-03 15:42:53 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 4 at 2026-02-03 15:42:53 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 3 at 2026-02-03 16:56:02 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Starting chain 4 at 2026-02-03 16:56:02 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 200 of 2000; Warmup</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 400 of 2000; Warmup</span>
@@ -459,7 +457,7 @@ Only returned if <code>save_samples = TRUE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1600 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 1800 of 2000; Sampling</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   MCMC Iteration: 2000 of 2000; Sampling</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 4 at 2026-02-03 15:42:54 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Ending chain 4 at 2026-02-03 16:56:03 </span>
 <span class="r-in"><span>           </span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span>  <span class="co">## Plot the posterior mean regression function evaluations (i.e., fitted values)</span></span></span>
