@@ -1,7 +1,7 @@
 # helper function to map levels of a categorical predictor to integers
 get_categorical_mapping <- function(x, name){
   if(is.character(x)){
-    message(paste("[get_categorical_mapping]:",name, "was a string and will be converted to a factor"))
+    cat("[get_categorical_mapping]:",name, "was a string and will be converted to a factor\n")
     unik_vals <- sort(unique(x))
     raw_x <- factor(x, levels = unik_vals, labels = unik_vals)
   } else{
@@ -30,6 +30,11 @@ get_categorical_mapping <- function(x, name){
   # if we don't have every level represented, this errors out
   #mapping <- data.frame(integer_coding = 0:(max(as.integer(raw_x)-1)), value = levels(raw_x))
   n_levels <- length(levels(raw_x))
+  if(n_levels == 1){
+    cat("[get_categorical_mapping]:", name, " appears to be a constant categorical variable ")
+    cat("(i.e., it has only one level).\n")
+    stop("Constant categorical predictors are not supported. Please drop these before running flexBART.")
+  }
   mapping <-
     data.frame(integer_coding = 0:(n_levels-1),
                value = levels(raw_x))
@@ -138,12 +143,22 @@ get_continuous_info <- function(x, name, pad = 0.2, n_unik_diffs = 5)
   consecutive_diffs <- unik_x[-1] - unik_x[-n_unik]
   
   if(length(unique(consecutive_diffs)) < n_unik_diffs){
-    cat("[get_continuous info]:", name, " suspected to be discrete. Defining a grid of cutpoints for", name, "\n")
+    if(sd(x) <1e-12){
+      cat("[get_continuous_info]:", name, "appears to be constant ")
+      cat("(i.e., standard deviation in training data < 1e-12).\n")
+      stop("Constant continuous predictors are not supported. Please drop these before running flexBART.")
+    }
+    
+    
+    cat("[get_continuous_info]:", name, " suspected to be discrete. Defining a grid of cutpoints for", name, "\n")
     cat("Using the unique values of x as splitting points.\n")
     #cat("To use a different grid, manually set the `cutpoints_list` argument of flexBART.\n")
     x_sd <- NA
     x_min <- min(x)
     x_max <- max(x)
+    
+
+    
   } else{
     x_sd <- sd(x)
     x_min = min(x) - pad*x_sd
@@ -197,8 +212,8 @@ get_covariate_info <- function(cov_data, pad = NULL, n_unik_diffs = NULL)
     # Save continuous variable names so they can be used in later functions
     dinfo$cont_names <- colnames(cov_data)[!is_cat]
     if(is.null(pad)){
-      cat("[get_covariate_info]:  No padding for continuous variable ranges provided.\n")
-      cat("By default, flexBART adds 0.2 SDs to min and max values of each continuous variable.\n")
+      #cat("[get_covariate_info]:  No padding for continuous variable ranges provided.\n")
+      #cat("By default, flexBART adds 0.2 SDs to min and max values of each continuous variable.\n")
       pad <- rep(0.2, times = dinfo$p_cont)
       names(pad) <- dinfo$cont_names
     } else{
@@ -232,6 +247,16 @@ get_covariate_info <- function(cov_data, pad = NULL, n_unik_diffs = NULL)
       dinfo$x_max[j] <- tmp$x_max
       dinfo$x_sd[j] <- tmp$x_sd
     } # closes loop getting information about continuous covariates
+    
+    # if there is a constant x, get_continuous_info will think it's discrete
+    # so this last condition is really not going to be hit. 
+    #if(any(dinfo$x_sd < 1e-12)){
+    #  constant_index <- which(dinfo$x_sd < 1e-12)
+    #  cat("Continuous predictors", dinfo$cont_names[constant_index], "appear to be constant.")
+    #  cat("(i.e., standard deviation in train_data < 1e-12)\n")
+    #  stop("Constant continuous predictors are not supported. Please drop these before running flexBART")
+    #}
+    
   }
   
   if(dinfo$p_cat > 0){
