@@ -17,7 +17,7 @@ double GenModel::proposal_mu_single(double &m, const int &nid, suff_stat &ss, da
   double I = 1;
 
   // Fisher scoring
-  while(abs(U) > pow(I, 0.5) / 10 && iter < max_iter){
+  while(std::abs(U) > pow(I, 0.5) / 10 && iter < max_iter){
     // user passes initial value of m
     U = 0;
     I = 0;
@@ -59,7 +59,7 @@ double GenModel::proposal_mu_multi(double &m, const int &nid, suff_stat &ss, int
   double I = 1;
 
   // compute m with Fisher scoring method
-  while(abs(U) > pow(I, 0.5) / 10 && iter < max_iter){
+  while(std::abs(U) > pow(I, 0.5) / 10 && iter < max_iter){
     // user passes initial value of m
     U = 0;
     I = 0;
