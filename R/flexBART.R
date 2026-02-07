@@ -193,7 +193,7 @@ flexBART <- function(formula,
     if(!is.null(tmp_data$training_info$nest_list)){
       message("nest_v = ", hyper$nest_v, " nest_v_option = ", hyper$nest_v_option, " nest_c = ", hyper$nest_c)
     }
-    messaget("n.chains = ", control$n.chains)
+    message("n.chains = ", control$n.chains)
   }
   
   ###############################

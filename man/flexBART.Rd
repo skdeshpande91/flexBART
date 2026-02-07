@@ -261,9 +261,6 @@ Only returned if \code{save_samples = TRUE}.}
 \item{timing}{Vector of runtimes for each chain.}
 }
 
-\seealso{
-\code{\link{probit_flexBART}} for binary outcomes.
-}
 
 \examples{
 
