@@ -10,9 +10,6 @@ rflexBART <- function(train_data,
   usr_args <- list(...)
   usr_names <- names(usr_args)
   
-  #cat(usr_names, "\n")
-  
-  
   n <- nrow(train_data)
   if("Y_flexBART" %in% colnames(train_data)){
     stop("Y_flexBART is a protected variable name. Re-name this covariate")
@@ -65,7 +62,7 @@ rflexBART <- function(train_data,
                 tau_vec = c(1), mu0_vec = c(0),...)
   if(verbose){
     if(!is.null(tmp_data$training_info$edge_mat_list)){
-      cat("[flexBART]: graph_cut_type = ", hyper$graph_cut_type, "\n")
+      cat("[rflexBART]: graph_cut_type = ", hyper$graph_cut_type, "\n")
     }
     if(!is.null(tmp_data$training_info$nest_list)){
       cat("[flexBART]: nest_v = ", hyper$nest_v)

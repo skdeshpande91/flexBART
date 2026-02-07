@@ -40,8 +40,9 @@ validate_flexBART_hyper <- function(hyper)
       "max_iter")
   
   if(!identical(sort(names(hyper)), sort(exp_names))){
-    cat("[validate_flexBART_hyper]: supplied hyper names: \n", sort(names(hyper)), "\n")
-    cat("[validate_flexBART_hyper]: expected hyper names: \n", sort(exp_names), "\n")
+    
+    message("[validate_flexBART_hyper]: supplied hyperparameter names:\n", paste(sort(names(hyper)), collapse =" "))
+    message("[validate_flexBART_hyper]: supplied hyperparameter names:\n", paste(sort(exp_names), collapse =" "))
     stop("[validate_flexBART_hyper]: hyper does not have valid names")
   }
   
@@ -60,8 +61,7 @@ validate_flexBART_hyper <- function(hyper)
   # are positive integers
   ###############################
   if(!(is.integer(hyper$M_vec) & all(hyper$M_vec > 0))){
-    message("[validate_flexBART_hyper]: supplied M_vec =")
-    print(hyper$M_vec)
+    message("[validate_flexBART_hyper]: supplied M_vec = ", paste(hyper$M_vec, collapse = " "))
     stop("[validate_flexBART_hyper]: All entries in M_vec must be positive integers")
   }
   
@@ -71,8 +71,8 @@ validate_flexBART_hyper <- function(hyper)
   pos_vecs <- c("alpha_vec", "beta_vec", "tau_vec")
   for(param in pos_vecs){
     if(any(hyper[[param]] <= 0)){
-      message("[validate_flexBART_hyper]: supplied ", param, "=", hyper[[param]])
-      stop(paste("[validate_flexBART_hyper]: All entries in", param, "must be positive"))
+      message("[validate_flexBART_hyper]: supplied ", param, " = ", hyper[[param]])
+      stop("[validate_flexBART_hyper]: All entries in ", param, " must be positive")
     }
   }
   
@@ -83,8 +83,8 @@ validate_flexBART_hyper <- function(hyper)
     c("sigest", "sigquant", "nu", "lambda", "a_u", "b_u", "max_iter")
   for(param in pos_params){
     if(any(hyper[[param]] <= 0)){
-      message("[validate_flexBART_hyper]: supplied ", param, "=", hyper[[param]])
-      stop(paste("[validate_flexBART_hyper]:", param, "must be positive"))
+      message("[validate_flexBART_hyper]: supplied ", param, " = ", hyper[[param]])
+      stop("[validate_flexBART_hyper]:", param, " must be positive")
     }
   }
   
@@ -95,8 +95,8 @@ validate_flexBART_hyper <- function(hyper)
     c("nest_v", "nest_c", "sparse")
   for(param in log_params){
     if(!is.logical(hyper[[param]])){
-      message(paste("[validate_flexBART_hyper]: supplied ", param, "=", hyper[[param]]))
-      stop(paste("[validate_flexBART_hyper]:", param, "must be logical"))
+      message("[validate_flexBART_hyper]: supplied ", param, " = ", hyper[[param]])
+      stop("[validate_flexBART_hyper]: ", param, " must be logical")
     }
   }
   
@@ -105,12 +105,12 @@ validate_flexBART_hyper <- function(hyper)
   ###############################
   
   if(!hyper$graph_cut_type %in% c(1L, 2L, 3L, 4L)){
-    message(paste("[validate_flexBART_hyper]: supplied graph_cut_type =", hyper$graph_cut_type))
+    message("[validate_flexBART_hyper]: supplied graph_cut_type = ", hyper$graph_cut_type)
     stop("[validate_flexBART_hyper]: graph_cut_type must be 1L, 2L, 3L, or 4L")
   }
   
   if(!hyper$nest_v_option %in% c(0L, 1L, 2L, 3L)){
-    message(paste("[validate_flexBART_hyper]: supplied graph_cut_type =", hyper$graph_cut_type))
+    message("[validate_flexBART_hyper]: supplied graph_cut_type = ", hyper$graph_cut_type)
     stop("[validate_flexBART_hyper]: graph_cut_type must be 0L, 1L, 2L, or 3L")
   }
   
@@ -148,10 +148,9 @@ parse_hyper <- function(R, y_range, ...){
     if(length(usr_M) == 1) hyper$M_vec <- rep(usr_M, times = R)
     else if(length(usr_M) == R) hyper$M_vec <- usr_M
     else{
-      message(paste("[parse_hyper]: matched M_vec to argument", tmp_name, "="))
-      print(usr_M)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched M_vec to argument", tmp_name, " = ", paste(usr_M, collapse = " "))
+      message(paste("[parse_hyper]: expected length ", R, ", the number of ensembles"))
+      stop("[parse_hyper]: supplied argument must have length 1 or", R)
     }
     rm(ix, tmp_name, usr_M)
   }
@@ -169,10 +168,8 @@ parse_hyper <- function(R, y_range, ...){
     if(length(usr_alpha) == 1) hyper$alpha_vec <- rep(usr_alpha, times = R)
     else if(length(usr_alpha) == R) hyper$alpha_vec <- usr_alpha
     else{
-      message(paste("[parse_hyper]: matched alpha_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_alpha)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      message(paste("[parse_hyper]: matched alpha_vec to supplied argument", tmp_name, " = ", paste(usr_alpha, collapse = " ")))
+      message(paste("[parse_hyper]: expected length ", R, ", the number of ensembles"))
       stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
     }
     rm(ix, tmp_name, usr_alpha)
@@ -191,10 +188,8 @@ parse_hyper <- function(R, y_range, ...){
     if(length(usr_beta) == 1) hyper$beta_vec <- rep(usr_beta, times = R)
     else if(length(usr_beta) == R) hyper$beta_vec <- usr_beta
     else{
-      message(paste("[parse_hyper]: matched beta_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_beta)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      message("[parse_hyper]: matched beta_vec to supplied argument", tmp_name, " = ", paste(usr_beta, collapse = " "))
+      message(paste("[parse_hyper]: expected length ", R, ", the number of ensembles"))
       stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
     }
     rm(ix, tmp_name, usr_beta)
@@ -213,10 +208,8 @@ parse_hyper <- function(R, y_range, ...){
     if(length(usr_mu) == 1) hyper$mu0_vec <- rep(usr_mu, times = R)
     else if(length(usr_mu) == R) hyper$mu_vec <- usr_mu
     else{
-      message(paste("[parse_hyper]: matched mu0_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_mu)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      message("[parse_hyper]: matched mu0_vec to supplied argument ", tmp_name, " = ", paste(usr_mu, collapse = " "))
+      message(paste("[parse_hyper]:expected length ", R, ", the number of ensembles"))
       stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
     }
     rm(ix, tmp_name, usr_mu)
@@ -239,10 +232,8 @@ parse_hyper <- function(R, y_range, ...){
     if(length(usr_tau) == 1) hyper$tau_vec <- rep(usr_tau, times = R)
     else if(length(usr_tau) == R) hyper$tau_vec <- usr_tau
     else{
-      message(paste("[parse_hyper]: matched tau_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_tau)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      message("[parse_hyper]: matched tau_vec to supplied argument ", tmp_name, " = ", paste(usr_tau, collapse = " "))
+      message(paste("[parse_hyper]:expected length ", R, ", the number of ensembles"))
       stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
     }
     rm(ix, tmp_name, usr_tau)
@@ -256,21 +247,21 @@ parse_hyper <- function(R, y_range, ...){
   else nu <- 3
   
   if(nu < 0){
-    message(paste("[parse_hyper]: supplied nu =", nu))
+    message("[parse_hyper]: supplied nu = ", nu)
     stop("[parse_hyper]: nu must be positive!")
   }
   
   if("sigest" %in% usr_names) hyper$sigest <- usr_args[["sigest"]]
   else hyper$sigest <- 1
   if(hyper$sigest < 0){
-    message(paste0("[parse_hyper]: supplied sigest =", hyper$sigest))
+    message("[parse_hyper]: supplied sigest = ", hyper$sigest)
     stop("[parse_hyper]: sigest must be positive (and, ideally, less than 1; see Details)")
   }
   
   if("sigquant" %in% usr_names) hyper$sigquant <- usr_args[["sigquant"]]
   else hyper$sigquant <- 0.9
   if(abs(hyper$sigquant-0.5) > 0.5){
-    message(paste0("[parse_hyper]: supplied sigquant =", hyper$sigquant))
+    message("[parse_hyper]: supplied sigquant = ", hyper$sigquant)
     stop("[parse_hyper]: sigquant must be between 0 and 1")
   }
 
@@ -324,9 +315,8 @@ parse_hyper_heteroskedastic <- function(R, y_range, ...){
     if(length(usr_M) == 1) hyper$M_vec <- rep(usr_M, times = R)
     else if(length(usr_M) == R) hyper$M_vec <- usr_M
     else{
-      message(paste("[parse_hyper]: matched M_vec to argument", tmp_name, "="))
-      print(usr_M)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      message("[parse_hyper]: matched M_vec to argument", tmp_name, " = ", paste(usr_M, collapse = " "))
+      message(paste("[parse_hyper]: expected length ", R, ", the number of ensembles"))
       stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
     }
     rm(ix, tmp_name, usr_M)
@@ -345,10 +335,8 @@ parse_hyper_heteroskedastic <- function(R, y_range, ...){
     if(length(usr_alpha) == 1) hyper$alpha_vec <- rep(usr_alpha, times = R)
     else if(length(usr_alpha) == R) hyper$alpha_vec <- usr_alpha
     else{
-      message(paste("[parse_hyper]: matched alpha_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_alpha)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      message("[parse_hyper]: matched alpha_vec to supplied argument", tmp_name, " = ", paste(usr_alpha, collapse = " "))
+      message(paste("[parse_hyper]: expected length ", R, ", the number of ensembles"))
       stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
     }
     rm(ix, tmp_name, usr_alpha)
@@ -367,11 +355,9 @@ parse_hyper_heteroskedastic <- function(R, y_range, ...){
     if(length(usr_beta) == 1) hyper$beta_vec <- rep(usr_beta, times = R)
     else if(length(usr_beta) == R) hyper$beta_vec <- usr_beta
     else{
-      message(paste("[parse_hyper]: matched beta_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_beta)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched beta_vec to supplied argument ", tmp_name, " = ", paste(usr_beta, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_beta)
   }
@@ -389,10 +375,8 @@ parse_hyper_heteroskedastic <- function(R, y_range, ...){
     if(length(usr_mu) == 1) hyper$mu0_vec <- rep(usr_mu, times = R)
     else if(length(usr_mu) == R) hyper$mu_vec <- usr_mu
     else{
-      message(paste("[parse_hyper]: matched mu0_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_mu)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      message("[parse_hyper]: matched mu0_vec to supplied argument", tmp_name, " = ", paste(usr_mu, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
       stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
     }
     rm(ix, tmp_name, usr_mu)
@@ -415,11 +399,9 @@ parse_hyper_heteroskedastic <- function(R, y_range, ...){
     if(length(usr_tau) == 1) hyper$tau_vec <- rep(usr_tau, times = R)
     else if(length(usr_tau) == R) hyper$tau_vec <- usr_tau
     else{
-      message(paste("[parse_hyper]: matched tau_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_tau)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched tau_vec to supplied argument ", tmp_name, " = ", paste(usr_tau, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_tau)
   }
@@ -432,21 +414,21 @@ parse_hyper_heteroskedastic <- function(R, y_range, ...){
   else nu <- 3
   
   if(nu < 0){
-    message(paste("[parse_hyper]: supplied nu =", nu))
+    message("[parse_hyper]: supplied nu = ", nu)
     stop("[parse_hyper]: nu must be positive!")
   }
   
   if("sigest" %in% usr_names) hyper$sigest <- usr_args[["sigest"]]
   else hyper$sigest <- 1
   if(hyper$sigest < 0){
-    message(paste0("[parse_hyper]: supplied sigest =", hyper$sigest))
+    message("[parse_hyper]: supplied sigest = ", hyper$sigest)
     stop("[parse_hyper]: sigest must be positive (and, ideally, less than 1; see Details)")
   }
   
   if("sigquant" %in% usr_names) hyper$sigquant <- usr_args[["sigquant"]]
   else hyper$sigquant <- 0.9
   if(abs(hyper$sigquant-0.5) > 0.5){
-    message(paste0("[parse_hyper]: supplied sigquant =", hyper$sigquant))
+    message("[parse_hyper]: supplied sigquant = ", hyper$sigquant)
     stop("[parse_hyper]: sigquant must be between 0 and 1")
   }
 
@@ -500,10 +482,9 @@ parse_hyper_probit <- function(R, y_mean, ...){
     if(length(usr_M) == 1) hyper$M_vec <- rep(usr_M, times = R)
     else if(length(usr_M) == R) hyper$M_vec <- usr_M
     else{
-      message(paste("[parse_hyper]: matched M_vec to argument", tmp_name, "="))
-      print(usr_M)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched M_vec to argument ", tmp_name, " = ", paste(usr_M, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_M)
   }
@@ -521,11 +502,9 @@ parse_hyper_probit <- function(R, y_mean, ...){
     if(length(usr_alpha) == 1) hyper$alpha_vec <- rep(usr_alpha, times = R)
     else if(length(usr_alpha) == R) hyper$alpha_vec <- usr_alpha
     else{
-      message(paste("[parse_hyper]: matched alpha_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_alpha)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched alpha_vec to supplied argument ", tmp_name, " = ", paste(usr_alpha, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_alpha)
   }
@@ -543,10 +522,8 @@ parse_hyper_probit <- function(R, y_mean, ...){
     if(length(usr_beta) == 1) hyper$beta_vec <- rep(usr_beta, times = R)
     else if(length(usr_beta) == R) hyper$beta_vec <- usr_beta
     else{
-      message(paste("[parse_hyper]: matched beta_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_beta)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
+      message("[parse_hyper]: matched beta_vec to supplied argument ", tmp_name, " = ", paste(usr_beta, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
       stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
     }
     rm(ix, tmp_name, usr_beta)
@@ -568,11 +545,9 @@ parse_hyper_probit <- function(R, y_mean, ...){
     if(length(usr_mu) == 1) hyper$mu0_vec <- rep(usr_mu, times = R)
     else if(length(usr_mu) == R) hyper$mu_vec <- usr_mu
     else{
-      message(paste("[parse_hyper]: matched mu0_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_mu)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched mu0_vec to supplied argument ", tmp_name, " = ", paste(usr_mu, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_mu)
   }
@@ -595,11 +570,9 @@ parse_hyper_probit <- function(R, y_mean, ...){
     if(length(usr_tau) == 1) hyper$tau_vec <- rep(usr_tau, times = R)
     else if(length(usr_tau) == R) hyper$tau_vec <- usr_tau
     else{
-      message(paste("[parse_hyper]: matched tau_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_tau)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched tau_vec to supplied argument", tmp_name, " = ", paste(usr_tau, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_tau)
   }
@@ -660,10 +633,9 @@ parse_hyper_logit <- function(R, y_mean, ...){
     if(length(usr_M) == 1) hyper$M_vec <- rep(usr_M, times = R)
     else if(length(usr_M) == R) hyper$M_vec <- usr_M
     else{
-      message(paste("[parse_hyper]: matched M_vec to argument", tmp_name, "="))
-      print(usr_M)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched M_vec to argument", tmp_name, " = ", paste(usr_M, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_M)
   }
@@ -681,11 +653,9 @@ parse_hyper_logit <- function(R, y_mean, ...){
     if(length(usr_alpha) == 1) hyper$alpha_vec <- rep(usr_alpha, times = R)
     else if(length(usr_alpha) == R) hyper$alpha_vec <- usr_alpha
     else{
-      message(paste("[parse_hyper]: matched alpha_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_alpha)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched alpha_vec to supplied argument ", tmp_name, paste(usr_alpha, collapse = " "))
+      message("[parse_hyper]:expected length", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_alpha)
   }
@@ -703,11 +673,9 @@ parse_hyper_logit <- function(R, y_mean, ...){
     if(length(usr_beta) == 1) hyper$beta_vec <- rep(usr_beta, times = R)
     else if(length(usr_beta) == R) hyper$beta_vec <- usr_beta
     else{
-      message(paste("[parse_hyper]: matched beta_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_beta)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched beta_vec to supplied argument ", tmp_name, " = ", paste(usr_beta, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_beta)
   }
@@ -728,11 +696,9 @@ parse_hyper_logit <- function(R, y_mean, ...){
     if(length(usr_mu) == 1) hyper$mu0_vec <- rep(usr_mu, times = R)
     else if(length(usr_mu) == R) hyper$mu_vec <- usr_mu
     else{
-      message(paste("[parse_hyper]: matched mu0_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_mu)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched mu0_vec to supplied argument ", tmp_name, " = ", paste(usr_mu, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_mu)
   }
@@ -755,11 +721,9 @@ parse_hyper_logit <- function(R, y_mean, ...){
     if(length(usr_tau) == 1) hyper$tau_vec <- rep(usr_tau, times = R)
     else if(length(usr_tau) == R) hyper$tau_vec <- usr_tau
     else{
-      message(paste("[parse_hyper]: matched tau_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_tau)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched tau_vec to supplied argument ", tmp_name, " = ", paste(usr_tau, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_tau)
   }
@@ -820,10 +784,9 @@ parse_hyper_poisson <- function(R, y_mean, ...){
     if(length(usr_M) == 1) hyper$M_vec <- rep(usr_M, times = R)
     else if(length(usr_M) == R) hyper$M_vec <- usr_M
     else{
-      message(paste("[parse_hyper]: matched M_vec to argument", tmp_name, "="))
-      print(usr_M)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched M_vec to argument ", tmp_name, " = ", paste(usr_M, collapse = " "))
+      message("[parse_hyper]:expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_M)
   }
@@ -841,11 +804,9 @@ parse_hyper_poisson <- function(R, y_mean, ...){
     if(length(usr_alpha) == 1) hyper$alpha_vec <- rep(usr_alpha, times = R)
     else if(length(usr_alpha) == R) hyper$alpha_vec <- usr_alpha
     else{
-      message(paste("[parse_hyper]: matched alpha_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_alpha)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched alpha_vec to supplied argument ", tmp_name, " = ", paste(usr_alpha, collapse = " "))
+      message("[parse_hyper]: expected length", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_alpha)
   }
@@ -863,11 +824,9 @@ parse_hyper_poisson <- function(R, y_mean, ...){
     if(length(usr_beta) == 1) hyper$beta_vec <- rep(usr_beta, times = R)
     else if(length(usr_beta) == R) hyper$beta_vec <- usr_beta
     else{
-      message(paste("[parse_hyper]: matched beta_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_beta)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched beta_vec to supplied argument ", tmp_name, " = ", paste(usr_beta, collapse = " "))
+      message("[parse_hyper]:expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_beta)
   }
@@ -888,11 +847,9 @@ parse_hyper_poisson <- function(R, y_mean, ...){
     if(length(usr_mu) == 1) hyper$mu0_vec <- rep(usr_mu, times = R)
     else if(length(usr_mu) == R) hyper$mu_vec <- usr_mu
     else{
-      message(paste("[parse_hyper]: matched mu0_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_mu)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched mu0_vec to supplied argument ", tmp_name, " = ", paste(usr_mu, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_mu)
   }
@@ -915,11 +872,9 @@ parse_hyper_poisson <- function(R, y_mean, ...){
     if(length(usr_tau) == 1) hyper$tau_vec <- rep(usr_tau, times = R)
     else if(length(usr_tau) == R) hyper$tau_vec <- usr_tau
     else{
-      message(paste("[parse_hyper]: matched tau_vec to supplied argument", tmp_name))
-      message("supplied argument =")
-      print(usr_tau)
-      message(paste("[parse_hyper]:expected length", R, ", the number of ensembles"))
-      stop(paste("[parse_hyper]: supplied argument must have length 1 or", R))
+      message("[parse_hyper]: matched tau_vec to supplied argument ", tmp_name, " = ", paste(usr_tau, collapse = " "))
+      message("[parse_hyper]: expected length ", R, ", the number of ensembles")
+      stop("[parse_hyper]: supplied argument must have length 1 or ", R)
     }
     rm(ix, tmp_name, usr_tau)
   }

@@ -24,7 +24,7 @@ flexBART <- function(formula,
     family <- usr_args[["family"]]
     link <- usr_args[["link"]]
   } else {
-    cat(paste("supplied family is class ", class(usr_args[["family"]]), " \n"))
+    message("supplied family is class ", class(usr_args[["family"]]))
     stop("family must be a family object or character (i.e., \"gaussian\" or \"binomial\")")
   }
 
@@ -116,21 +116,20 @@ flexBART <- function(formula,
         stop(paste("[flexBART]: supplied sigest =", sigest, ". Estimate of residual sd must be positive!"))
       }
       if(sigest > 1){
-        cat(paste("supplied sigest = ", sigest, "greater than 1 \n"))
-        message(paste("Internally, flexBART operates on standardized outcome scale. Dividing by outcome sd \n"))
+        message("supplied sigest = ", sigest, " greater than 1. Internally, flexBART operates on standardized outcome scale. Dividing by outcome sd.")
         sigest <- sigest/tmp_data$training_info$y_sd
       }
     } else{
       if(initialize_sigma){
         if(p_cont == 1 & p_cat == 0){
-          cat("no initial estimate of sigma provided. Initializing using OLS\n")
+          message("no initial estimate of sigma provided. Initializing using OLS.")
         } else{
-          cat("no initial estimate of sigma provided. Initializing using LASSO\n")
+          message("no initial estimate of sigma provided. Initializing using LASSO.")
         }
         sigest <- 
           get_sigma(tmp_data$training_info, tmp_data$data_info)
       } else{
-        cat("no initial estimate of sigma provided.\n")
+        message("no initial estimate of sigma provided.")
         sigest <- 1
       }
     }
@@ -174,7 +173,7 @@ flexBART <- function(formula,
   #                 nest_c = nest_c, 
   #                 ...)
   } else {
-    cat(paste("supplied family = ", family, " and link = ", link, " \n"))
+    message("supplied family = ", family, " and link = ", link)
     stop("Unsupported family and link combination!")
   }
   
@@ -185,18 +184,16 @@ flexBART <- function(formula,
   
   if(control$verbose){
     if (family == "gaussian" && link == "identity") {
-      cat("Initial sigma (after standardization) =", 
-                  round(hyper$sigest, digits = 6), "\n")
+      message("Initial sigma (after standardization) = ", 
+                  round(hyper$sigest, digits = 6))
     }
     if(!is.null(tmp_data$training_info$edge_mat_list)){
-      cat("graph_cut_type = ", hyper$graph_cut_type, "\n")
+      message("graph_cut_type = ", hyper$graph_cut_type)
     }
     if(!is.null(tmp_data$training_info$nest_list)){
-      cat("nest_v = ", hyper$nest_v)
-      cat(" nest_v_option = ", hyper$nest_v_option)
-      cat(" nest_c = ", hyper$nest_c, "\n")
+      message("nest_v = ", hyper$nest_v, " nest_v_option = ", hyper$nest_v_option, " nest_c = ", hyper$nest_c)
     }
-    cat("n.chains = ", control$n.chains, "\n")
+    messaget("n.chains = ", control$n.chains)
   }
   
   ###############################
@@ -209,11 +206,9 @@ flexBART <- function(formula,
     if(heteroskedastic){
       # containers for sigma samples
       sigma_train_mean <- rep(0, times = n_train)
-      #if (control$save_samples) sigma_train_samples <- array(NA, dim = c(total_draws, n_train, control$n.chains))
       if(control$save_samples) sigma_train_samples <- array(NA, dim = c(total_samples, n_train))
       if (n_test > 0){
         sigma_test_mean <- rep(0, times = n_test)
-        #if (control$save_samples) sigma_test_samples <- array(NA, dim = c(total_draws - control$burn, n_test, control$n.chains))
         if(control$save_samples) sigma_test_samples <- array(NA, dim = c(total_samples, n_test))
       }
       
@@ -274,21 +269,19 @@ flexBART <- function(formula,
       }
     }
   } else {
-    cat(paste("supplied family = ", family, " and link = ", link, " \n"))
+    message("supplied family = ", family, " and link = ", link)
     stop("Unsupported family and link combination!")
   }
 
   if (heteroskedastic){
   varcounts_samples <- 
     array(NA, dim = c(total_samples, p, R+1), 
-
           dimnames = list(c(), 
                           c(tmp_data$data_info$cont_names, 
                             tmp_data$data_info$cat_names), c()))
   } else{
     varcounts_samples <- 
     array(NA, dim = c(total_samples, p, R), 
-
           dimnames = list(c(), 
                           c(tmp_data$data_info$cont_names, 
                             tmp_data$data_info$cat_names), c()))
@@ -326,7 +319,6 @@ flexBART <- function(formula,
     end_index <- chain_num*control$nd
     if (family == "gaussian" && link == "identity") {
       if (heteroskedastic){
-        cat("Heteroskedasticity detected.\n")
         if (R == 1){
           tmp_time <- 
             system.time(
@@ -416,10 +408,8 @@ flexBART <- function(formula,
         
         sigma_train_mean <- sigma_train_mean + fit$sigma_train_mean/control$n.chains
         if(control$save_samples) sigma_train_samples[start_index:end_index,] <- fit$sigma_train[-(1:control$burn),]
-        #if(control$save_samples) sigma_train_samples[,,chain_num] <- fit$sigma_train
         if(n_test > 0){
           sigma_test_mean <- sigma_test_mean + fit$sigma_test_mean/control$n.chains
-          #if(control$save_samples) sigma_test_samples[,,chain_num] <- fit$sigma_test
           if(control$save_samples) sigma_test_samples[start_index:end_index,] <- fit$sigma_test[-(1:control$burn),]
         }
         

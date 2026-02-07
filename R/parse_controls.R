@@ -27,13 +27,11 @@ validate_flexBART_control <- function(cntrl)
       "save_samples", "save_trees", 
       "verbose", "print_every")
   if(!identical(names(cntrl), exp_names)){
-    cat("[validate_flexBART_control]: supplied cntrl names:\n", names(cntrl), "\n")
-    cat("[validate_flexBART_control]: expected cntrl names:\n", exp_names, "\n")
+    message("[validate_flexBART_control]: supplied cntrl names:", paste(names(cntrl), collapse = " "))
+    message("[validate_flexBART_control]: expected cntrl names:", paste(exp_names, collapse = " "))
     stop("[validate_flexBART_control]: cntrl does not have valid names")
   }
   if(any(sapply(cntrl, FUN = is.null))){
-    message("[validate_flexBART_control]: Null control parameters detected:")
-    print(sapply(cntrl, FUN = is.null))
     stop("All control parameters must be non-null!")
   }
   ###############################
@@ -43,8 +41,8 @@ validate_flexBART_control <- function(cntrl)
     c("nd", "burn", "thin", "n.chains", "n.cores", "print_every")
   for(param in pos_params){
     if(!(is.integer(cntrl[[param]]) & cntrl[[param]] > 0)){
-      message(paste("[validate_flexBART_control]: supplied ", param, "=", cntrl[[param]]))
-      stop(paste("[validate_flexBART_control]:", param, "must be a positive integer"))
+      message("[validate_flexBART_control]: supplied ", param, " = ", cntrl[[param]])
+      stop("[validate_flexBART_control]: ", param, " must be a positive integer")
     }
   }
   
@@ -54,8 +52,8 @@ validate_flexBART_control <- function(cntrl)
   log_params <- c("save_samples", "save_trees", "verbose")
   for(param in log_params){
     if(!is.logical(cntrl[[param]])){
-      message(paste("[validate_flexBART_control]: supplied ", param, "=", cntrl[[param]]))
-      stop(paste("[validate_flexBART_control]:", param, "must be a logical"))
+      message("[validate_flexBART_control]: supplied ", param, " = ", cntrl[[param]])
+      stop("[validate_flexBART_control]: ", param, " must be a logical")
     }
   }
 }
@@ -87,12 +85,12 @@ parse_controls <- function(...){
   # Additional checks
   ###############################
   if(cntrl$thin > 1){
-    message(paste0("[validate_flexBART_control]: supplied thin = ", cntrl$thin))
+    message("[validate_flexBART_control]: supplied thin = ", cntrl$thin)
     warning("Thinning is not recommended. See documentation.")
   }
   
   if(cntrl$n.cores > 1){
-    message(paste("[validate_flexBART_control]: supplied n.cores = ", cntrl$n.cores))
+    message("[validate_flexBART_control]: supplied n.cores = ", cntrl$n.cores)
     warning("Parallel execution is not yet supported. Ignoring this argument.")
   }
   

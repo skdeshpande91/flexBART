@@ -1,15 +1,15 @@
 Package: flexBART
 Type: Package
 Title: A More Flexible BART Model
-Version: 2.0.2
-Date: 2026-02-03
+Version: 2.0.3
+Date: 2026-02-07
 Authors@R: c(
   person(given = "Sameer K.", family = "Deshpande", role = c("aut", "cre"), email = "sameer.deshpande@wisc.edu", comment = c(ORCID = "0000-0003-4116-5533")),
   person(given = "George", family = "Perrett", role = c("aut"), email = "gp77@nyu.edu", comment = c(ORCID = "0000-0002-1930-2581")),
   person(given = "Ryan", family = "Yee", role = c("aut"), email = "ryee2@wisc.edu", comment = c(ORCID = "0009-0005-5691-4009")),
   person(given = "Cecilia", family = "Balocchi", role = c("aut"), email = "cecilia.balocchi@ed.ac.uk", comment = c(ORCID = "0000-0002-1234-6063")),
   person(given = "Jennifer", family = "Hill", role = c("aut"), email = "jennifer.hill@nyu.edu", comment = c(ORCID = "0000-0003-4983-2206")))
-Description: Implements a faster and more expressive version of Bayesian Additive Regression Trees that, at a high level, approximates unknown functions as a weighted sum of binary regression tree ensembles. Supports fitting (generalized) linear varying coefficient models that posits a linear relationship between the inverse link and some covariates but allows that relationship to change as a function of other covariates. Additionally supports fitting heteroscedastic BART models, in which both the mean and log-variance are approximated with separate regression tree ensembles. A formula interface allows for different splitting variables to be used in each ensemble.
+Description: Implements a faster and more expressive version of Bayesian Additive Regression Trees that, at a high level, approximates unknown functions as a weighted sum of binary regression tree ensembles. Supports fitting (generalized) linear varying coefficient models that posits a linear relationship between the inverse link and some covariates but allows that relationship to change as a function of other covariates. Additionally supports fitting heteroscedastic BART models, in which both the mean and log-variance are approximated with separate regression tree ensembles. A formula interface allows for different splitting variables to be used in each ensemble. For more details see Deshpande (2025) <doi:10.1080/10618600.2024.2431072> and Deshpande et al. (2024) <doi:10.1214/24-BA1470>.
 License: GPL (>= 3)
 LinkingTo: Rcpp, RcppArmadillo
 Imports: Rcpp (>= 1.0.12), glmnet (>= 4.0), methods

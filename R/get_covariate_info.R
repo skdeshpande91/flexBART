@@ -1,7 +1,7 @@
 # helper function to map levels of a categorical predictor to integers
 get_categorical_mapping <- function(x, name){
   if(is.character(x)){
-    cat("[get_categorical_mapping]:",name, "was a string and will be converted to a factor\n")
+    message("[get_categorical_mapping]: ",name, " was a string and will be converted to a factor")
     unik_vals <- sort(unique(x))
     raw_x <- factor(x, levels = unik_vals, labels = unik_vals)
   } else{
@@ -9,16 +9,16 @@ get_categorical_mapping <- function(x, name){
   }
   
   if(!is.factor(raw_x)){
-    stop(paste(name, "must be a factor"))
+    stop(name, " must be a factor")
   }
   
   if(sum(is.na(raw_x)) > 0){
     # detected missing values
     missing_ix <- which(is.na(raw_x))
-    cat("NA detected in", name, ". Creating a new level for missing values.\n")
-    cat("If you wish to impute missing values, you should do so before calling flexBART.\n")
+    message("NA detected in ", name, ". Creating a new level for missing values.")
+    message("If you wish to impute missing values, you should do so before calling flexBART.")
     if(any(levels(raw_x) == "NA_flexbart")){
-      message(paste("Found value of 'NA_flexbart' in variable", name))
+      message("Found value of 'NA_flexbart' in variable ", name)
       # similar stop to 'b' in stan4bart
       stop("flexBART does not allow the value 'NA_flexbart' for categorical covariates")
     } else{
@@ -31,16 +31,12 @@ get_categorical_mapping <- function(x, name){
   #mapping <- data.frame(integer_coding = 0:(max(as.integer(raw_x)-1)), value = levels(raw_x))
   n_levels <- length(levels(raw_x))
   if(n_levels == 1){
-    cat("[get_categorical_mapping]:", name, " appears to be a constant categorical variable ")
-    cat("(i.e., it has only one level).\n")
+    message("[get_categorical_mapping]: ", name, " appears to be a constant categorical variable (i.e., it has only one level).")
     stop("Constant categorical predictors are not supported. Please drop these before running flexBART.")
   }
   mapping <-
     data.frame(integer_coding = 0:(n_levels-1),
                value = levels(raw_x))
-  #mapping <- 
-  #  data.frame(integer_coding = as.integer(factor(levels(raw_x)))-1,
-   #            value = levels(raw_x))
   mapping[which(mapping$value == "NA_flexbart"), "value"] <- NA
   return(mapping)
 }
@@ -49,7 +45,7 @@ get_categorical_mapping <- function(x, name){
 convert_categorical <- function(x, name, mapping = NULL)
 {
   if(is.null(mapping)){
-    warning("[convert_categorical]: Parsing", name, " but not mapping provided. Mapping levels to integers now")
+    message("[convert_categorical]: Parsing ", name, " but not mapping provided. Mapping levels to integers now.")
     mapping <- get_categorical_mapping(x,name)
   } else{
     if(!identical(colnames(mapping), c("integer_coding", "value")) | !is.data.frame(mapping)){
@@ -59,8 +55,8 @@ convert_categorical <- function(x, name, mapping = NULL)
     int_x <- rep(NA_integer_, times = length(x))
     
     if(!all(x %in% mapping$value)){
-      message(paste("[convert_categorical]: Parsing categorical variable", name, ": detected new level"))
-      stop("Found an unexpected categorical level. Consider re-leveling the factor in the training data")
+      message("[convert_categorical]: Parsing categorical variable ", name, ": detected new level")
+      stop("Found an unexpected categorical level. Consider re-leveling the factor in training data before calling flexBART.")
     } else{
       for(k in 1:nrow(mapping)){
         if(is.na(mapping[k,"value"])){
@@ -91,8 +87,6 @@ parse_nesting <- function(X_cat, dinfo)
     results["nest_list"] <- list(NULL)
   }
   return(results)
-
-  
 }
 
 
@@ -107,15 +101,15 @@ parse_adjacency <- function(adjacency_list, dinfo)
     if(j %in% names(adjacency_list)){
       tmp_A <- adjacency_list[[j]]
       if(!identical(rownames(tmp_A), colnames(tmp_A))){
-        message(paste("[parse_adjacency]: Dimension names for variable", j, " don't match"))
+        message("[parse_adjacency]: Dimension names for network variable ", j, " don't match")
         stop("Row and column names for elements in adjacency_list must be identical")
       }
       if(any(is.na(dinfo$cat_mapping_list[[j]][,"value"]))){
-        message(paste("[parse_adjacency]: Variable", j, "had missing values"))
+        message("[parse_adjacency]: Network variable ", j, " had missing values")
         stop("Cannot have missing level in network-structured categorical variable")
       }
       if(!identical(sort(dinfo$cat_mapping_list[[j]][,"value"]), sort(colnames(tmp_A)))){
-        message(paste("[parse_adjacency]: mismatch b/w detected values and dimnames of adjacency matrix for", j))
+        message("[parse_adjacency]: mismatch b/w detected values and dimnames of adjacency matrix for network variable", j)
         stop("All possible values of the variable must appear in row and column names of adjacency matrix")
       }
       # re-order rows and columns of tmp_A to be the same as in mapping_list
@@ -144,21 +138,15 @@ get_continuous_info <- function(x, name, pad = 0.2, n_unik_diffs = 5)
   
   if(length(unique(consecutive_diffs)) < n_unik_diffs){
     if(sd(x) <1e-12){
-      cat("[get_continuous_info]:", name, "appears to be constant ")
-      cat("(i.e., standard deviation in training data < 1e-12).\n")
+      message("[get_continuous_info]: ", name, " appears to be constant (i.e., standard deviation in training data < 1e-12.")
       stop("Constant continuous predictors are not supported. Please drop these before running flexBART.")
     }
     
     
-    cat("[get_continuous_info]:", name, " suspected to be discrete. Defining a grid of cutpoints for", name, "\n")
-    cat("Using the unique values of x as splitting points.\n")
-    #cat("To use a different grid, manually set the `cutpoints_list` argument of flexBART.\n")
+    message("[get_continuous_info]: ", name, " suspected to be discrete. Defining a grid of potential cutpoints using unique values.")
     x_sd <- NA
     x_min <- min(x)
     x_max <- max(x)
-    
-
-    
   } else{
     x_sd <- sd(x)
     x_min = min(x) - pad*x_sd
@@ -204,7 +192,7 @@ get_covariate_info <- function(cov_data, pad = NULL, n_unik_diffs = NULL)
   }
   if(ncol(cov_data) != dinfo$p){
     # should *never* be thrown but just in case
-    message(paste("[get_covariate_info]: detected", dinfo$p, "covariates but cov_data has", ncol(cov_data), "columns"))
+    message("[get_covariate_info]: detected ", dinfo$p, " covariates but cov_data has", ncol(cov_data), "columns")
     stop("Incorrect number of columns in cov_data!")
   }
   
@@ -212,8 +200,6 @@ get_covariate_info <- function(cov_data, pad = NULL, n_unik_diffs = NULL)
     # Save continuous variable names so they can be used in later functions
     dinfo$cont_names <- colnames(cov_data)[!is_cat]
     if(is.null(pad)){
-      #cat("[get_covariate_info]:  No padding for continuous variable ranges provided.\n")
-      #cat("By default, flexBART adds 0.2 SDs to min and max values of each continuous variable.\n")
       pad <- rep(0.2, times = dinfo$p_cont)
       names(pad) <- dinfo$cont_names
     } else{
@@ -247,16 +233,6 @@ get_covariate_info <- function(cov_data, pad = NULL, n_unik_diffs = NULL)
       dinfo$x_max[j] <- tmp$x_max
       dinfo$x_sd[j] <- tmp$x_sd
     } # closes loop getting information about continuous covariates
-    
-    # if there is a constant x, get_continuous_info will think it's discrete
-    # so this last condition is really not going to be hit. 
-    #if(any(dinfo$x_sd < 1e-12)){
-    #  constant_index <- which(dinfo$x_sd < 1e-12)
-    #  cat("Continuous predictors", dinfo$cont_names[constant_index], "appear to be constant.")
-    #  cat("(i.e., standard deviation in train_data < 1e-12)\n")
-    #  stop("Constant continuous predictors are not supported. Please drop these before running flexBART")
-    #}
-    
   }
   
   if(dinfo$p_cat > 0){

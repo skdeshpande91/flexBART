@@ -23,7 +23,7 @@ prepare_data <- function(train_data,
     family <- usr_args[["family"]]
     link <- usr_args[["link"]]
   } else{
-    cat(paste("supplied family is class ", class(usr_args[["family"]]), " \n"))
+    message("supplied family is class ", class(usr_args[["family"]]))
     stop("family must be a family object or a character (i.e., \"gaussian\" or \"binomial\")")
   }
   
@@ -61,15 +61,12 @@ prepare_data <- function(train_data,
   if(!is.null(test_data)){
     stopifnot(is.data.frame(test_data))
     if(!all(covariate_names %in% colnames(test_data))){
-      cat("[prepare_data]: Following covariates used for training not found in supplied testing data: \n")
-      cat(covariate_names[!covariate_names %in% colnames(test_data)], "\n")
+      message("[prepare_data]: Following covariates used for training not found in supplied testing data: \n",
+              paste(covariate_names[!covariate_names %in% colnames(test_data)], collapse = " "))
       stop("[prepare_data]: test_data must contain all training covariates")
     }
-    cat("[prepare_data]: Using both training & testing data to get covariate information \n")
+    message("[prepare_data]: Using both training & testing data to get covariate information")
     if(p == 1){
-      # when there is a single categorical predictor, c(train_data[,...], test_data[,...]) is a list
-      #cov_data <- 
-      # data.frame(c(train_data[,covariate_names[1]], test_data[,covariate_names[1]]))
         cov_data <-
         rbind(data.frame(x=train_data[,covariate_names[1]]),
               data.frame(x=test_data[,covariate_names[1]]))
@@ -98,10 +95,9 @@ prepare_data <- function(train_data,
   ###############################
   # Standardize outcome & check for missingness
   ###############################
-  #y <- train_data[,outcome_name]
   y <- train_data[[outcome_name]]
   if(any(is.na(y))){
-    message(paste("[prepare_data]: Detected missing values in", outcome_name))
+    message("[prepare_data]: Detected missing values in ", outcome_name)
     stop("[prepare_data]: flexBART does not yet support missing outcomes. 
          Please re-run after removing observations w/ missing outcomes.")
   }
@@ -245,7 +241,7 @@ prepare_data <- function(train_data,
   ###############################
   if(dinfo$p_cat > 0){
     if(!is.null(test_data)){
-      cat("[preprocess]: Using training & testing to detect nesting structure among categorical variables\n")
+      message("[preprocess]: Using training & testing to detect nesting structure among categorical variables")
       tmp_nest <- parse_nesting(rbind(trinfo$X_cat, teinfo$X_cat), dinfo)
     } else{
       tmp_nest <- parse_nesting(trinfo$X_cat, dinfo)
