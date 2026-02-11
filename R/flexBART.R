@@ -410,7 +410,7 @@ flexBART <- function(formula,
         if(control$save_samples) sigma_train_samples[start_index:end_index,] <- fit$sigma_train[-(1:control$burn),]
         if(n_test > 0){
           sigma_test_mean <- sigma_test_mean + fit$sigma_test_mean/control$n.chains
-          if(control$save_samples) sigma_test_samples[start_index:end_index,] <- fit$sigma_test[-(1:control$burn),]
+          if(control$save_samples) sigma_test_samples[start_index:end_index,] <- fit$sigma_test
         }
         
         yhat_train_mean <- yhat_train_mean + fit$fit_train_mean/control$n.chains
