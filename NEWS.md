@@ -1,3 +1,10 @@
+# flexBART 2.0.5
+
+## Major changes
+  * Refactor internal function to detect nesting structure, which previously threw an error if it encountered a categorical variable that was incompletely observed (i.e., not every level appeared in the supplied data)
+  * Fixes error in how heteroskedastic BART saves samples of the residual standard deviation function with test data.
+
+
 # flexBART 2.0.0
 
 ## Major changes
