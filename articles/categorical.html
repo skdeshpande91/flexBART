@@ -75,7 +75,7 @@
 
     <section class="level2"><h2 id="background">Background<a class="anchor" aria-label="anchor" href="#background"></a>
 </h2>
-<p>Many implementations of BART and its extensions represent categorical predictors using several binary indicators, one for each level of each categorical predictor. Axis-aligned decision rules are well-defined with these indicators: they send one level of a categorical predictor to the left and all other levels to the right (or vice versa). Regression trees built with these rules partition the set of all levels of a categorical predictor by recursively removing one level at a time. Unfortunately, most partitions of the levels cannot be built with this “remove one at a time” strategy, meaning these implementations are extremely limited in their ability to “borrow strength’’ across groups of levels. Please see <a href="https://doi.org/10.1080/10618600.2024.2431072" class="external-link">Deshpande (2024)</a> for a more detailed argument against one-hot encoding categorical predictors.</p>
+<p>Many implementations of BART and its extensions represent categorical predictors using several binary indicators, one for each level of each categorical predictor. Axis-aligned decision rules are well-defined with these indicators: they send one level of a categorical predictor to the left and all other levels to the right (or vice versa). Regression trees built with these rules partition the set of all levels of a categorical predictor by recursively removing one level at a time. Unfortunately, most partitions of the levels cannot be built with this “remove one at a time” strategy, meaning these implementations are extremely limited in their ability to “borrow strength’’ across groups of levels. Please see <a href="https://doi.org/10.1080/10618600.2024.2431072" class="external-link">Deshpande (2025)</a> for a more detailed argument against one-hot encoding categorical predictors.</p>
 <p>In <strong>flexBART</strong>, decision rules based on a categorical predictor <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math> take the form <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><mi>X</mi><mo>∈</mo><mi>𝒞</mi><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{X \in \mathcal{C}\}</annotation></semantics></math> where <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝒞</mi><annotation encoding="application/x-tex">\mathcal{C}</annotation></semantics></math> is a random subset of the discrete values that <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>X</mi><mi>j</mi></msub><annotation encoding="application/x-tex">X_{j}</annotation></semantics></math> can assume. To support such decision rules, <strong>flexBART</strong> implements a new decision rule prior for categorical predictors in which, conditionally on the splitting variable <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>X</mi><mo>,</mo></mrow><annotation encoding="application/x-tex">X,</annotation></semantics></math> the “cutset” <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝒞</mi><annotation encoding="application/x-tex">\mathcal{C}</annotation></semantics></math> is formed by looping over all available values of <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math> and randomly assigning each to <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝒞</mi><annotation encoding="application/x-tex">\mathcal{C}</annotation></semantics></math> with probability 1/2.</p>
 <p>If a variable <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math> contained in <code>train_data</code> is of class “factor”, <strong>flexBART</strong> determines the initial set of available values of <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>X</mi><annotation encoding="application/x-tex">X</annotation></semantics></math> by looking at levels of the corresponding element of <code>train_data</code>. As a result, <strong>flexBART</strong> is able to make predictions at new values of a categorical predictor not present in the training data <em>so long as these values are included as levels of that predictor.</em></p>
 </section><section class="level2"><h2 id="internal-pre-processing">Internal Pre-Processing<a class="anchor" aria-label="anchor" href="#internal-pre-processing"></a>
@@ -184,12 +184,31 @@
 <span><span class="op">}</span></span></code></pre></div>
 </details>
 </div>
-</section><section class="level2"><h2 id="making-predictions-at-a-new-level">Making Predictions at a New Level<a class="anchor" aria-label="anchor" href="#making-predictions-at-a-new-level"></a>
-</h2>
-<p>There is currently no way to induce <strong>flexBART</strong> to make a prediction at a new level if that level was not passed at training time. You would need to</p>
-</section><section class="level2"><h2 id="structured-categorical-predictors">Structured Categorical Predictors<a class="anchor" aria-label="anchor" href="#structured-categorical-predictors"></a>
-</h2>
-<p><strong>flexBART</strong> provides support for <em>structured</em> categorical predictors for which there are <em>a priori</em> preferences about which levels of the predictor ought to be clustered together. These preferences are operationalized with a network whose vertices correspond to the levels of the predictor and whose edges encode co-clustering preference. An example would be spatial regions where each region is represented by a vertex in a network and an edge is drawn between vertices whose corresponding regions are geographically/spatially adjacent. See <a href="../articles/network.html">this article</a> for more details.</p>
+<!--
+  Generate X_cont, X_cat, Y
+  Fit flexBART
+  Compare it to regular BART
+
+
+  Structured: use the grid & network examples from
+  https://github.com/skdeshpande91/flexBART/tree/91012b293bac7d1ec355286de354cf3db7b3d10c/examples
+
+-->
+<!--
+## Making Predictions at a New Level
+
+
+
+There is currently no way to induce **flexBART** to make a prediction at a new level if that level was not passed at training time.
+You would need to
+
+## Structured Categorical Predictors
+
+**flexBART** provides support for *structured* categorical predictors for which there are *a priori* preferences about which levels of the predictor ought to be clustered together.
+These preferences are operationalized with a network whose vertices correspond to the levels of the predictor and whose edges encode co-clustering preference.
+An example would be spatial regions where each region is represented by a vertex in a network and an edge is drawn between vertices whose corresponding regions are geographically/spatially adjacent.
+See [this article](/articles/network.html) for more details.
+-->
 </section><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
