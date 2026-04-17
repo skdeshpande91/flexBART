@@ -20,7 +20,7 @@ Many implementations of BART and its extensions represent categorical predictors
 Axis-aligned decision rules are well-defined with these indicators: they send one level of a categorical predictor to the left and all other levels to the right (or vice versa). 
 Regression trees built with these rules partition the set of all levels of a categorical predictor by recursively removing one level at a time.
 Unfortunately, most partitions of the levels cannot be built with this "remove one at a time" strategy, meaning these implementations are extremely limited in their ability to "borrow strength'' across groups of levels.
-Please see [Deshpande (2024)](https://doi.org/10.1080/10618600.2024.2431072) for a more detailed argument against one-hot encoding categorical predictors.
+Please see [Deshpande (2025)](https://doi.org/10.1080/10618600.2024.2431072) for a more detailed argument against one-hot encoding categorical predictors.
 
 In **flexBART**, decision rules based on a categorical predictor $X$ take the form $\{X \in \mathcal{C}\}$ where $\mathcal{C}$ is a random subset of the discrete values that $X_{j}$ can assume.
 To support such decision rules, **flexBART** implements a new decision rule prior for categorical predictors in which, conditionally on the splitting variable $X,$ the "cutset" $\mathcal{C}$ is formed by looping over all available values of $X$ and randomly assigning each to $\mathcal{C}$ with probability 1/2. 
@@ -150,6 +150,19 @@ mu_true <- function(df){
 }
 ```
 
+<!--
+  Generate X_cont, X_cat, Y
+  Fit flexBART
+  Compare it to regular BART
+
+
+  Structured: use the grid & network examples from 
+  https://github.com/skdeshpande91/flexBART/tree/91012b293bac7d1ec355286de354cf3db7b3d10c/examples
+  
+-->
+
+
+<!--
 ## Making Predictions at a New Level
 
 
@@ -163,3 +176,4 @@ You would need to
 These preferences are operationalized with a network whose vertices correspond to the levels of the predictor and whose edges encode co-clustering preference.
 An example would be spatial regions where each region is represented by a vertex in a network and an edge is drawn between vertices whose corresponding regions are geographically/spatially adjacent. 
 See [this article](/articles/network.html) for more details. 
+-->

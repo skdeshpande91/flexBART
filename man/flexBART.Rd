@@ -310,8 +310,8 @@ Chipman, H, George, E.I., and McCulloch, R. (2008) BART: Bayesian Additive Regre
 Deshpande, S.K. (2025) \bold{flexBART:} Flexible Bayesian regression trees with categorical predictors. 
 \emph{Journal of Computational and Graphical Statistics.} \bold{34}(3):1117--1126. \doi{doi:10.1080/10618600.2024.2431072}.
 
-Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2024). VCBART:Bayesian trees for varying coefficients. 
-\emph{Bayesian Analysis}. \doi{doi:10.1214/24-BA1470}.
+Deshpande, S.K., Bai, R., Balocchi, C., Starling, J.E., and Weiss, J. (2026). VCBART:Bayesian trees for varying coefficients. 
+\emph{Bayesian Analysis}. \bold{21}(1):281--308. \doi{doi:10.1214/24-BA1470}.
 
 Linero, A.R. (2018) Bayesian regression trees for high-dimensional prediction and variable selection. 
 \emph{Journal of the American Statistical Association.} \bold{113}(522):626--636. 
