@@ -232,7 +232,7 @@ oi_colors <- palette.colors(palette = "Okabe-Ito")
 train_limits <- range(c(mu_train, fit$yhat.train.mean))
 
 test_limits <- range(c(mu_test, test_summary$MEAN))
-par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0))
+par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0), mfrow = c(1,2))
 
 plot(mu_train, fit$yhat.train.mean,
      pch = 16, cex = 0.5,
