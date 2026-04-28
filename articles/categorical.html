@@ -245,14 +245,14 @@
 <span>             L95 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">test_preds</span>, MARGIN <span class="op">=</span> <span class="fl">2</span>, FUN <span class="op">=</span> <span class="va">quantile</span>, probs <span class="op">=</span> <span class="fl">0.025</span><span class="op">)</span>,</span>
 <span>             U95 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">test_preds</span>, MARGIN <span class="op">=</span> <span class="fl">2</span>, FUN <span class="op">=</span> <span class="va">quantile</span>, probs <span class="op">=</span> <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>Figure <strong>?@fig-cat-predictions</strong> plots the posterior mean estimates against the actual regression function evaluations at the training (left) and testing (right) observations.</p>
+<p>Figure <a href="#fig-cat-predictions" class="quarto-xref">Figure 1</a> plots the posterior mean estimates against the actual regression function evaluations at the training (left) and testing (right) observations.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold"><summary>View code</summary><div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">oi_colors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/palette.html" class="external-link">palette.colors</a></span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"Okabe-Ito"</span><span class="op">)</span></span>
 <span><span class="va">train_limits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">mu_train</span>, <span class="va">fit</span><span class="op">$</span><span class="va">yhat.train.mean</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">test_limits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">mu_test</span>, <span class="va">test_summary</span><span class="op">$</span><span class="va">MEAN</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>,<span class="fl">3</span>,<span class="fl">2</span>,<span class="fl">1</span><span class="op">)</span>, mgp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.8</span>, <span class="fl">0.5</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>,<span class="fl">3</span>,<span class="fl">2</span>,<span class="fl">1</span><span class="op">)</span>, mgp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.8</span>, <span class="fl">0.5</span>, <span class="fl">0</span><span class="op">)</span>, mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">mu_train</span>, <span class="va">fit</span><span class="op">$</span><span class="va">yhat.train.mean</span>,</span>
 <span>     pch <span class="op">=</span> <span class="fl">16</span>, cex <span class="op">=</span> <span class="fl">0.5</span>,</span>
@@ -268,22 +268,12 @@
 <span>     main <span class="op">=</span> <span class="st">"Testing Evaluations"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">0</span>, b <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">oi_colors</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 </details><div class="cell-output-display">
-<div id="fig-cat-predictions-1" class="quarto-float quarto-figure quarto-figure-center" data-fig-align="center">
-<figure class="quarto-float quarto-float-fig"><div aria-describedby="fig-cat-predictions-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div id="fig-cat-predictions" class="quarto-float quarto-figure quarto-figure-center" data-fig-align="center">
+<figure class="quarto-float quarto-float-fig"><div aria-describedby="fig-cat-predictions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="categorical_files/figure-html/fig-cat-predictions-1.png" class="quarto-figure quarto-figure-center" width="768">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cat-predictions-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cat-predictions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure 1: Actual (horizontal) vs fitted (vertical) values of regression function evaluated at testing observations.
-</figcaption></figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div id="fig-cat-predictions-2" class="quarto-float quarto-figure quarto-figure-center" data-fig-align="center">
-<figure class="quarto-float quarto-float-fig"><div aria-describedby="fig-cat-predictions-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="categorical_files/figure-html/fig-cat-predictions-2.png" class="quarto-figure quarto-figure-center" width="768">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cat-predictions-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure 2: Actual (horizontal) vs fitted (vertical) values of regression function evaluated at testing observations.
 </figcaption></figure>
 </div>
 </div>
