@@ -16,52 +16,63 @@ knitr:
 
 ## Background
 
-Many implementations of BART and its extensions represent categorical predictors using several binary indicators, one for each level of each categorical predictor. 
+Many implementations of BART represent categorical predictors using several binary indicators, one for each level of each categorical predictor. 
 Axis-aligned decision rules are well-defined with these indicators: they send one level of a categorical predictor to the left and all other levels to the right (or vice versa). 
 Regression trees built with these rules partition the set of all levels of a categorical predictor by recursively removing one level at a time.
-Unfortunately, most partitions of the levels cannot be built with this "remove one at a time" strategy, meaning these implementations are extremely limited in their ability to "borrow strength'' across groups of levels.
+Unfortunately, most partitions of the levels cannot be built with this "remove one at a time" strategy, meaning these implementations are extremely limited in their ability to "borrow strength" across groups of levels.
+In other words, the combination of one-hot encoding and axis-aligned decision rules prevents trees from forming small subgroups of observations defined by combinations of levels of categorical predictors.
 Please see [Deshpande (2025)](https://doi.org/10.1080/10618600.2024.2431072) for a more detailed argument against one-hot encoding categorical predictors.
 
-In **flexBART**, decision rules based on a categorical predictor $X$ take the form $\{X \in \mathcal{C}\}$ where $\mathcal{C}$ is a random subset of the discrete values that $X_{j}$ can assume.
+In **flexBART**, decision rules based on a categorical predictor $X$ take the form $\{X \in \mathcal{C}\}$ where $\mathcal{C}$ is a random subset of the discrete levels that $X_{j}$ can assume.
 To support such decision rules, **flexBART** implements a new decision rule prior for categorical predictors in which, conditionally on the splitting variable $X,$ the "cutset" $\mathcal{C}$ is formed by looping over all available values of $X$ and randomly assigning each to $\mathcal{C}$ with probability 1/2. 
 
-If a variable $X$ contained in `train_data` is of class "factor", **flexBART** determines the initial set of available values of $X$ by looking at levels of the corresponding element of `train_data`.
-As a result, **flexBART** is able to make predictions at new values of a categorical predictor not present in the training data *so long as these values are included as levels of that predictor.*
-
-## Internal Pre-Processing
+If a variable $X$ contained in `train_data` is of class "factor"[^string2factor], **flexBART** determines the initial set of available values of $X$ by looking at levels of the corresponding element of `train_data`.
+As a result, **flexBART** is able to make predictions at new values of a categorical predictor not present in the training data *so long as these values are included as levels of that factor.*
 
 Although **flexBART** will convert predictors of type "character" into "factor" variables, it is *strongly* recommended that you ensure all categorical predictors are of class "factor" *before* calling `flexBART()`. 
-Internally, `flexBART()` represents the different levels of each categorical predictor with consecutive non-negative integers. 
-The `dinfo` attribute of `flexBART()`'s output is, essentially, a list whose element `cat_mapping_list` records the mappings of all levels of a categorical predictor to the internal non-negative integer representations. 
-While it is unlikely that you will ever need this in practice, the function `predict.flexBART()` relies on this mapping to make predictions at new inputs using a fitted model. 
+
 
 ## Example
-<!-- take from DGP1 of the flexBART paper -->
+Here is an example, which is taken from Section 4 of [Deshpande (2025)](), that illustrates how **flexBART** works with categorical predictors.
+We first create a data frame of $n = 10,000$ observations of $p_{\textrm{cont}} = 10$ continuous variables (drawn uniformly from $[0,1]$) and $p_{\textrm{cat}} = 10$ categorical variables (drawn uniformly from the discrete set $\{A, B, C, D, E, F, G, H, I, J\}$).
 
 ```{r}
 #| label: generate-train-data
 #| eval: true
 #| echo: true
-n_train <- 10
+
+set.seed(428)
+n_train <- 10000
+n_test <- 5000
 p_cont <- 10
 p_cat <- 10
 
 train_data <- data.frame(Y = rep(NA, times = n_train))
-for(j in 1:p_cont) train_data[,paste0("X",j)] <- runif(n = n_train, min = 0, max = 1)
+test_data <- data.frame(Y = rep(NA, times = n_test))
+
+for(j in 1:p_cont){
+  train_data[,paste0("X",j)] <- runif(n = n_train, min = 0, max = 1)
+  test_data[,paste0("X",j)] <- runif(n_test, min = 0, max = 1)
+}
+
 for(j in 1:p_cat){
   train_data[,paste0("X",j+p_cont)] <- 
     factor(sample(LETTERS[1:10], size = n_train, replace = TRUE), 
            levels = LETTERS[1:10])
+  test_data[,paste0("X", j+p_cont)] <-
+    factor(sample(LETTERS[1:10], size = n_test, replace = TRUE), 
+           levels = LETTERS[1:10])
 }
                                              
-
 ```
 
-
+The following code block defines a regression function (`mu_true`) that depends on the continuous predictors $X_{1}, \ldots, X_{5}$ and the categorical predictor $X_{11}.$ 
 ```{r}
-#| label: base-functions
+#| label: mean-function
 #| eval: true
 #| echo: true
+#| code-fold: true
+
 friedman_part1 <- function(df){
   return(10 * sin(pi*df$X1 * df$X1)) 
 }
@@ -75,13 +86,6 @@ friedman_part3 <- function(df){
 friedman_part4 <- function(df){
   return(10*df$X4 + 5 * df$X5)
 } 
-```
-
-```{r}
-#| label: mean-function
-#| eval: true
-#| echo: true
-#| code-fold: true
 
 mu_true <- function(df){
   stopifnot(all(paste0("X",c(1:5, 11)) %in% colnames(df))) 
@@ -91,13 +95,13 @@ mu_true <- function(df){
   tmp_f1 <- friedman_part1(df)
   tmp_f2 <- friedman_part2(df)
   tmp_f3 <- friedman_part3(df)
+  tmp_f4 <- friedman_part4(df)
   
   mu <- rep(NA, times = nrow(df))
 
-  
   ixA <- which(df$X11 == "A")
   if(length(ixA) > 0){
-    mu[ixA] <- tmp_f1[ixA] + tmp_f2[ixB]
+    mu[ixA] <- tmp_f1[ixA] + tmp_f2[ixA]
   }
   
   ixB <- which(df$X11 == "B")
@@ -149,6 +153,113 @@ mu_true <- function(df){
   
 }
 ```
+
+We now evaluate the regression function on the training and testing data and generate the training observations.
+```{r}
+#| label: generate-data
+#| eval: true
+#| echo: true
+mu_train <- mu_true(train_data)
+mu_test <- mu_true(test_data)
+sigma <- 0.5
+train_data$Y <- mu_train + sigma * rnorm(n = n_train, mean = 0, sd = 1)
+test_data <- test_data[,colnames(test_data) != "Y"] #<1>
+```
+1. Removing the empty column for observations from the test data is not strictly necessary
+
+We can now fit the model using `flexBART()`. 
+```{r}
+#| label: fit-flexBART
+#| eval: true
+#| echo: true
+#| message: false
+#| output: false
+#| results: hide
+
+fit <- flexBART::flexBART(formula = Y ~ bart(.), train_data = train_data)
+```
+
+### Internal Representation of Categorical Levels
+
+Internally, `flexBART()` represents the levels of a categorical predictor with consecutive non-negative integers starting from zero.
+It first maps the reference level of the factor variable to 0 and then maps the remaining levels to positive integers.
+Importantly, `flexBART()` determines the different levels of a categorical predictor by calling the `levels()` function and not by taking the unique values of the predictor passed through the `train_data` argument.
+
+We can access the internal mapping using the `dinfo` attribute of a `flexBART()`'s output (i.e., an object of class "flexBART").
+This attribute is, essentially, a list recording important information about the training data like the number of continuous and categorical predictors (`dinfo$p_cont` and `dinfo$p_cat`); predictor names (`dinfo$cont_names`, `dinfo$cat_names`); and information needed to scale the continuous predictors to the interval $[0,1]$ (`dinfo$x_min`, `dinfo$x_max`, `dinfo$x_sd`).
+The `cat_mapping_list` element of `dinfo$ is a list of length equal to the number of categorical predictors.
+Each element of `cat_mapping_list` is a data frame with columns listing the levels of the corresponding predictor and the non-negative integer coding.
+For instance, here is the mapping used for the variable $X_{11}$ in this example
+```{r}
+#| label: access-cat-mapping
+#| eval: true
+#| echo: true
+fit$dinfo$cat_mapping_list[["X11"]]
+```
+
+While it is unlikely that you will ever need this in practice, the function `predict.flexBART()` relies on this mapping to make out-of-sample predictions.
+
+### Predictions
+
+We can get posterior samples of the regression function evaluated at the test set observations using `predict()`.
+Like we did when training the model, we do not need to do any additional external pre-processing of the categorical features.
+We then compute simple posterior summaries. 
+```{r}
+#| label: get-predictions
+#| message: false
+#| output: false
+#| results: hide
+test_preds <- predict(object = fit, newdata = test_data)
+test_summary <-
+  data.frame(MEAN = apply(test_preds, MARGIN = 2, FUN = mean),
+             L95 = apply(test_preds, MARGIN = 2, FUN = quantile, probs = 0.025),
+             U95 = apply(test_preds, MARGIN = 2, FUN = quantile, probs = 0.975))
+```
+
+Figure @fig-cat-predictions plots the posterior mean estimates against the actual regression function evaluations at the training (left) and testing (right) observations.
+
+```{r}
+#| label: fig-cat-predictions
+#| eval: true
+#| echo: true
+#| code-fold: true
+#| code-summary: "View code"
+#| fig-width: 8
+#| fig-height: 4
+#| fig-align: "center"
+#| fig-cap: "Actual (horizontal) vs fitted (vertical) values of regression function evaluated at testing observations."
+oi_colors <- palette.colors(palette = "Okabe-Ito")
+train_limits <- range(c(mu_train, fit$yhat.train.mean))
+
+test_limits <- range(c(mu_test, test_summary$MEAN))
+par(mar = c(3,3,2,1), mgp = c(1.8, 0.5, 0))
+
+plot(mu_train, fit$yhat.train.mean,
+     pch = 16, cex = 0.5,
+     xlim = train_limits, ylim = train_limits,
+     xlab = "Actual", ylab = "Posterior Mean",
+     main = "Training Evaluations")
+abline(a = 0, b = 1, col = oi_colors[3])
+
+plot(mu_test, test_summary$MEAN,
+     pch = 16, cex = 0.5,
+     xlim = test_limits, ylim = test_limits,
+     xlab = "Actual", ylab = "Posterior Mean",
+     main = "Testing Evaluations")
+abline(a = 0, b = 1, col = oi_colors[3])
+```
+
+At least for these data, the pointwise out-of-sample posterior credible intervals display higher-than-nominal coverage.
+```{r}
+#| label: test-coverage
+#| eval: true
+#| echo: true
+mean( mu_test >= test_summary$L95 & mu_test <= test_summary$U95)
+```
+
+
+
+
 
 <!--
   Generate X_cont, X_cat, Y
