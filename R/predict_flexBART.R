@@ -21,7 +21,7 @@ predict.flexBART <- function(object, newdata, ...)
   }
   if(is.null(object$trees)) stop("No trees provided!")
   nd <- length(object$trees)
-  print_every <- floor(nd/10)
+  print_every <- max(c(1,floor(nd/10)))
 
   n <- nrow(newdata)
   cov_ensm <- object[["cov_ensm"]]
