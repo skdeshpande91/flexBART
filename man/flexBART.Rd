@@ -264,19 +264,19 @@ Only returned if \code{save_samples = TRUE}.}
 
 \examples{
 
-## A modified version of Friedman's function with 50 predictors in [-1,1]
+## A modified version of Friedman's function with 10 predictors in [-1,1]
 set.seed(99)
 mu_true <- function(df){
   # Recenter to [0,1]
   tmp_X <- (df+1)/2
   return(10*sin(pi*tmp_X[,1] * tmp_X[,2]) + 
-           20 * (tmp_X[,8] - 0.5)^2 + 
-           10 * tmp_X[,17] + 
-           5 * tmp_X[,20])
+           20 * (tmp_X[,3] - 0.5)^2 + 
+           10 * tmp_X[,4] + 
+           5 * tmp_X[,5])
 }
 ## Set problem dimensions
-n_train <- 500
-p_cont <- 50
+n_train <- 50
+p_cont <- 10
 
 ## Set residual error variance
 sigma <- 1
@@ -289,9 +289,12 @@ train_data[,"Y"] <- mu_train + sigma * rnorm(n = n_train, mean = 0, sd = 1)
 
 
 ## Fit flexBART model
+# This is only a toy run with 2 MCMC iterations that finishes
+# within timelimits set by CRAN's checker.
+# Really should be run with more iterations
 fit <-
   flexBART(formula = Y~bart(.),
-           train_data = train_data)
+           train_data = train_data, nd = 1, burn = 1, n.chains = 1)
            
 \donttest{
   ## Plot the posterior mean regression function evaluations (i.e., fitted values)
